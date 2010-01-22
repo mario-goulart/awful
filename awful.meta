@@ -1,0 +1,9 @@
+;;; awful.meta -*- scheme -*-
+
+((egg "awful.egg")
+ (synopsis "awful provides an application and an extension to ease the development of web-based applications.")
+ (author "Mario Domenech Goulart")
+ (license "BSD")
+ (category web)
+ (needs spiffy miscmacros postgresql spiffy-request-vars html-tags html-utils http-session)
+ (files "awful.scm" "awful.setup" "awful.html" "awful-server.scm"))
