@@ -5,5 +5,5 @@
  (author "Mario Domenech Goulart")
  (license "BSD")
  (category web)
- (needs spiffy miscmacros postgresql spiffy-request-vars html-tags html-utils http-session)
+ (needs spiffy miscmacros postgresql spiffy-request-vars html-tags html-utils http-session jsmin)
  (files "awful.scm" "awful.setup" "awful.html" "awful-server.scm"))

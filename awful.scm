@@ -9,16 +9,17 @@
    web-repl-access-denied-message session-inspector-access-control
    session-inspector-access-denied-message page-exception-message
    http-request-variables db-connection page-javascript sid
+   enable-javascript-compression javascript-compressor
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
    $session-set! $ $db $db-row-obj sql-quote define-page ajax
    ajax-link periodical-ajax login-form define-login-trampoline
    enable-web-repl enable-session-inspector awful-version load-apps
-   
+
    ;; Required by the awful server
-   add-resource! register-dispatcher)
-   
+   add-resource! register-dispatcher register-root-dir-handler)
+
 (import scheme chicken data-structures utils extras regex ports srfi-69 files)
 
 ;; Units
@@ -26,10 +27,10 @@
 
 ;; Eggs
 (use miscmacros postgresql sql-null intarweb spiffy spiffy-request-vars
-     html-tags html-utils uri-common http-session)
+     html-tags html-utils uri-common http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.1")
+(define (awful-version) "0.2")
 
 
 ;;; Parameters
@@ -62,6 +63,8 @@
 (define-parameter web-repl-access-denied-message (<h3> "Access denied."))
 (define-parameter session-inspector-access-control (lambda () #f))
 (define-parameter session-inspector-access-denied-message (<h3> "Access denied."))
+(define-parameter enable-javascript-compression #f)
+(define-parameter javascript-compressor jsmin-string)
 (define-parameter page-exception-message
   (lambda (exn)
     (<h3> "An error has accurred while processing your request.")))
@@ -96,6 +99,13 @@
 
 (define (add-javascript . code)
   (page-javascript (++ (page-javascript) (concat code))))
+
+(define (maybe-compress-javascript js no-javascript-compression)
+  (if (and (enable-javascript-compression)
+           (javascript-compressor)
+           (not no-javascript-compression))
+      (string-trim-both ((javascript-compressor) js))
+      js))
 
 
 ;;; Debugging
@@ -189,24 +199,26 @@
 
 
 ;;; Root dir
-(handle-directory
- (let ((old-handler (handle-directory)))
-   (lambda (path)
-     (if (equal? path "/")
-         (let ((data (html-page
-                      ""
-                      headers: (<meta> http-equiv: "refresh" content: (++ "0;url=" (main-page-path))))))
-           (with-headers `((content-type text/html)
-                           (content-length ,(string-length data)))
-                         (lambda ()
-                           (write-logged-response)
-                           (unless (eq? 'HEAD (request-method (current-request)))
-                             (display data (response-port (current-response)))))))
-         (old-handler)))))
+(define (register-root-dir-handler)
+  (handle-directory
+   (let ((old-handler (handle-directory)))
+     (lambda (path)
+       (if (equal? path "/")
+           (let ((data (html-page
+                        ""
+                        headers: (<meta> http-equiv: "refresh" content: (++ "0;url=" (main-page-path))))))
+             (with-headers `((content-type text/html)
+                             (content-length ,(string-length data)))
+                           (lambda ()
+                             (write-logged-response)
+                             (unless (eq? 'HEAD (request-method (current-request)))
+                               (display data (response-port (current-response)))))))
+           (old-handler path))))))
 
 
 ;;; Pages
-(define (define-page path contents #!key css title doctype headers charset no-ajax no-template no-session no-db vhost-root-path)
+(define (define-page path contents #!key css title doctype headers charset no-ajax
+                     no-template no-session no-db vhost-root-path no-javascript-compression)
   (let ((path (make-pathname (app-root-path) path)))
     (add-resource!
      path
@@ -250,10 +262,15 @@
                                                   (not (ajax-library)))
                                               (if (string-null? (page-javascript))
                                                   ""
-                                                  (<script> type: "text/javascript" (page-javascript)))
+                                                  (<script> type: "text/javascript"
+                                                            (maybe-compress-javascript
+                                                             (page-javascript)
+                                                             no-javascript-compression)))
                                               (<script> type: "text/javascript"
-                                                        "$(document).ready(function(){"
-                                                        (page-javascript) "});")))
+                                                        (maybe-compress-javascript
+                                                         (++ "$(document).ready(function(){"
+                                                             (page-javascript) "});")
+                                                         no-javascript-compression))))
                              charset: (or charset (page-charset)))))
                       ((page-template) ((page-access-denied-message) path)))
                   ((page-template)

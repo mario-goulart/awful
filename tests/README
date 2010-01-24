@@ -1,0 +1,5 @@
+To run the tests in this directory, execute:
+
+  $ awful conf.scm <test>.scm
+
+The conf.scm file contains settings which ease debugging.

@@ -15,5 +15,6 @@
     (add-resource! (reload-path)
                    (root-path)
                    (lambda () (load-apps apps))))
+  (register-root-dir-handler)
   (register-dispatcher)
   (start-server))

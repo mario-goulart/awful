@@ -3,8 +3,9 @@
 ;;
 ;;    $ awful ajax.scm conf.scm
 
-(require-extension spiffy html-tags)
+(require-extension spiffy awful html-tags)
 
+(root-path ".")
 (debug-log (current-error-port))
 
 (page-exception-message
