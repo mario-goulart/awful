@@ -1,6 +1,6 @@
 #!/usr/bin/csi -script
 
-(require-extension posix awful html-tags)
+(use posix awful html-tags)
 
 (enable-ajax #t)
 

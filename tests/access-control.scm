@@ -1,4 +1,4 @@
-(require-extension awful)
+(use awful)
 
 (enable-session #t)
 

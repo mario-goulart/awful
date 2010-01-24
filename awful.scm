@@ -30,7 +30,7 @@
      html-tags html-utils uri-common http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.2")
+(define (awful-version) "0.3")
 
 
 ;;; Parameters

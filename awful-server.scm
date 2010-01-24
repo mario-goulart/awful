@@ -1,6 +1,7 @@
 #!/usr/bin/csi -script
 ;; -*- scheme -*-
 
+(declare (uses chicken-syntax))
 (use posix spiffy miscmacros html-tags awful)
 
 (define (usage #!optional exit-code)

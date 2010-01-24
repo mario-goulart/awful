@@ -1,6 +1,6 @@
 #!/usr/bin/csi -script
 
-(require-extension posix html-tags)
+(use posix html-tags)
 
 (enable-ajax #t)
 (enable-javascript-compression #f)

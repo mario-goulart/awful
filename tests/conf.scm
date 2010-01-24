@@ -3,7 +3,7 @@
 ;;
 ;;    $ awful ajax.scm conf.scm
 
-(require-extension spiffy awful html-tags)
+(use spiffy awful html-tags)
 
 (root-path ".")
 (debug-log (current-error-port))
