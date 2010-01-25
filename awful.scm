@@ -30,7 +30,7 @@
      html-tags html-utils uri-common http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.4")
+(define (awful-version) "0.5")
 
 
 ;;; Parameters
@@ -89,7 +89,11 @@
 
 (define (load-apps apps)
   (set! *resources* (make-hash-table equal?))
-  (for-each load apps)
+  (for-each load apps)  
+  (unless (enable-reload)
+    (add-resource! (reload-path)
+                   (root-path)
+                   (lambda () (load-apps apps))))
   (reload-message))
 
 
