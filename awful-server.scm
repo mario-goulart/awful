@@ -12,7 +12,7 @@
   (when (null? apps)
     (usage 1))
   (load-apps apps)
-  (unless (disable-reload?)
+  (unless (enable-reload)
     (add-resource! (reload-path)
                    (root-path)
                    (lambda () (load-apps apps))))

@@ -1,6 +1,6 @@
 (module awful
   (;; Parameters
-   reload-path reload-message disable-reload? debug-file debug-db-query?
+   reload-path reload-message enable-reload debug-file debug-db-query?
    debug-db-query-prefix db-credentials enable-db ajax-library
    enable-ajax ajax-namespace enable-session page-access-control
    page-access-denied-message page-doctype page-css page-charset
@@ -30,7 +30,7 @@
      html-tags html-utils uri-common http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.3")
+(define (awful-version) "0.4")
 
 
 ;;; Parameters
@@ -38,7 +38,7 @@
 ;; User-configurable parameters
 (define-parameter reload-path "/reload")
 (define-parameter reload-message (<h3> "Reloaded."))
-(define-parameter disable-reload? #f)
+(define-parameter enable-reload #f)
 (define-parameter debug-file #f)
 (define-parameter debug-db-query? #t)
 (define-parameter debug-db-query-prefix "")
