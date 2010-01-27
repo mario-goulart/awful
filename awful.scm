@@ -30,7 +30,7 @@
      html-tags html-utils uri-common http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.6")
+(define (awful-version) "0.7")
 
 
 ;;; Parameters
@@ -363,7 +363,8 @@
       ""))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
-                   js no-session no-db (event 'click) vhost-root-path)
+                   js no-session no-db (event 'click) vhost-root-path class
+                   hreflang type rel rev charset coords shape accesskey tabindex a-target)
   (ajax path id event proc
         target: target
         action: action
@@ -372,7 +373,19 @@
         js: js
         no-session: no-session
         no-db: no-db)
-  (<a> href: "#" id: id text))
+  (<a> href: "#"
+       id: id
+       hreflang: hreflang
+       type: type
+       rel: rel
+       rev: rev
+       charset: charset
+       coords: coords
+       shape: shape
+       accesskey: accesskey
+       tabindex: tabindex
+       target: a-target
+       text))
 
 
 ;;; Login form
