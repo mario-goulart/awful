@@ -16,10 +16,9 @@
    $session-set! $ $db $db-row-obj sql-quote define-page ajax
    ajax-link periodical-ajax login-form define-login-trampoline
    enable-web-repl enable-session-inspector awful-version load-apps
-   awful-start
 
    ;; Required by the awful server
-   add-resource! register-dispatcher register-root-dir-handler)
+   add-resource! register-dispatcher register-root-dir-handler awful-start)
 
 (import scheme chicken data-structures utils extras regex ports srfi-69 files)
 
