@@ -16,6 +16,7 @@
    $session-set! $ $db $db-row-obj sql-quote define-page ajax
    ajax-link periodical-ajax login-form define-login-trampoline
    enable-web-repl enable-session-inspector awful-version load-apps
+   awful-start
 
    ;; Required by the awful server
    add-resource! register-dispatcher register-root-dir-handler)
@@ -26,55 +27,56 @@
 (use posix srfi-13)
 
 ;; Eggs
-(use miscmacros postgresql sql-null intarweb spiffy spiffy-request-vars
+(use postgresql sql-null intarweb spiffy spiffy-request-vars
      html-tags html-utils uri-common http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.7")
+(define (awful-version) "0.8")
 
 
 ;;; Parameters
 
 ;; User-configurable parameters
-(define-parameter reload-path "/reload")
-(define-parameter reload-message (<h3> "Reloaded."))
-(define-parameter enable-reload #f)
-(define-parameter debug-file #f)
-(define-parameter debug-db-query? #t)
-(define-parameter debug-db-query-prefix "")
-(define-parameter db-credentials #f)
-(define-parameter enable-db #f)
-(define-parameter ajax-library "http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js")
-(define-parameter enable-ajax #f)
-(define-parameter ajax-namespace "ajax")
-(define-parameter enable-session #f)
-(define-parameter page-access-control (lambda (path) #t))
-(define-parameter page-access-denied-message (lambda (path) (<h3> "Access denied.")))
-(define-parameter page-doctype "")
-(define-parameter page-css #f)
-(define-parameter page-charset #f)
-(define-parameter login-page-path "/login") ;; don't forget no-session: #t for this page
-(define-parameter main-page-path "/main")
-(define-parameter app-root-path "/")
-(define-parameter valid-password? (lambda (user password) #f))
-(define-parameter page-template html-page)
-(define-parameter ajax-invalid-session-message "Invalid session.")
-(define-parameter web-repl-access-control (lambda () #f))
-(define-parameter web-repl-access-denied-message (<h3> "Access denied."))
-(define-parameter session-inspector-access-control (lambda () #f))
-(define-parameter session-inspector-access-denied-message (<h3> "Access denied."))
-(define-parameter enable-javascript-compression #f)
-(define-parameter javascript-compressor jsmin-string)
-(define-parameter page-exception-message
-  (lambda (exn)
-    (<h3> "An error has accurred while processing your request.")))
+(define reload-path (make-parameter "/reload"))
+(define reload-message (make-parameter (<h3> "Reloaded.")))
+(define enable-reload (make-parameter #f))
+(define debug-file (make-parameter #f))
+(define debug-db-query? (make-parameter #t))
+(define debug-db-query-prefix (make-parameter ""))
+(define db-credentials (make-parameter #f))
+(define enable-db (make-parameter #f))
+(define ajax-library (make-parameter "http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.min.js"))
+(define enable-ajax (make-parameter #f))
+(define ajax-namespace (make-parameter "ajax"))
+(define enable-session (make-parameter #f))
+(define page-access-control (make-parameter (lambda (path) #t)))
+(define page-access-denied-message (make-parameter (lambda (path) (<h3> "Access denied."))))
+(define page-doctype (make-parameter ""))
+(define page-css (make-parameter #f))
+(define page-charset (make-parameter #f))
+(define login-page-path (make-parameter "/login")) ;; don't forget no-session: #t for this page
+(define main-page-path (make-parameter "/main"))
+(define app-root-path (make-parameter "/"))
+(define valid-password? (make-parameter (lambda (user password) #f)))
+(define page-template (make-parameter html-page))
+(define ajax-invalid-session-message (make-parameter "Invalid session."))
+(define web-repl-access-control (make-parameter (lambda () #f)))
+(define web-repl-access-denied-message (make-parameter (<h3> "Access denied.")))
+(define session-inspector-access-control (make-parameter (lambda () #f)))
+(define session-inspector-access-denied-message (make-parameter (<h3> "Access denied.")))
+(define enable-javascript-compression (make-parameter #f))
+(define javascript-compressor (make-parameter jsmin-string))
+(define page-exception-message
+  (make-parameter
+   (lambda (exn)
+     (<h3> "An error has accurred while processing your request."))))
 
 
 ;; Parameters for internal use
-(define-parameter http-request-variables #f)
-(define-parameter db-connection #f)
-(define-parameter page-javascript "")
-(define-parameter sid #f)
+(define http-request-variables (make-parameter #f))
+(define db-connection (make-parameter #f))
+(define page-javascript (make-parameter ""))
+(define sid (make-parameter #f))
 
 ;;; Misc
 (define ++ string-append)
@@ -89,13 +91,14 @@
 
 (define (load-apps apps)
   (set! *resources* (make-hash-table equal?))
-  (for-each load apps)  
+  (for-each load apps)
   (unless (enable-reload)
     (add-resource! (reload-path)
                    (root-path)
                    (lambda () (load-apps apps))))
   (reload-message))
 
+(define awful-start start-server)
 
 ;;; Javascript
 (define (include-javascript file)
@@ -288,7 +291,7 @@
 
 ;;; Ajax
 (define (ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '())
-              js no-session no-db no-page-javascript vhost-root-path)
+              js no-session no-db no-page-javascript vhost-root-path live)
   (if (enable-ajax)
       (let ((path (make-pathname (list (app-root-path) (ajax-namespace)) path)))
         (add-resource! path
@@ -318,10 +321,9 @@
                               (cons `(sid . ,(++ "'" (sid) "'")) arguments)))
                (js (++ (page-javascript)
                        (if (and id event)
-                           (++ "$('#" (->string id) "')."
-                               (if (list? event)
-                                   (++ "bind('" (concat event " ") "',")
-                                   (++ (->string event) "(")))
+                           (let ((events (concat (if (list? event) event (list event)) " "))
+                                 (binder (if live "live" "bind")))
+                             (++ "$('#" (->string id) "')." binder "('" events "',"))
                            "")
                        "function(){$.ajax({type:'" (->string method) "',"
                        "url:'" path "',"
@@ -346,7 +348,7 @@
       "")) ;; empty if no-ajax
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
-                         (arguments '()) js no-session no-db vhost-root-path)
+                         (arguments '()) js no-session no-db vhost-root-path live)
   (if (enable-ajax)
       (page-javascript
        (++ "setInterval("
@@ -358,12 +360,14 @@
                  js: js
                  no-session: no-session
                  no-db: no-db
+                 vhost-root-path: vhost-root-path
+                 live: live
                  no-page-javascript: #t)
            ", " (->string interval) ");\n"))
       ""))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
-                   js no-session no-db (event 'click) vhost-root-path class
+                   js no-session no-db (event 'click) vhost-root-path live class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target)
   (ajax path id event proc
         target: target
@@ -372,6 +376,8 @@
         arguments: arguments
         js: js
         no-session: no-session
+        vhost-root-path: vhost-root-path
+        live: live
         no-db: no-db)
   (<a> href: "#"
        id: id
