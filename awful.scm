@@ -30,7 +30,7 @@
      html-tags html-utils uri-common http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.8")
+(define (awful-version) "0.9")
 
 
 ;;; Parameters
@@ -283,7 +283,8 @@
                    ""
                    headers: (<meta> http-equiv: "refresh"
                                     content: (++ "0;url=" (login-page-path)
-                                                 "?reason=invalid-session&attempted-path=" path))))))
+                                                 "?reason=invalid-session&attempted-path=" path
+                                                 "&user=" ($ 'user "")))))))
          (when (and (db-connection) (enable-db) (not no-db)) (disconnect (db-connection)))
          out)))))
 
@@ -397,14 +398,16 @@
 (define (login-form #!key (user-label "User: ")
                           (password-label "Password: ")
                           (submit-label "Submit")
-                          (trampoline-path "/login-trampoline"))
-  (let ((attempted-path ($ 'attempted-path)))
+                          (trampoline-path "/login-trampoline")
+                          (refill-user #t))
+  (let ((attempted-path ($ 'attempted-path))
+        (user ($ 'user)))
     (<form> action: trampoline-path method: "post"
             (if attempted-path
                 (hidden-input 'attempted-path attempted-path)
                 "")
             (<span> id: "user-label" user-label)
-            (<input> type: "text" id: "user" name: "user")
+            (<input> type: "text" id: "user" name: "user" value: (and refill-user user))
             (<span> id: "password-label" password-label)
             (<input> type: "password" id: "password" name: "password")
             (<input> type: "submit" id: "login-submit" value: submit-label))))
@@ -428,7 +431,7 @@
                           content: (++ "0;url="
                                        (if new-sid
                                            (++ (or attempted-path (main-page-path)) "?user=" user "&sid=" new-sid)
-                                           (++ (login-page-path) "?reason=invalid-password")))))))
+                                           (++ (login-page-path) "?reason=invalid-password&user=" user)))))))
     vhost-root-path: vhost-root-path
     no-session: #t
     no-template: #t))
