@@ -1,10 +1,9 @@
 ;;; awful.meta -*- scheme -*-
 
-((egg "awful.egg")
- (synopsis "awful provides an application and an extension to ease the development of web-based applications.")
+((egg "awful-sqlite3.egg")
+ (synopsis "Sqlite3 support for awful")
  (author "Mario Domenech Goulart")
  (license "BSD")
  (category web)
- (depends spiffy miscmacros postgresql spiffy-request-vars
-          html-tags html-utils (http-session 2.0) jsmin)
- (files "awful.scm" "awful.setup" "awful.html" "awful-server.scm"))
+ (depends awful sqlite3)
+ (files "awful-sqlite3.scm" "awful-sqlite3.setup" "awful-sqlite3.html"))

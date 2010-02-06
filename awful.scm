@@ -1,7 +1,7 @@
 (module awful
   (;; Parameters
    reload-path reload-message enable-reload debug-file debug-db-query?
-   debug-db-query-prefix db-credentials enable-db ajax-library
+   debug-db-query-prefix db-credentials ajax-library
    enable-ajax ajax-namespace enable-session page-access-control
    page-access-denied-message page-doctype page-css page-charset
    login-page-path main-page-path app-root-path valid-password?
@@ -18,7 +18,12 @@
    enable-web-repl enable-session-inspector awful-version load-apps
 
    ;; Required by the awful server
-   add-resource! register-dispatcher register-root-dir-handler awful-start)
+   add-resource! register-dispatcher register-root-dir-handler awful-start
+
+   ;; Required by db-support eggs
+   db-enabled? db-inquirer db-connect db-disconnect sql-quoter db-make-row-obj
+
+  ) ; end export list
 
 (import scheme chicken data-structures utils extras regex ports srfi-69 files)
 
@@ -26,11 +31,11 @@
 (use posix srfi-13)
 
 ;; Eggs
-(use postgresql sql-null intarweb spiffy spiffy-request-vars
-     html-tags html-utils uri-common http-session jsmin)
+(use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
+     http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.9")
+(define (awful-version) "0.10")
 
 
 ;;; Parameters
@@ -43,7 +48,6 @@
 (define debug-db-query? (make-parameter #t))
 (define debug-db-query-prefix (make-parameter ""))
 (define db-credentials (make-parameter #f))
-(define enable-db (make-parameter #f))
 (define ajax-library (make-parameter "http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.min.js"))
 (define enable-ajax (make-parameter #f))
 (define ajax-namespace (make-parameter "ajax"))
@@ -76,6 +80,16 @@
 (define db-connection (make-parameter #f))
 (define page-javascript (make-parameter ""))
 (define sid (make-parameter #f))
+(define db-enabled? (make-parameter #f))
+
+;; db-support parameters (set by awful-<db> eggs)
+(define missing-db-msg "Database access is not enabled (see `enable-db').")
+(define db-inquirer (make-parameter (lambda (query) (error '$db missing-db-msg))))
+(define db-connect (make-parameter (lambda (credentials) (error 'db-connect missing-db-msg))))
+(define db-disconnect (make-parameter (lambda (connection) (error 'db-disconnect missing-db-msg))))
+(define sql-quoter (make-parameter (lambda args (error 'sql-quote missing-db-msg))))
+(define db-make-row-obj (make-parameter (lambda (q) (error '$db-row-obj missing-db-msg))))
+
 
 ;;; Misc
 (define ++ string-append)
@@ -149,26 +163,20 @@
 
 
 ;;; DB access
+(define ($db q #!key default)
+  (debug-query q)
+  ((db-inquirer) q default: default))
+
 (define (debug-query q)
   (when (and (debug-file) (debug-db-query?))
     (debug (++ (debug-db-query-prefix) q))))
 
-(define ($db q #!optional default)
-  (debug-query q)
-  (let ((result (query* (db-connection) q)))
-    (if (zero? (row-count result))
-        default
-        (row-map identity result))))
-
 (define ($db-row-obj q)
   (debug-query q)
-  (let ((result (row-alist (query* (db-connection) q))))
-    (lambda (field #!optional default)
-      (or (alist-ref field result)
-          default))))
+  ((db-make-row-obj) q))
 
 (define (sql-quote . data)
-  (++ "'" (escape-string (db-connection) (concat data)) "'"))
+  ((sql-quoter) data))
 
 
 ;;; Resources
@@ -232,8 +240,8 @@
      (lambda ()
        (http-request-variables (request-vars))
        (sid ($ 'sid))
-       (when (and (db-credentials) (enable-db) (not no-db))
-         (db-connection (connect (db-credentials))))
+       (when (and (db-credentials) (db-enabled?) (not no-db))
+         (db-connection ((db-connect) (db-credentials))))
        (page-javascript "")
        (awful-refresh-session!)
        (let ((out
@@ -285,7 +293,7 @@
                                     content: (++ "0;url=" (login-page-path)
                                                  "?reason=invalid-session&attempted-path=" path
                                                  "&user=" ($ 'user "")))))))
-         (when (and (db-connection) (enable-db) (not no-db)) (disconnect (db-connection)))
+         (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
          out)))))
 
 
@@ -299,16 +307,16 @@
                        (lambda ()
                          (http-request-variables (request-vars))
                          (sid ($ 'sid))
-                         (when (and (db-credentials) (enable-db) (not no-db))
-                           (db-connection (connect (db-credentials))))
+                         (when (and (db-credentials) (db-enabled?) (not no-db))
+                           (db-connection ((db-connect) (db-credentials))))
                          (awful-refresh-session!)
                          (if (or (not (enable-session))
                                  no-session
                                  (and (enable-session) (session-valid? (sid))))
                              (if ((page-access-control) path)
                                  (let ((out (proc)))
-                                   (when (and (db-credentials) (enable-db) (not no-db))
-                                     (disconnect (db-connection)))
+                                   (when (and (db-credentials) (db-enabled?) (not no-db))
+                                     ((db-disconnect) (db-connection)))
                                    out)
                                  ((page-access-denied-message) path))
                              (ajax-invalid-session-message))))
