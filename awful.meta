@@ -2,7 +2,7 @@
 
 ((egg "awful-sqlite3.egg")
  (synopsis "Sqlite3 support for awful")
- (author "Mario Domenech Goulart")
+ (author "[[http://chicken.wiki.br/users/mario-domenech-goulart|Mario Domenech Goulart]]")
  (license "BSD")
  (category web)
  (depends awful sqlite3)
