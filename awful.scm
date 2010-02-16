@@ -35,7 +35,7 @@
      http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.10")
+(define (awful-version) "0.11")
 
 
 ;;; Parameters
@@ -180,6 +180,8 @@
 
 
 ;;; Resources
+(root-path (current-directory))
+
 (define *resources* (make-hash-table equal?))
 
 (define (register-dispatcher)

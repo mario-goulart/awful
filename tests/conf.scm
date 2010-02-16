@@ -5,7 +5,6 @@
 
 (use spiffy awful html-tags)
 
-(root-path ".")
 (debug-log (current-error-port))
 
 (page-exception-message
