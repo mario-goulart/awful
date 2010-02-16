@@ -35,7 +35,7 @@
      http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.11")
+(define (awful-version) "0.12")
 
 
 ;;; Parameters
@@ -416,10 +416,12 @@
             (if attempted-path
                 (hidden-input 'attempted-path attempted-path)
                 "")
-            (<span> id: "user-label" user-label)
-            (<input> type: "text" id: "user" name: "user" value: (and refill-user user))
-            (<span> id: "password-label" password-label)
-            (<input> type: "password" id: "password" name: "password")
+            (<span> id: "user-container"
+                    (<span> id: "user-label" user-label)
+                    (<input> type: "text" id: "user" name: "user" value: (and refill-user user)))
+            (<span> id: "password-container"
+                    (<span> id: "password-label" password-label)
+                    (<input> type: "password" id: "password" name: "password"))
             (<input> type: "submit" id: "login-submit" value: submit-label))))
 
 
