@@ -16,6 +16,7 @@
    $session-set! $ $db $db-row-obj sql-quote define-page ajax
    ajax-link periodical-ajax login-form define-login-trampoline
    enable-web-repl enable-session-inspector awful-version load-apps
+   link form
 
    ;; Required by the awful server
    add-resource! register-dispatcher register-root-dir-handler awful-start
@@ -35,7 +36,7 @@
      http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.12")
+(define (awful-version) "0.13")
 
 
 ;;; Parameters
@@ -155,6 +156,39 @@
 (define (awful-refresh-session!)
   (when (and (enable-session) (session-valid? (sid)))
     (session-refresh! (sid))))
+
+
+;;; Session-aware procedures for HTML code generation
+(define (link url text . rest)
+  (let ((use-session? (and (enable-session) (not (get-keyword no-session: rest))))
+        (args (or (get-keyword args: rest) '()))
+        (separator (or (get-keyword separator: rest) ";&")))
+    (apply <a>
+           (append
+            (list href: (if url
+                            (++ url
+                                (if (or args use-session?)
+                                    (++ "?"
+                                        (form-urlencode
+                                         (append args
+                                                 (if use-session?
+                                                     `((sid . ,(sid)))
+                                                     '()))
+                                         separator: separator))
+                                    ""))
+                            "#"))
+            rest
+            (list text)))))
+
+(define (form contents . rest)
+  (let ((use-session? (and (enable-session) (not (get-keyword no-session: rest)))))
+    (apply <form>
+           (append rest
+                   (list
+                    (++ (if use-session?
+                            (hidden-input 'sid (sid))
+                            "")
+                        contents))))))
 
 
 ;;; HTTP request variables access
@@ -391,6 +425,7 @@
         no-db: no-db)
   (<a> href: "#"
        id: id
+       class: class
        hreflang: hreflang
        type: type
        rel: rel
