@@ -36,7 +36,7 @@
      http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.13")
+(define (awful-version) "0.14")
 
 
 ;;; Parameters
@@ -161,16 +161,16 @@
 ;;; Session-aware procedures for HTML code generation
 (define (link url text . rest)
   (let ((use-session? (and (enable-session) (not (get-keyword no-session: rest))))
-        (args (or (get-keyword args: rest) '()))
+        (arguments (or (get-keyword arguments: rest) '()))
         (separator (or (get-keyword separator: rest) ";&")))
     (apply <a>
            (append
             (list href: (if url
                             (++ url
-                                (if (or args use-session?)
+                                (if (or arguments use-session?)
                                     (++ "?"
                                         (form-urlencode
-                                         (append args
+                                         (append arguments
                                                  (if use-session?
                                                      `((sid . ,(sid)))
                                                      '()))
