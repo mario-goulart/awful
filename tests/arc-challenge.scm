@@ -1,4 +1,4 @@
-(use awful html-tags html-utils spiffy-request-vars)
+(use awful html-utils spiffy-request-vars)
 
 (define-session-page "said"
   (lambda ()
