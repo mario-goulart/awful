@@ -36,7 +36,7 @@
      http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.14")
+(define (awful-version) "0.15")
 
 
 ;;; Parameters
@@ -49,7 +49,7 @@
 (define debug-db-query? (make-parameter #t))
 (define debug-db-query-prefix (make-parameter ""))
 (define db-credentials (make-parameter #f))
-(define ajax-library (make-parameter "http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.min.js"))
+(define ajax-library (make-parameter "http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"))
 (define enable-ajax (make-parameter #f))
 (define ajax-namespace (make-parameter "ajax"))
 (define enable-session (make-parameter #f))
