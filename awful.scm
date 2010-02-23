@@ -13,8 +13,8 @@
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
-   $session-set! $ $db $db-row-obj sql-quote define-page ajax
-   ajax-link periodical-ajax login-form define-login-trampoline
+   $session-set! $ $db $db-row-obj sql-quote define-page define-session-page
+   ajax ajax-link periodical-ajax login-form define-login-trampoline
    enable-web-repl enable-session-inspector awful-version load-apps
    link form
 
@@ -36,7 +36,7 @@
      http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.15")
+(define (awful-version) "0.16")
 
 
 ;;; Parameters
@@ -160,14 +160,16 @@
 
 ;;; Session-aware procedures for HTML code generation
 (define (link url text . rest)
-  (let ((use-session? (and (enable-session) (not (get-keyword no-session: rest))))
+  (let ((use-session? (and (sid)
+                           (session-valid? (sid))
+                           (not (get-keyword no-session: rest))))
         (arguments (or (get-keyword arguments: rest) '()))
         (separator (or (get-keyword separator: rest) ";&")))
     (apply <a>
            (append
             (list href: (if url
                             (++ url
-                                (if (or arguments use-session?)
+                                (if (or use-session? (not (null? arguments)))
                                     (++ "?"
                                         (form-urlencode
                                          (append arguments
@@ -181,7 +183,9 @@
             (list text)))))
 
 (define (form contents . rest)
-  (let ((use-session? (and (enable-session) (not (get-keyword no-session: rest)))))
+  (let ((use-session? (and (sid)
+                           (session-valid? (sid))
+                           (not (get-keyword no-session: rest)))))
     (apply <form>
            (append rest
                    (list
@@ -268,7 +272,8 @@
 
 ;;; Pages
 (define (define-page path contents #!key css title doctype headers charset no-ajax
-                     no-template no-session no-db vhost-root-path no-javascript-compression)
+                     no-template no-session no-db vhost-root-path no-javascript-compression
+                     use-session) ;; for define-session-page
   (let ((path (make-pathname (app-root-path) path)))
     (add-resource!
      path
@@ -283,45 +288,51 @@
        (let ((out
               (if (or (not (enable-session))
                       no-session
+                      use-session
                       (and (enable-session) (session-valid? (sid))))
                   (if (or no-session (not (enable-session)) ((page-access-control) path))
-                      (let ((contents
-                             (handle-exceptions
-                              exn
-                              (begin
-                                (debug (with-output-to-string
-                                         (lambda ()
-                                           (print-call-chain)
-                                           (print-error-message exn))))
-                                ((page-exception-message) exn))
-                              (contents))))
-                        (if no-template
-                            contents
-                            ((page-template)
-                             contents
-                             css: (or css (page-css))
-                             title: title
-                             doctype: (or doctype (page-doctype))
-                             headers: (++ (if (or no-ajax (not (ajax-library)) (not (enable-ajax)))
-                                              ""
-                                              (<script> type: "text/javascript"
-                                                        src: (ajax-library)))
-                                          (or headers "")
-                                          (if (or no-ajax
-                                                  (not (enable-ajax))
-                                                  (not (ajax-library)))
-                                              (if (string-null? (page-javascript))
-                                                  ""
-                                                  (<script> type: "text/javascript"
-                                                            (maybe-compress-javascript
-                                                             (page-javascript)
-                                                             no-javascript-compression)))
-                                              (<script> type: "text/javascript"
-                                                        (maybe-compress-javascript
-                                                         (++ "$(document).ready(function(){"
-                                                             (page-javascript) "});")
-                                                         no-javascript-compression))))
-                             charset: (or charset (page-charset)))))
+                      (begin
+                        (when use-session
+                          (if (session-valid? (sid))
+                              (awful-refresh-session!)
+                              (sid (session-create))))
+                        (let ((contents
+                               (handle-exceptions
+                                exn
+                                (begin
+                                  (debug (with-output-to-string
+                                           (lambda ()
+                                             (print-call-chain)
+                                             (print-error-message exn))))
+                                  ((page-exception-message) exn))
+                                (contents))))
+                          (if no-template
+                              contents
+                              ((page-template)
+                               contents
+                               css: (or css (page-css))
+                               title: title
+                               doctype: (or doctype (page-doctype))
+                               headers: (++ (if (or no-ajax (not (ajax-library)) (not (enable-ajax)))
+                                                ""
+                                                (<script> type: "text/javascript"
+                                                          src: (ajax-library)))
+                                            (or headers "")
+                                            (if (or no-ajax
+                                                    (not (enable-ajax))
+                                                    (not (ajax-library)))
+                                                (if (string-null? (page-javascript))
+                                                    ""
+                                                    (<script> type: "text/javascript"
+                                                              (maybe-compress-javascript
+                                                               (page-javascript)
+                                                               no-javascript-compression)))
+                                                (<script> type: "text/javascript"
+                                                          (maybe-compress-javascript
+                                                           (++ "$(document).ready(function(){"
+                                                               (page-javascript) "});")
+                                                           no-javascript-compression))))
+                               charset: (or charset (page-charset))))))
                       ((page-template) ((page-access-denied-message) path)))
                   ((page-template)
                    ""
@@ -331,6 +342,10 @@
                                                  "&user=" ($ 'user "")))))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
          out)))))
+
+(define (define-session-page path contents . rest)
+  ;; `rest' are same keyword params as for `define-page' (except `no-session', obviously)
+  (apply define-page (append (list path contents) (list use-session: #t) rest)))
 
 
 ;;; Ajax
@@ -360,7 +375,7 @@
         (sid ($ 'sid))
         (let* ((arguments (if (or (not (enable-session))
                                   no-session
-                                  (not (and (enable-session) (session-valid? (sid)))))
+                                  (not (and (sid) (session-valid? (sid)))))
                               arguments
                               (cons `(sid . ,(++ "'" (sid) "'")) arguments)))
                (js (++ (page-javascript)
