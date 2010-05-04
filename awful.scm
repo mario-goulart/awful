@@ -197,8 +197,8 @@
 
 
 ;;; HTTP request variables access
-(define ($ var #!optional default converter)
-  ((http-request-variables) var default (or converter identity)))
+(define ($ var #!optional default/converter)
+  ((http-request-variables) var default/converter))
 
 
 ;;; DB access
@@ -295,6 +295,7 @@
 (define (define-page path contents #!key css title doctype headers charset no-ajax
 		     no-template no-session no-db vhost-root-path no-javascript-compression
 		     use-session) ;; for define-session-page
+  (##sys#check-closure contents 'define-page)
   (let ((path (if (regexp? path)
 		  path
 		  (make-pathname (app-root-path) path))))
