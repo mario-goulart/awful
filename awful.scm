@@ -36,7 +36,7 @@
      http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.17")
+(define (awful-version) "0.18")
 
 
 ;;; Parameters
@@ -108,8 +108,8 @@
   (for-each load apps)
   (unless (enable-reload)
     (add-resource! (reload-path)
-		   (root-path)
-		   (lambda () (load-apps apps))))
+                   (root-path)
+                   (lambda () (load-apps apps))))
   (reload-message))
 
 (define awful-start start-server)
@@ -124,8 +124,8 @@
 
 (define (maybe-compress-javascript js no-javascript-compression)
   (if (and (enable-javascript-compression)
-	   (javascript-compressor)
-	   (not no-javascript-compression))
+           (javascript-compressor)
+           (not no-javascript-compression))
       (string-trim-both ((javascript-compressor) js))
       js))
 
@@ -135,7 +135,7 @@
   (when (debug-file)
     (with-output-to-file (debug-file)
       (lambda ()
-	(print (concat args)))
+        (print (concat args)))
       append:)))
 
 (define (debug-pp arg)
@@ -150,8 +150,8 @@
 (define ($session-set! var #!optional val)
   (if (list? var)
       (for-each (lambda (var/val)
-		  (session-set! (sid) (string->symbol* (car var/val)) (cdr var/val)))
-		var)
+                  (session-set! (sid) (string->symbol* (car var/val)) (cdr var/val)))
+                var)
       (session-set! (sid) (string->symbol* var) val)))
 
 (define (awful-refresh-session!)
@@ -162,38 +162,38 @@
 ;;; Session-aware procedures for HTML code generation
 (define (link url text . rest)
   (let ((use-session? (and (sid)
-			   (session-valid? (sid))
-			   (not (get-keyword no-session: rest))))
-	(arguments (or (get-keyword arguments: rest) '()))
-	(separator (or (get-keyword separator: rest) ";&")))
+                           (session-valid? (sid))
+                           (not (get-keyword no-session: rest))))
+        (arguments (or (get-keyword arguments: rest) '()))
+        (separator (or (get-keyword separator: rest) ";&")))
     (apply <a>
-	   (append
-	    (list href: (if url
-			    (++ url
-				(if (or use-session? (not (null? arguments)))
-				    (++ "?"
-					(form-urlencode
-					 (append arguments
-						 (if use-session?
-						     `((sid . ,(sid)))
-						     '()))
-					 separator: separator))
-				    ""))
-			    "#"))
-	    rest
-	    (list text)))))
+           (append
+            (list href: (if url
+                            (++ url
+                                (if (or use-session? (not (null? arguments)))
+                                    (++ "?"
+                                        (form-urlencode
+                                         (append arguments
+                                                 (if use-session?
+                                                     `((sid . ,(sid)))
+                                                     '()))
+                                         separator: separator))
+                                    ""))
+                            "#"))
+            rest
+            (list text)))))
 
 (define (form contents . rest)
   (let ((use-session? (and (sid)
-			   (session-valid? (sid))
-			   (not (get-keyword no-session: rest)))))
+                           (session-valid? (sid))
+                           (not (get-keyword no-session: rest)))))
     (apply <form>
-	   (append rest
-		   (list
-		    (++ (if use-session?
-			    (hidden-input 'sid (sid))
-			    "")
-			contents))))))
+           (append rest
+                   (list
+                    (++ (if use-session?
+                            (hidden-input 'sid (sid))
+                            "")
+                        contents))))))
 
 
 ;;; HTTP request variables access
@@ -228,19 +228,19 @@
    (let ((old-handler (handle-not-found)))
      (lambda (_)
        (let* ((path-list (uri-path (request-uri (current-request))))
-	      (path (if (null? (cdr path-list))
-			(car path-list)
-			(++ "/" (concat (cdr path-list) "/"))))
-	      (proc (resource-ref path (root-path))))
-	 (if proc
-	     (let ((out (->string (proc path))))
-	       (with-headers `((content-type text/html)
-			       (content-length ,(string-length out)))
-			     (lambda ()
-			       (write-logged-response)
-			       (unless (eq? 'HEAD (request-method (current-request)))
-				 (display out (response-port (current-response)))))))
-	     (old-handler _)))))))
+              (path (if (null? (cdr path-list))
+                        (car path-list)
+                        (++ "/" (concat (cdr path-list) "/"))))
+              (proc (resource-ref path (root-path))))
+         (if proc
+             (let ((out (->string (proc path))))
+               (with-headers `((content-type text/html)
+                               (content-length ,(string-length out)))
+                             (lambda ()
+                               (write-logged-response)
+                               (unless (eq? 'HEAD (request-method (current-request)))
+                                 (display out (response-port (current-response)))))))
+             (old-handler _)))))))
 
 (define (resource-ref path vhost-root-path #!optional check-existence)
   (or (hash-table-ref/default *resources* (cons path vhost-root-path) #f)
@@ -252,18 +252,18 @@
   ;; instead of just checking whether they are equal.
   (let loop ((resources (hash-table->alist *resources*)))
     (if (null? resources)
-	#f
-	(let* ((current-resource (car resources))
-	       (current-path (caar current-resource))
-	       (current-vhost (cdar current-resource))
-	       (current-proc (cdr current-resource)))
-	  (if (and (regexp? current-path)
-		   (equal? current-vhost vhost-root-path)
-		   (if check-existence
-		       (equal? current-path path)
-		       (string-match current-path path)))
-	      current-proc
-	      (loop (cdr resources)))))))
+        #f
+        (let* ((current-resource (car resources))
+               (current-path (caar current-resource))
+               (current-vhost (cdar current-resource))
+               (current-proc (cdr current-resource)))
+          (if (and (regexp? current-path)
+                   (equal? current-vhost vhost-root-path)
+                   (if check-existence
+                       (equal? current-path path)
+                       (string-match current-path path)))
+              current-proc
+              (loop (cdr resources)))))))
 
 (define (resource-exists? path vhost-root-path #!optional check-existence)
   (not (not (resource-ref path vhost-root-path check-existence))))
@@ -279,26 +279,26 @@
    (let ((old-handler (handle-directory)))
      (lambda (path)
        (if (equal? path "/") ;; redirect to (main-page-path)
-	   (parameterize
-	       ((current-response
-		 (update-response
-		  (current-response)
-		  code: 302
-		  headers: (headers `((location ,(main-page-path))
-				      (content-length 0))
-				    (response-headers (current-response))))))
-	     (write-logged-response))
-	   (old-handler path))))))
+           (parameterize
+               ((current-response
+                 (update-response
+                  (current-response)
+                  code: 302
+                  headers: (headers `((location ,(main-page-path))
+                                      (content-length 0))
+                                    (response-headers (current-response))))))
+             (write-logged-response))
+           (old-handler path))))))
 
 
 ;;; Pages
 (define (define-page path contents #!key css title doctype headers charset no-ajax
-		     no-template no-session no-db vhost-root-path no-javascript-compression
-		     use-session) ;; for define-session-page
+                     no-template no-session no-db vhost-root-path no-javascript-compression
+                     use-session) ;; for define-session-page
   (##sys#check-closure contents 'define-page)
   (let ((path (if (regexp? path)
-		  path
-		  (make-pathname (app-root-path) path))))
+                  path
+                  (make-pathname (app-root-path) path))))
     (add-resource!
      path
      (or vhost-root-path (root-path))
@@ -306,68 +306,68 @@
        (http-request-variables (request-vars))
        (sid ($ 'sid))
        (when (and (db-credentials) (db-enabled?) (not no-db))
-	 (db-connection ((db-connect) (db-credentials))))
+         (db-connection ((db-connect) (db-credentials))))
        (page-javascript "")
        (awful-refresh-session!)
        (let ((out
-	      (if (or (not (enable-session))
-		      no-session
-		      use-session
-		      (and (enable-session) (session-valid? (sid))))
-		  (if (or no-session (not (enable-session)) ((page-access-control) path))
-		      (begin
-			(when use-session
-			  (if (session-valid? (sid))
-			      (awful-refresh-session!)
-			      (sid (session-create))))
-			(let ((contents
-			       (handle-exceptions
-				exn
-				(begin
-				  (debug (with-output-to-string
-					   (lambda ()
-					     (print-call-chain)
-					     (print-error-message exn))))
-				  ((page-exception-message) exn))
-				(if (regexp? path)
-				    (contents given-path)
-				    (contents)))))
-			  (if no-template
-			      contents
-			      ((page-template)
-			       contents
-			       css: (or css (page-css))
-			       title: title
-			       doctype: (or doctype (page-doctype))
-			       headers: (++ (if (or no-ajax (not (ajax-library)) (not (enable-ajax)))
-						""
-						(<script> type: "text/javascript"
-							  src: (ajax-library)))
-					    (or headers "")
-					    (if (or no-ajax
-						    (not (enable-ajax))
-						    (not (ajax-library)))
-						(if (string-null? (page-javascript))
-						    ""
-						    (<script> type: "text/javascript"
-							      (maybe-compress-javascript
-							       (page-javascript)
-							       no-javascript-compression)))
-						(<script> type: "text/javascript"
-							  (maybe-compress-javascript
-							   (++ "$(document).ready(function(){"
-							       (page-javascript) "});")
-							   no-javascript-compression))))
-			       charset: (or charset (page-charset))))))
-		      ((page-template) ((page-access-denied-message) path)))
-		  ((page-template)
-		   ""
-		   headers: (<meta> http-equiv: "refresh"
-				    content: (++ "0;url=" (login-page-path)
-						 "?reason=invalid-session&attempted-path=" path
-						 "&user=" ($ 'user "")))))))
-	 (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
-	 out)))))
+              (if (or (not (enable-session))
+                      no-session
+                      use-session
+                      (and (enable-session) (session-valid? (sid))))
+                  (if (or no-session (not (enable-session)) ((page-access-control) path))
+                      (begin
+                        (when use-session
+                          (if (session-valid? (sid))
+                              (awful-refresh-session!)
+                              (sid (session-create))))
+                        (let ((contents
+                               (handle-exceptions
+                                exn
+                                (begin
+                                  (debug (with-output-to-string
+                                           (lambda ()
+                                             (print-call-chain)
+                                             (print-error-message exn))))
+                                  ((page-exception-message) exn))
+                                (if (regexp? path)
+                                    (contents given-path)
+                                    (contents)))))
+                          (if no-template
+                              contents
+                              ((page-template)
+                               contents
+                               css: (or css (page-css))
+                               title: title
+                               doctype: (or doctype (page-doctype))
+                               headers: (++ (if (or no-ajax (not (ajax-library)) (not (enable-ajax)))
+                                                ""
+                                                (<script> type: "text/javascript"
+                                                          src: (ajax-library)))
+                                            (or headers "")
+                                            (if (or no-ajax
+                                                    (not (enable-ajax))
+                                                    (not (ajax-library)))
+                                                (if (string-null? (page-javascript))
+                                                    ""
+                                                    (<script> type: "text/javascript"
+                                                              (maybe-compress-javascript
+                                                               (page-javascript)
+                                                               no-javascript-compression)))
+                                                (<script> type: "text/javascript"
+                                                          (maybe-compress-javascript
+                                                           (++ "$(document).ready(function(){"
+                                                               (page-javascript) "});")
+                                                           no-javascript-compression))))
+                               charset: (or charset (page-charset))))))
+                      ((page-template) ((page-access-denied-message) path)))
+                  ((page-template)
+                   ""
+                   headers: (<meta> http-equiv: "refresh"
+                                    content: (++ "0;url=" (login-page-path)
+                                                 "?reason=invalid-session&attempted-path=" path
+                                                 "&user=" ($ 'user "")))))))
+         (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
+         out)))))
 
 (define (define-session-page path contents . rest)
   ;; `rest' are same keyword params as for `define-page' (except `no-session', obviously)
@@ -376,96 +376,96 @@
 
 ;;; Ajax
 (define (ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '())
-	      js no-session no-db no-page-javascript vhost-root-path live)
+              js no-session no-db no-page-javascript vhost-root-path live)
   (if (enable-ajax)
       (let ((path (if (regexp? path)
-		  path
-		  (make-pathname (list (app-root-path) (ajax-namespace)) path))))
-	(add-resource! path
-		       (or vhost-root-path (root-path))
-		       (lambda (#!optional given-path)
-			 (http-request-variables (request-vars))
-			 (sid ($ 'sid))
-			 (when (and (db-credentials) (db-enabled?) (not no-db))
-			   (db-connection ((db-connect) (db-credentials))))
-			 (awful-refresh-session!)
-			 (if (or (not (enable-session))
-				 no-session
-				 (and (enable-session) (session-valid? (sid))))
-			     (if ((page-access-control) path)
-				 (let ((out (proc)))
-				   (when (and (db-credentials) (db-enabled?) (not no-db))
-				     ((db-disconnect) (db-connection)))
-				   out)
-				 ((page-access-denied-message) path))
-			     (ajax-invalid-session-message))))
-	(http-request-variables (request-vars))
-	(sid ($ 'sid))
-	(let* ((arguments (if (or (not (enable-session))
-				  no-session
-				  (not (and (sid) (session-valid? (sid)))))
-			      arguments
-			      (cons `(sid . ,(++ "'" (sid) "'")) arguments)))
-	       (js (++ (page-javascript)
-		       (if (and id event)
-			   (let ((events (concat (if (list? event) event (list event)) " "))
-				 (binder (if live "live" "bind")))
-			     (++ "$('#" (->string id) "')." binder "('" events "',"))
-			   "")
-		       "function(){$.ajax({type:'" (->string method) "',"
-		       "url:'" path "',"
-		       "success:function(h){"
-		       (or js
-			   (if target
-			       (++ "$('#" target "')." (->string action) "(h);")
-			       "return;"))
-		       "},"
-		       (++ "data:{"
-			   (string-intersperse
-			    (map (lambda (var/val)
-				   (conc  "'" (car var/val) "':" (cdr var/val)))
-				 arguments)
-			    ",") "}")
-		       "})}"
-		       (if (and id event)
-			   ");\n"
-			   ""))))
-	  (unless no-page-javascript (page-javascript js))
-	  js))
+                  path
+                  (make-pathname (list (app-root-path) (ajax-namespace)) path))))
+        (add-resource! path
+                       (or vhost-root-path (root-path))
+                       (lambda (#!optional given-path)
+                         (http-request-variables (request-vars))
+                         (sid ($ 'sid))
+                         (when (and (db-credentials) (db-enabled?) (not no-db))
+                           (db-connection ((db-connect) (db-credentials))))
+                         (awful-refresh-session!)
+                         (if (or (not (enable-session))
+                                 no-session
+                                 (and (enable-session) (session-valid? (sid))))
+                             (if ((page-access-control) path)
+                                 (let ((out (proc)))
+                                   (when (and (db-credentials) (db-enabled?) (not no-db))
+                                     ((db-disconnect) (db-connection)))
+                                   out)
+                                 ((page-access-denied-message) path))
+                             (ajax-invalid-session-message))))
+        (http-request-variables (request-vars))
+        (sid ($ 'sid))
+        (let* ((arguments (if (or (not (enable-session))
+                                  no-session
+                                  (not (and (sid) (session-valid? (sid)))))
+                              arguments
+                              (cons `(sid . ,(++ "'" (sid) "'")) arguments)))
+               (js (++ (page-javascript)
+                       (if (and id event)
+                           (let ((events (concat (if (list? event) event (list event)) " "))
+                                 (binder (if live "live" "bind")))
+                             (++ "$('#" (->string id) "')." binder "('" events "',"))
+                           "")
+                       "function(){$.ajax({type:'" (->string method) "',"
+                       "url:'" path "',"
+                       "success:function(h){"
+                       (or js
+                           (if target
+                               (++ "$('#" target "')." (->string action) "(h);")
+                               "return;"))
+                       "},"
+                       (++ "data:{"
+                           (string-intersperse
+                            (map (lambda (var/val)
+                                   (conc  "'" (car var/val) "':" (cdr var/val)))
+                                 arguments)
+                            ",") "}")
+                       "})}"
+                       (if (and id event)
+                           ");\n"
+                           ""))))
+          (unless no-page-javascript (page-javascript js))
+          js))
       "")) ;; empty if no-ajax
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
-			 (arguments '()) js no-session no-db vhost-root-path live)
+                         (arguments '()) js no-session no-db vhost-root-path live)
   (if (enable-ajax)
       (page-javascript
        (++ "setInterval("
-	   (ajax path #f #f proc
-		 target: target
-		 action: action
-		 method: method
-		 arguments: arguments
-		 js: js
-		 no-session: no-session
-		 no-db: no-db
-		 vhost-root-path: vhost-root-path
-		 live: live
-		 no-page-javascript: #t)
-	   ", " (->string interval) ");\n"))
+           (ajax path #f #f proc
+                 target: target
+                 action: action
+                 method: method
+                 arguments: arguments
+                 js: js
+                 no-session: no-session
+                 no-db: no-db
+                 vhost-root-path: vhost-root-path
+                 live: live
+                 no-page-javascript: #t)
+           ", " (->string interval) ");\n"))
       ""))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
-		   js no-session no-db (event 'click) vhost-root-path live class
-		   hreflang type rel rev charset coords shape accesskey tabindex a-target)
+                   js no-session no-db (event 'click) vhost-root-path live class
+                   hreflang type rel rev charset coords shape accesskey tabindex a-target)
   (ajax path id event proc
-	target: target
-	action: action
-	method: method
-	arguments: arguments
-	js: js
-	no-session: no-session
-	vhost-root-path: vhost-root-path
-	live: live
-	no-db: no-db)
+        target: target
+        action: action
+        method: method
+        arguments: arguments
+        js: js
+        no-session: no-session
+        vhost-root-path: vhost-root-path
+        live: live
+        no-db: no-db)
   (<a> href: "#"
        id: id
        class: class
@@ -484,44 +484,43 @@
 
 ;;; Login form
 (define (login-form #!key (user-label "User: ")
-			  (password-label "Password: ")
-			  (submit-label "Submit")
-			  (trampoline-path "/login-trampoline")
-			  (refill-user #t))
+                          (password-label "Password: ")
+                          (submit-label "Submit")
+                          (trampoline-path "/login-trampoline")
+                          (refill-user #t))
   (let ((attempted-path ($ 'attempted-path))
-	(user ($ 'user)))
+        (user ($ 'user)))
     (<form> action: trampoline-path method: "post"
-	    (if attempted-path
-		(hidden-input 'attempted-path attempted-path)
-		"")
-	    (<span> id: "user-container"
-		    (<span> id: "user-label" user-label)
-		    (<input> type: "text" id: "user" name: "user" value: (and refill-user user)))
-	    (<span> id: "password-container"
-		    (<span> id: "password-label" password-label)
-		    (<input> type: "password" id: "password" name: "password"))
-	    (<input> type: "submit" id: "login-submit" value: submit-label))))
+            (if attempted-path
+                (hidden-input 'attempted-path attempted-path)
+                "")
+            (<span> id: "user-container"
+                    (<span> id: "user-label" user-label)
+                    (<input> type: "text" id: "user" name: "user" value: (and refill-user user)))
+            (<span> id: "password-container"
+                    (<span> id: "password-label" password-label)
+                    (<input> type: "password" id: "password" name: "password"))
+            (<input> type: "submit" id: "login-submit" value: submit-label))))
 
 
 ;;; Login trampoline (for redirection)
 (define (define-login-trampoline path #!key vhost-root-path hook)
   (define-page path
     (lambda ()
-      (let* (($ (http-request-variables))
-	     (user ($ 'user))
-	     (password ($ 'password))
-	     (attempted-path ($ 'attempted-path))
-	     (password-valid? ((valid-password?) user password))
-	     (new-sid (and password-valid? (session-create))))
-	(sid new-sid)
-	(when hook (hook user))
-	(html-page
-	 ""
-	 headers: (<meta> http-equiv: "refresh"
-			  content: (++ "0;url="
-				       (if new-sid
-					   (++ (or attempted-path (main-page-path)) "?user=" user "&sid=" new-sid)
-					   (++ (login-page-path) "?reason=invalid-password&user=" user)))))))
+      (let* ((user ($ 'user))
+             (password ($ 'password))
+             (attempted-path ($ 'attempted-path))
+             (password-valid? ((valid-password?) user password))
+             (new-sid (and password-valid? (session-create))))
+        (sid new-sid)
+        (when hook (hook user))
+        (html-page
+         ""
+         headers: (<meta> http-equiv: "refresh"
+                          content: (++ "0;url="
+                                       (if new-sid
+                                           (++ (or attempted-path (main-page-path)) "?user=" user "&sid=" new-sid)
+                                           (++ (login-page-path) "?reason=invalid-password&user=" user)))))))
     vhost-root-path: vhost-root-path
     no-session: #t
     no-template: #t))
@@ -533,33 +532,33 @@
   (define-page path
     (lambda ()
       (if ((web-repl-access-control))
-	  (let ((web-eval
-		 (lambda ()
-		   (<pre> convert-to-entities?: #t
-			  (with-output-to-string
-			    (lambda ()
-			      (pp (handle-exceptions
-				   exn
-				   (begin
-				     (print-error-message exn)
-				     (print-call-chain))
-				   (eval `(begin
-					    ,@(with-input-from-string ($ 'code "")
-						read-file)))))))))))
-	    (page-javascript "$('#clear').click(function(){$('#prompt').val('');});")
-	    (ajax (++ path "-eval") 'eval 'click web-eval
-		  target: "result"
-		  arguments: '((code . "$('#prompt').val()")))
+          (let ((web-eval
+                 (lambda ()
+                   (<pre> convert-to-entities?: #t
+                          (with-output-to-string
+                            (lambda ()
+                              (pp (handle-exceptions
+                                   exn
+                                   (begin
+                                     (print-error-message exn)
+                                     (print-call-chain))
+                                   (eval `(begin
+                                            ,@(with-input-from-string ($ 'code "")
+                                                read-file)))))))))))
+            (page-javascript "$('#clear').click(function(){$('#prompt').val('');});")
+            (ajax (++ path "-eval") 'eval 'click web-eval
+                  target: "result"
+                  arguments: '((code . "$('#prompt').val()")))
 
-	    (++ (<textarea> id: "prompt" name: "prompt" rows: "6" cols: "90")
-		(itemize
-		 (map (lambda (item)
-			(<a> href: "#" id: (car item) (cdr item)))
-		      '(("eval"  . "Eval")
-			("clear" . "Clear")))
-		 list-id: "button-bar")
-		(<div> id: "result")))
-	  (web-repl-access-denied-message)))
+            (++ (<textarea> id: "prompt" name: "prompt" rows: "6" cols: "90")
+                (itemize
+                 (map (lambda (item)
+                        (<a> href: "#" id: (car item) (cdr item)))
+                      '(("eval"  . "Eval")
+                        ("clear" . "Clear")))
+                 list-id: "button-bar")
+                (<div> id: "result")))
+          (web-repl-access-denied-message)))
     title: (or title "Web REPL")
     css: css))
 
@@ -570,19 +569,19 @@
   (define-page path
     (lambda ()
       (if ((session-inspector-access-control))
-	  (let ((bindings (session-bindings (sid))))
-	    (if (null? bindings)
-		(<h2> "Session for sid " (sid) " is empty")
-		(++ (<h2> "Session for " (sid))
-		    (tabularize
-		     (map (lambda (binding)
-			    (let ((var (car binding))
-				  (val (with-output-to-string
-					 (lambda ()
-					   (pp (cdr binding))))))
-			      (list var (<pre> val))))
-			  bindings)))))
-	  (session-inspector-access-denied-message)))
+          (let ((bindings (session-bindings (sid))))
+            (if (null? bindings)
+                (<h2> "Session for sid " (sid) " is empty")
+                (++ (<h2> "Session for " (sid))
+                    (tabularize
+                     (map (lambda (binding)
+                            (let ((var (car binding))
+                                  (val (with-output-to-string
+                                         (lambda ()
+                                           (pp (cdr binding))))))
+                              (list var (<pre> val))))
+                          bindings)))))
+          (session-inspector-access-denied-message)))
     title: (or title "Session inspector")
     css: css))
 
