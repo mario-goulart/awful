@@ -507,8 +507,7 @@
 (define (define-login-trampoline path #!key vhost-root-path hook)
   (define-page path
     (lambda ()
-      (let* (($ (http-request-variables))
-             (user ($ 'user))
+      (let* ((user ($ 'user))
              (password ($ 'password))
              (attempted-path ($ 'attempted-path))
              (password-valid? ((valid-password?) user password))
