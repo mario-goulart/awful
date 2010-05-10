@@ -109,7 +109,7 @@
   (unless (enable-reload)
     (add-resource! (reload-path)
                    (root-path)
-                   (lambda () (load-apps apps))))
+                   (lambda (#!optional _) (load-apps apps))))
   (reload-message))
 
 (define awful-start start-server)
