@@ -1,6 +1,6 @@
 (module awful
   (;; Parameters
-   reload-path reload-message enable-reload debug-file debug-db-query?
+   awful-apps debug-file debug-db-query?
    debug-db-query-prefix db-credentials ajax-library
    enable-ajax ajax-namespace enable-session page-access-control
    page-access-denied-message page-doctype page-css page-charset
@@ -42,9 +42,7 @@
 ;;; Parameters
 
 ;; User-configurable parameters
-(define reload-path (make-parameter "/reload"))
-(define reload-message (make-parameter (<h3> "Reloaded.")))
-(define enable-reload (make-parameter #f))
+(define awful-apps (make-parameter '()))
 (define debug-file (make-parameter #f))
 (define debug-db-query? (make-parameter #t))
 (define debug-db-query-prefix (make-parameter ""))
@@ -105,12 +103,7 @@
 
 (define (load-apps apps)
   (set! *resources* (make-hash-table equal?))
-  (for-each load apps)
-  (unless (enable-reload)
-    (add-resource! (reload-path)
-                   (root-path)
-                   (lambda (#!optional _) (load-apps apps))))
-  (reload-message))
+  (for-each load apps))
 
 (define awful-start start-server)
 
