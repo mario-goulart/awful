@@ -307,7 +307,8 @@
                       no-session
                       use-session
                       (and (enable-session) (session-valid? (sid))))
-                  (if (or no-session (not (enable-session)) ((page-access-control) path))
+                  (if (and ((page-access-control) path)
+                           (or no-session (not (enable-session))))
                       (begin
                         (when use-session
                           (if (session-valid? (sid))
