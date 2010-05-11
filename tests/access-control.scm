@@ -10,8 +10,9 @@
 
 (page-access-control
  (lambda (path)
-   (and (equal? ($ 'user) "mario")
-        (equal? path (main-page-path)))))
+   (or (member path `(,(login-page-path) "/login-trampoline"))
+       (and (equal? ($ 'user) "mario")
+            (equal? path (main-page-path))))))
 
 (define-page (main-page-path)
   (lambda ()
