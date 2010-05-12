@@ -36,7 +36,7 @@
      http-session jsmin)
 
 ;;; Version
-(define (awful-version) "0.19")
+(define (awful-version) "0.20")
 
 
 ;;; Parameters
