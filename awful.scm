@@ -226,14 +226,17 @@
                         (++ "/" (concat (cdr path-list) "/"))))
               (proc (resource-ref path (root-path))))
          (if proc
-             (let ((out (->string (proc path))))
-               (with-headers `((content-type text/html)
-                               (content-length ,(string-length out)))
-                             (lambda ()
-                               (write-logged-response)
-                               (unless (eq? 'HEAD (request-method (current-request)))
-                                 (display out (response-port (current-response)))))))
+             (run-resource proc path)
              (old-handler _)))))))
+
+(define (run-resource proc path)
+  (let ((out (->string (proc path))))
+    (with-headers `((content-type text/html)
+                    (content-length ,(string-length out)))
+                  (lambda ()
+                    (write-logged-response)
+                    (unless (eq? 'HEAD (request-method (current-request)))
+                      (display out (response-port (current-response))))))))
 
 (define (resource-ref path vhost-root-path #!optional check-existence)
   (or (hash-table-ref/default *resources* (cons path vhost-root-path) #f)
@@ -267,22 +270,26 @@
 
 
 ;;; Root dir
+(define (redirect-to dest)
+  (parameterize
+    ((current-response
+      (update-response
+       (current-response)
+       code: 302
+       headers: (headers `((location ,dest)
+                           (content-length 0))
+                         (response-headers (current-response))))))
+    (write-logged-response)))
+
 (define (register-root-dir-handler)
   (handle-directory
    (let ((old-handler (handle-directory)))
      (lambda (path)
-       (if (equal? path "/") ;; redirect to (main-page-path)
-           (parameterize
-               ((current-response
-                 (update-response
-                  (current-response)
-                  code: 302
-                  headers: (headers `((location ,(main-page-path))
-                                      (content-length 0))
-                                    (response-headers (current-response))))))
-             (write-logged-response))
-           (old-handler path))))))
-
+       (cond ((equal? path "/")
+              (redirect-to (main-page-path)))
+             ((resource-ref path (root-path))
+              => (cut run-resource <> path))
+             (else (old-handler path)))))))
 
 ;;; Pages
 (define (define-page path contents #!key css title doctype headers charset no-ajax
