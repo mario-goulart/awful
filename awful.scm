@@ -365,7 +365,8 @@
                    headers: (<meta> http-equiv: "refresh"
                                     content: (++ "0;url=" (login-page-path)
                                                  "?reason=invalid-session&attempted-path=" path
-                                                 "&user=" ($ 'user "")))))))
+                                                 "&user=" ($ 'user "")
+                                                 (if ($ 'sid) (++ "&sid=" ($ 'sid)) "")))))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
          out)))))
 
