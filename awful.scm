@@ -400,7 +400,6 @@
                                    out)
                                  ((page-access-denied-message) path))
                              (ajax-invalid-session-message))))
-        (http-request-variables (request-vars))
         (sid ($ 'sid))
         (let* ((arguments (if (or (not (enable-session))
                                   no-session
