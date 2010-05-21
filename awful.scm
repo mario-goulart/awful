@@ -377,7 +377,8 @@
 
 ;;; Ajax
 (define (ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '())
-              js no-session no-db no-page-javascript vhost-root-path live)
+              js no-session no-db no-page-javascript vhost-root-path live
+              (content-type 'application/x-www-form-urlencoded))
   (if (enable-ajax)
       (let ((path (if (regexp? path)
                   path
@@ -415,6 +416,7 @@
                            "")
                        "function(){$.ajax({type:'" (->string method) "',"
                        "url:'" path "',"
+                       "contentType: '" (->string content-type) "',"
                        "success:function(h){"
                        (or js
                            (if target
@@ -436,7 +438,8 @@
       "")) ;; empty if no-ajax
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
-                         (arguments '()) js no-session no-db vhost-root-path live)
+                         (arguments '()) js no-session no-db vhost-root-path live
+                         (content-type 'application/x-www-form-urlencoded))
   (if (enable-ajax)
       (page-javascript
        (++ "setInterval("
@@ -450,13 +453,15 @@
                  no-db: no-db
                  vhost-root-path: vhost-root-path
                  live: live
+                 content-type: content-type
                  no-page-javascript: #t)
            ", " (->string interval) ");\n"))
       ""))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    js no-session no-db (event 'click) vhost-root-path live class
-                   hreflang type rel rev charset coords shape accesskey tabindex a-target)
+                   hreflang type rel rev charset coords shape accesskey tabindex a-target
+                   (content-type 'application/x-www-form-urlencoded))
   (ajax path id event proc
         target: target
         action: action
@@ -466,6 +471,7 @@
         no-session: no-session
         vhost-root-path: vhost-root-path
         live: live
+        content-type: content-type
         no-db: no-db)
   (<a> href: "#"
        id: id
