@@ -1,6 +1,6 @@
 #!/usr/bin/csi -script
 
-(use posix awful html-tags)
+(use posix awful html-tags spiffy-request-vars)
 
 (enable-ajax #t)
 
@@ -18,7 +18,6 @@
           target: "live-target")
     (ajax "/after-life" 'after-life 'click show-secs target: "after-life-target" live: #t)
 
-    
     (++ (<h2> "Single event")
         (<a> href: "#" id: "single" "Click me")
         (<div> id: "single-target")
@@ -40,4 +39,13 @@
                    arguments: '((bar . "$('#value').html()")))
         (<div> id: "value" "value")
         (<div> id: "baz")
+
+        (<hr>)
+        (<h3> "content-length != 0")
+        (ajax-link "secs" 'getsecs "Get seconds from single (first example)"
+                   (lambda ()
+                     ($ 'secs))
+                   target: "secs"
+                   arguments: '((secs . "$('#single-target').html()")))
+        (<div> id: "secs")
         )))
