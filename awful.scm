@@ -377,8 +377,7 @@
 
 ;;; Ajax
 (define (ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '())
-              js no-session no-db no-page-javascript vhost-root-path live
-              (content-type 'application/x-www-form-urlencoded))
+              js no-session no-db no-page-javascript vhost-root-path live content-type)
   (if (enable-ajax)
       (let ((path (if (regexp? path)
                   path
@@ -416,7 +415,9 @@
                            "")
                        "function(){$.ajax({type:'" (->string method) "',"
                        "url:'" path "',"
-                       "contentType: '" (->string content-type) "',"
+                       (if content-type
+                           (conc "contentType: '" content-type "',")
+                           "")
                        "success:function(h){"
                        (or js
                            (if target
@@ -439,7 +440,7 @@
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) js no-session no-db vhost-root-path live
-                         (content-type 'application/x-www-form-urlencoded))
+                         content-type)
   (if (enable-ajax)
       (page-javascript
        (++ "setInterval("
@@ -461,7 +462,7 @@
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    js no-session no-db (event 'click) vhost-root-path live class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
-                   (content-type 'application/x-www-form-urlencoded))
+                   content-type)
   (ajax path id event proc
         target: target
         action: action
