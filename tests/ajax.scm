@@ -31,4 +31,13 @@
         (<a> href: "#" id: "live" "Click me")
         (<div> id: "live-target")
         (<div> id: "after-life-target")
+
+        (<hr>)
+        (ajax-link "foo" 'alink "a link"
+                   (lambda ()
+                     (<b> ($ 'bar)))
+                   target: "baz"
+                   arguments: '((bar . "$('#value').html()")))
+        (<div> id: "value" "value")
+        (<div> id: "baz")
         )))
