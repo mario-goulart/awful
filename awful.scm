@@ -377,7 +377,7 @@
 
 ;;; Ajax
 (define (ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '())
-              js no-session no-db no-page-javascript vhost-root-path live content-type)
+              js no-session no-db no-page-javascript vhost-root-path live content-type function)
   (if (enable-ajax)
       (let ((path (if (regexp? path)
                   path
@@ -410,26 +410,30 @@
                        (if (and id event)
                            (let ((events (concat (if (list? event) event (list event)) " "))
                                  (binder (if live "live" "bind")))
-                             (++ "$('#" (->string id) "')." binder "('" events "',"))
+                             (++ "$('" (if (symbol? id)
+                                           (conc "#" id)
+                                           id)
+                                 "')." binder "('" events "',"))
                            "")
-                       "function(){$.ajax({type:'" (->string method) "',"
-                       "url:'" path "',"
-                       (if content-type
-                           (conc "contentType: '" content-type "',")
-                           "")
-                       "success:function(h){"
-                       (or js
-                           (if target
-                               (++ "$('#" target "')." (->string action) "(h);")
-                               "return;"))
-                       "},"
-                       (++ "data:{"
-                           (string-intersperse
-                            (map (lambda (var/val)
-                                   (conc  "'" (car var/val) "':" (cdr var/val)))
-                                 arguments)
-                            ",") "}")
-                       "})}"
+                       (or function
+                           (++ "function(){$.ajax({type:'" (->string method) "',"
+                               "url:'" path "',"
+                               (if content-type
+                                   (conc "contentType: '" content-type "',")
+                                   "")
+                               "success:function(h){"
+                               (or js
+                                   (if target
+                                       (++ "$('#" target "')." (->string action) "(h);")
+                                       "return;"))
+                               "},"
+                               (++ "data:{"
+                                   (string-intersperse
+                                    (map (lambda (var/val)
+                                           (conc  "'" (car var/val) "':" (cdr var/val)))
+                                         arguments)
+                                    ",") "}")
+                               "})}"))
                        (if (and id event)
                            ");\n"
                            ""))))
