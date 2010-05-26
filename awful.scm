@@ -406,39 +406,40 @@
                                   (not (and (sid) (session-valid? (sid)))))
                               arguments
                               (cons `(sid . ,(++ "'" (sid) "'")) arguments)))
-               (js (++ (page-javascript)
-                       (if (and id event)
-                           (let ((events (concat (if (list? event) event (list event)) " "))
-                                 (binder (if live "live" "bind")))
-                             (++ "$('" (if (symbol? id)
-                                           (conc "#" id)
-                                           id)
-                                 "')." binder "('" events "',"))
-                           "")
-                       (or function
-                           (++ "function(){$.ajax({type:'" (->string method) "',"
-                               "url:'" path "',"
-                               (if content-type
-                                   (conc "contentType: '" content-type "',")
-                                   "")
-                               "success:function(h){"
-                               (or js
-                                   (if target
-                                       (++ "$('#" target "')." (->string action) "(h);")
-                                       "return;"))
-                               "},"
-                               (++ "data:{"
-                                   (string-intersperse
-                                    (map (lambda (var/val)
-                                           (conc  "'" (car var/val) "':" (cdr var/val)))
-                                         arguments)
-                                    ",") "}")
-                               "})}"))
-                       (if (and id event)
-                           ");\n"
-                           ""))))
-          (unless no-page-javascript (page-javascript js))
-          js))
+               (js-code
+                (++ (page-javascript)
+                    (if (and id event)
+                        (let ((events (concat (if (list? event) event (list event)) " "))
+                              (binder (if live "live" "bind")))
+                          (++ "$('" (if (symbol? id)
+                                        (conc "#" id)
+                                        id)
+                              "')." binder "('" events "',"))
+                        "")
+                    (or function
+                        (++ "function(){$.ajax({type:'" (->string method) "',"
+                            "url:'" path "',"
+                            (if content-type
+                                (conc "contentType: '" content-type "',")
+                                "")
+                            "success:function(h){"
+                            (or js
+                                (if target
+                                    (++ "$('#" target "')." (->string action) "(h);")
+                                    "return;"))
+                            "},"
+                            (++ "data:{"
+                                (string-intersperse
+                                 (map (lambda (var/val)
+                                        (conc  "'" (car var/val) "':" (cdr var/val)))
+                                      arguments)
+                                 ",") "}")
+                            "})}"))
+                    (if (and id event)
+                        ");\n"
+                        ""))))
+          (unless no-page-javascript (page-javascript js-code))
+          js-code))
       "")) ;; empty if no-ajax
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
