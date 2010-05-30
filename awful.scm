@@ -377,7 +377,7 @@
 
 ;;; Ajax
 (define (ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '())
-              js no-session no-db no-page-javascript vhost-root-path live content-type function)
+              js no-session no-db no-page-javascript vhost-root-path live content-type prelude)
   (if (enable-ajax)
       (let ((path (if (regexp? path)
                   path
@@ -416,25 +416,26 @@
                                         id)
                               "')." binder "('" events "',"))
                         "")
-                    (or function
-                        (++ "function(){$.ajax({type:'" (->string method) "',"
-                            "url:'" path "',"
-                            (if content-type
-                                (conc "contentType: '" content-type "',")
-                                "")
-                            "success:function(h){"
-                            (or js
-                                (if target
-                                    (++ "$('#" target "')." (->string action) "(h);")
-                                    "return;"))
-                            "},"
-                            (++ "data:{"
-                                (string-intersperse
-                                 (map (lambda (var/val)
-                                        (conc  "'" (car var/val) "':" (cdr var/val)))
-                                      arguments)
-                                 ",") "}")
-                            "})}"))
+                    (++ "function(){"
+                        (or prelude "")
+                        "$.ajax({type:'" (->string method) "',"
+                        "url:'" path "',"
+                        (if content-type
+                            (conc "contentType: '" content-type "',")
+                            "")
+                        "success:function(h){"
+                        (or js
+                            (if target
+                                (++ "$('#" target "')." (->string action) "(h);")
+                                "return;"))
+                        "},"
+                        (++ "data:{"
+                            (string-intersperse
+                             (map (lambda (var/val)
+                                    (conc  "'" (car var/val) "':" (cdr var/val)))
+                                  arguments)
+                             ",") "}")
+                        "})}")
                     (if (and id event)
                         ");\n"
                         ""))))
