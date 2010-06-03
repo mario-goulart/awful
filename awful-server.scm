@@ -5,7 +5,8 @@
 (use posix awful)
 
 (define (usage #!optional exit-code)
-  (print (pathname-strip-directory (program-name)) " [ <app1> <app2> ... ]")
+  (print (pathname-strip-directory (program-name))
+         " [ -h | --help ] | [ <app1> <app2> ... ]")
   (when exit-code (exit exit-code)))
 
 (let ((args (command-line-arguments)))
