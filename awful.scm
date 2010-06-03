@@ -195,9 +195,9 @@
 
 
 ;;; DB access
-(define ($db q #!key default)
+(define ($db q #!key default values)
   (debug-query q)
-  ((db-inquirer) q default: default))
+  ((db-inquirer) q default: default values: values))
 
 (define (debug-query q)
   (when (and (debug-file) (debug-db-query?))
