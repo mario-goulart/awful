@@ -9,7 +9,6 @@
   (when exit-code (exit exit-code)))
 
 (awful-apps (command-line-arguments))
-(when (null? (awful-apps)) (usage 1))
 (load-apps (awful-apps))
 (register-root-dir-handler)
 (register-dispatcher)
