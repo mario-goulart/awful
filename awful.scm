@@ -36,7 +36,7 @@
      http-session)
 
 ;;; Version
-(define (awful-version) "0.21")
+(define (awful-version) "0.22")
 
 
 ;;; Parameters
