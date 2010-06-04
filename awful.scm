@@ -33,7 +33,7 @@
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
-     http-session jsmin)
+     http-session)
 
 ;;; Version
 (define (awful-version) "0.21")
@@ -67,7 +67,7 @@
 (define session-inspector-access-control (make-parameter (lambda () #f)))
 (define session-inspector-access-denied-message (make-parameter (<h3> "Access denied.")))
 (define enable-javascript-compression (make-parameter #f))
-(define javascript-compressor (make-parameter jsmin-string))
+(define javascript-compressor (make-parameter identity))
 (define page-exception-message
   (make-parameter
    (lambda (exn)

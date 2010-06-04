@@ -1,9 +1,11 @@
 #!/usr/bin/csi -script
 
-(use posix html-tags)
+(use posix html-tags jsmin)
 
 (enable-ajax #t)
-(enable-javascript-compression #f)
+(enable-javascript-compression #t)
+
+(javascript-compressor jsmin-string)
 
 (define-page (main-page-path)
   (lambda ()
