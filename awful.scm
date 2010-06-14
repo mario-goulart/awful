@@ -9,7 +9,7 @@
    web-repl-access-denied-message session-inspector-access-control
    session-inspector-access-denied-message page-exception-message
    http-request-variables db-connection page-javascript sid
-   enable-javascript-compression javascript-compressor
+   enable-javascript-compression javascript-compressor debug-resources
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -72,7 +72,7 @@
   (make-parameter
    (lambda (exn)
      (<h3> "An error has accurred while processing your request."))))
-
+(define debug-resources (make-parameter #f)) ;; usually usefule for awful development debugging
 
 ;; Parameters for internal use
 (define http-request-variables (make-parameter #f))
@@ -244,6 +244,8 @@
                       (display out (response-port (current-response))))))))
 
 (define (resource-ref path vhost-root-path #!optional check-existence)
+  (when (debug-resources)
+    (debug-pp (hash-table->alist *resources*)))
   (or (hash-table-ref/default *resources* (cons path vhost-root-path) #f)
       (resource-match path vhost-root-path check-existence)))
 
