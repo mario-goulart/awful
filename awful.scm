@@ -26,7 +26,7 @@
 
   ) ; end export list
 
-(import scheme chicken data-structures utils extras regex ports srfi-69 files)
+(import scheme chicken data-structures utils extras regex ports srfi-69 files srfi-1)
 
 ;; Units
 (use posix srfi-13)
@@ -221,13 +221,18 @@
    (let ((old-handler (handle-not-found)))
      (lambda (_)
        (let* ((path-list (uri-path (request-uri (current-request))))
+              (dir? (equal? (last path-list) ""))
               (path (if (null? (cdr path-list))
                         (car path-list)
                         (++ "/" (concat (cdr path-list) "/"))))
               (proc (resource-ref path (root-path))))
          (if proc
              (run-resource proc path)
-             (old-handler _)))))))
+             (if dir? ;; try to find a procedure with the trailing slash removed
+                 (let ((proc (resource-ref (string-chomp path "/") (root-path))))
+                   (if proc
+                       (run-resource proc path)
+                       (old-handler _))))))))))
 
 (define (run-resource proc path)
   (let ((out (->string (proc path))))
