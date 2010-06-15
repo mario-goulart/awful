@@ -57,7 +57,7 @@
 (define page-css (make-parameter #f))
 (define page-charset (make-parameter #f))
 (define login-page-path (make-parameter "/login")) ;; don't forget no-session: #t for this page
-(define main-page-path (make-parameter "/main"))
+(define main-page-path (make-parameter "/"))
 (define app-root-path (make-parameter "/"))
 (define valid-password? (make-parameter (lambda (user password) #f)))
 (define page-template (make-parameter html-page))
@@ -232,7 +232,8 @@
                  (let ((proc (resource-ref (string-chomp path "/") (root-path))))
                    (if proc
                        (run-resource proc path)
-                       (old-handler _))))))))))
+                       (old-handler _)))
+                 (old-handler _))))))))
 
 (define (run-resource proc path)
   (let ((out (->string (proc path))))
@@ -292,9 +293,7 @@
   (handle-directory
    (let ((old-handler (handle-directory)))
      (lambda (path)
-       (cond ((equal? path "/")
-              (redirect-to (main-page-path)))
-             ((resource-ref path (root-path))
+       (cond ((resource-ref path (root-path))
               => (cut run-resource <> path))
              (else (old-handler path)))))))
 
