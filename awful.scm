@@ -406,7 +406,6 @@
                                    out)
                                  ((page-access-denied-message) path))
                              (ajax-invalid-session-message))))
-        (sid ($ 'sid))
         (let* ((arguments (if (or (not (enable-session))
                                   no-session
                                   (not (and (sid) (session-valid? (sid)))))
