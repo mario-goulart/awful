@@ -859,10 +859,36 @@ The {{live}} keyword parameter (boolean) indicates wheter ajax should use JQuery
 
 The {{prelude}} keyword parameter (string) is an arbitrary piece of javascript code to be placed right before the ajax request.
 
+The {{update-targets}} keyword parameter is a list of symbols which represent the identifiers of DOM elements to be updated on the success of the ajax request.  When {{update-targets}} is used, the procedure {{proc}} used as argument to {{ajax}} should yield an alist as result.  The alist maps DOM elements identifiers to their corresponding values.
+
+Here's an example:
+
+<enscript highlight=scheme>
+#!/usr/bin/awful
+
+(use awful html-tags)
+
+(enable-ajax #t)
+
+(define-page (main-page-path)
+  (lambda ()
+
+    (ajax "foo" 'foo 'click
+          (lambda ()
+            '((a . 1) (b . 2) (c . 3)))
+          update-targets: '(a b c))
+
+    (<div>
+     (link "#" "foo" id: "foo")
+     (<div> id: "a")
+     (<div> id: "b")
+     (<div> id: "c"))))
+</enscript>
+
 The {{ajax}} procedure is session, HTTP request and database -aware.
 
 
-<procedure>(periodical-ajax path interval proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db vhost-root-path live prelude)</procedure>
+<procedure>(periodical-ajax path interval proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db vhost-root-path live prelude update-targets)</procedure>
 
 Periodically execute {{proc}} on the server side, using {{(app-root-path)/(ajax-namespace)/path}} as the URL path for the server side handler.
 
@@ -871,7 +897,7 @@ Periodically execute {{proc}} on the server side, using {{(app-root-path)/(ajax-
 The meaning of the keyword parameters is the same as for {{ajax}}'s.
 
 
-<procedure>(ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db (event 'click) vhost-root-path live class hreflang type rel rev charset coords shape accesskey tabindex a-target prelude)</procedure>
+<procedure>(ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db (event 'click) vhost-root-path live class hreflang type rel rev charset coords shape accesskey tabindex a-target prelude update-targets)</procedure>
 
 A shortcut to
 
@@ -881,7 +907,7 @@ A shortcut to
   (<a> href: "#" [...other <a> keyword parameters...] id: id text))
 </enscript>
 
-The meaning of the {{target}}, {{action}}, {{method}}, {{arguments}}, {{js}}, {{no-session}}, {{no-db}}, {{event}}, {{vhost-root-path}} and {{live}} keyword parameters is the same as for {{ajax}}'s.
+The meaning of the {{target}}, {{action}}, {{method}}, {{arguments}}, {{js}}, {{no-session}}, {{no-db}}, {{event}}, {{vhost-root-path}}, {{update-targets}} and {{live}} keyword parameters is the same as for {{ajax}}'s.
 
 The meaning of the {{class}}, {{hreflang}}, {{type}}, {{rel}}, {{rev}}, {{charset}}, {{coords}}, {{shape}}, {{accesskey}}, {{tabindex}} and {{a-target}} are the same as for [[http://chicken.wiki.br/eggref/4/html-tags]]' {{<nowiki>&lt;a&gt;</nowiki>}} procedure (except that {{a-target}} is {{<nowiki>&lt;a&gt;</nowiki>}}'s {{target}}, since {{ajax}} uses the {{target}} keyword parameter).
 
