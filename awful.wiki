@@ -1,0 +1,1180 @@
+== Awful
+
+[[toc:]]
+
+=== Description
+
+awful provides an application and an extension to ease the development of web-based applications.
+
+Here's a short summary of awful features:
+
+* Straightforward interface to databases (currently supported are postgresql and sqlite3)
+* Page dispatching via regular expressions
+* Easy access to query string and body request variables from HTTP requests
+* Ajax support via JQuery
+* Reasonably flexible (several configuration parameters)
+* Compiled pages made easy
+* Session inspector
+* Web REPL
+
+[[http://chicken.wiki.br/video/awful.ogv|Here's]] a 35 seconds video ([[http://en.wikipedia.org/wiki/Ogv|OGV]]) showing the deployment of awful and a "hello, world" example ([[http://chicken.wiki.br/video/awful.avi|here's]] the same video, but in [[http://en.wikipedia.org/wiki/Audio_Video_Interleave|AVI]]).
+
+
+=== Author
+
+[[http://chicken.wiki.br/users/mario-domenech-goulart|Mario Domenech Goulart]]
+
+
+=== Requirements
+
+The following eggs are required:
+
+* [[http://chicken.wiki.br/eggref/4/spiffy|spiffy]]
+* [[http://chicken.wiki.br/eggref/4/spiffy-request-vars|spiffy-request-vars]]
+* [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]]
+* [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]
+* [[http://chicken.wiki.br/eggref/4/http-session|http-session]] (>= 2.0)
+
+=== Components
+
+awful is composed by two parts: an application, which can be thought as a web server; and an extension, which provides most of the supported features.
+
+=== A "Hello, world!" example
+
+Here's a "Hello, world!" example to be run by awful (hello-world.scm).
+
+<enscript highlight=scheme>
+(use awful)
+
+(define-page (main-page-path)
+  (lambda ()
+    "Hello, world!"))
+</enscript>
+
+To run this example, execute:
+
+  $ awful hello-world.scm
+
+Then access localhost:8080 using your favourite web browser.
+
+Without any configuration, awful listens on port 8080.  Since awful uses Spiffy behind the scenes, you can configure the web server parameters using Spiffy's.
+
+{{define-page}} is the primitive procedure to define pages.  In the simplest case, it takes as arguments a path to the page and a procedure to generate the page contents. The path to the page you use as the first argument is the same to be used as the path part of the URL you use to access the page.
+
+In the example we use the {{main-page-path}} parameter, which is one of the awful configuration parameters.  The default is {{"/main"}}.  So, when you access {{http://localhost:8080}} awful will take you to {{http://localhost:8080/main}}.
+
+If you look at the page source code, you'll see that awful created an HTML page for you.  Awful uses the [[http://chicken.wiki.br/eggref/4/html-utils|html-tags]]'s {{html-page}} procedure behind the scenes.  You can customize the page either by passing {{html-page}}'s keyword parameters to {{define-page}} or by setting the {{page-template}} parameter with your favourite procedure to generate pages (a one argument procedure which receives the page contents and returns a string representing the formatted contents). {{define-page}} would still pass the {{html-page}} keyword parameters, so you can make use of them.
+
+You can also use some global page-related parameters if all pages use the same CSS, doctype and charset ({{page-css}}, {{page-doctype}} and {{page-charset}}, respectively).
+
+
+An alternative way to write Awful '''scripts''' is by using the {{#!/path/to/awful}} shebang line.  Example:
+
+<enscript highlight=scheme>
+#! /usr/bin/awful
+
+(use awful)
+
+(define-page (main-page-path)
+  (lambda ()
+    "Hello, world!"))
+</enscript>
+
+Then you just need to run your script (assuming the file has execution permissions):
+
+  $ ./hello-world.scm
+
+
+=== Accessing request variables
+
+Awful provides a procedure ({{$}}) to access variables from the request, both from the query string (GET method) and from the request body (e.g., POST method).
+
+Here's a modified "Hello, world!" example to greet some person instead of the whole world:
+
+<enscript highlight=scheme>
+(use awful)
+
+(define-page (main-page-path)
+  (lambda ()
+    (++ "Hello, " ($ 'person "world") "!")))
+</enscript>
+
+The {{++}} procedure is an alias to {{string-append}} (name inspired by Haskell's operator to concatenate strings).
+
+So, restart the web server to reload the code, then access the main page using an argument, represented by the {{person}} query string variable: {{http://localhost:8080/main?person=Mario}}. You'll see a page showing {{Hello, Mario!}}.
+
+
+=== Re-evaluating the code by reloading the page
+
+When we upgraded our "Hello, world!" example to the improved one which can use an argument passed through the URL, we needed to modify the code and restart the web server to reload the application code.  Awful provides a way to reload the code via URL without restarting the server.  To do that, we can define a special page whose handler just reloads the code:
+
+<enscript highlight=scheme>
+(define-page "/reload"
+  (lambda ()
+    (load-apps (awful-apps))
+    "Reloaded"))
+</enscript>
+
+and restart the awful server.  Now, whenever you want to reload the application code, access {{http://localhost:8080/reload}}.
+
+You can control which IP numbers can access the reload page by using the {{page-access-control}} parameter.  For example, allowing only the localhost to reload the apps:
+
+<enscript highlight=scheme>
+(page-access-control
+ (lambda (path)
+   (if (equal? path "/reload")
+       (member (remote-address) '("127.0.0.1"))
+       #t)))
+</enscript>
+
+
+=== Using ajax
+
+Awful provides a way to (hopefully) make the use of ajax straightforward for web applications.
+
+By default, the ajax support is disabled, but it can be easily enabled by setting the {{enable-ajax}} parameter to {{#t}}.  When you enable ajax, all the pages defined via {{define-page}} will be linked to the JQuery javascript library. The URL of the JQuery file can be customized by setting the {{ajax-library}} parameter (the default is Google's API JQuery file version 1.4.2).
+
+When you have ajax enabled and you want to disable it for specific pages, you can pass {{#f}} as the value for the {{define-page}} keyword parameter {{no-ajax}}.
+
+So, if we now change our code to
+
+<enscript highlight=scheme>
+(use awful)
+
+(enable-ajax #t)
+
+(define-page (main-page-path)
+  (lambda ()
+    (++ "Hello, " ($ 'person "world") "!")))
+</enscript>
+
+and reload the application, we'll have our page linked to JQuery.
+
+Awful provides some procedures to do ajax.  We start by the more generic one ({{ajax}}) to reply the page greetings when we click "Hello, <person>!".
+
+<enscript highlight=scheme>
+(use awful html-tags)
+
+(enable-ajax #t)
+
+(define-page (main-page-path)
+  (lambda ()
+    (ajax "greetings" 'greetings 'click
+          (lambda ()
+            (<b> "Hello, awful!"))
+          target: "greetings-reply")
+    (++ (<a> href: "#"
+             id: "greetings"
+             (++ "Hello, " ($ 'person "world") "!"))
+        (<div> id: "greetings-reply"))))
+</enscript>
+
+The {{ajax}} procedure uses at least four arguments:
+
+1. The URL path to the server-side handler (a string).  This path is relative to {{ajax-namespace}} parameter (default is {{ajax}}.  So, in the example, we'll have "/ajax/greetings" as the ajax path to be generated if we pass "ajax" as the first argument.
+
+2. The ID of the DOM element to observe.
+
+3. The event to be handled
+
+4. The procedure to be run on the server-side.
+
+So, in the example, {{ajax}} will bind the fourth argument (the procedure) to the first argument (the path) on the server side. Then it will add javascript code to the page in order to wait for click events for the element of ID {{greetings}}.  When we click "Hello, <person>!", we'll get "Hello, awful!" printed on the page as reply.  {{ajax}} updates the DOM element whose id is the value of the {{target}} keyword parameter ({{"greetings-reply"}}, in the example).
+
+For the very specific case of creating links that execute server side code when clicked, awful provides the {{ajax-link}} procedure.  So our example could be coded like:
+
+<enscript highlight=scheme>
+(use awful)
+
+(enable-ajax #t)
+
+(define-page (main-page-path)
+  (lambda ()
+    (++ (ajax-link "greetings" 'greetings
+                   (lambda ()
+                     (<b> "Hello, awful!"))
+                   target: "greetings-reply")
+        (<div> id: "greetings-reply"))))
+</enscript>
+
+
+
+=== Adding arbitrary javascript code to pages
+
+Awful provides a procedure which can be used to add arbitrary javascript code to the page. It's called {{add-javascript}}.  Here's an example using javascript's {{alert}} and our "Hello, world!" example:
+
+<enscript highlight=scheme>
+(use awful)
+
+(enable-ajax #t)
+
+(define-page (main-page-path)
+  (lambda ()
+    (add-javascript "alert('Hello!');")
+    (++ (ajax-link "greetings" 'greetings
+                   (lambda ()
+                     (<b> "Hello, awful!"))
+                   target: "greetings-reply")
+        (<div> id: "greetings-reply"))))
+</enscript>
+
+
+
+=== Database access
+
+To access databases, you need some of the awful eggs which provide database access.  Currently, these are the possible options:
+
+* [[http://chicken.wiki.br/eggref/4/awful-postgresql|awful-postgresql]] (for Postgresql databases, using the [[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] egg)
+
+* [[http://chicken.wiki.br/eggref/4/awful-sqlite3|awful-sqlite3]] (for Sqlite3 databases, using the [[http://chicken.wiki.br/eggref/4/sqlite3|sqlite3]] egg)
+* [[http://chicken.wiki.br/eggref/4/awful-sql-de-lite|awful-sql-de-lite]] (for Sqlite3 databases, using the [[http://chicken.wiki.br/eggref/4/sql-de-lite|sql-de-lite]] egg)
+
+As with ajax, database access is not enabled by default.  To enable it, you need to pick one the awful database support eggs and call the {{enable-db}} procedure.  Since version 0.10, and differently from the {{enable-*}} parameters, {{enable-db}} is a zero-argument procedure provided by each of awful database-support eggs.  So, if you use {{awful-postgresql}}, the {{enable-db}} procedure will automatically set up awful to use a postgresql database.
+
+Additionally, to access the db, you need to provide the credentials.  You can provide the credentials by setting the {{db-credentials}} parameter.  See the documentation for the eggs corresponding to the database type you are using ([[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] for Postgresql and [[http://chicken.wiki.br/eggref/4/sqlite3|sqlite3]] or [[http://chicken.wiki.br/eggref/4/sql-de-lite|sql-de-lite]] for Sqlite3.)
+
+To actually query the database, there's the {{$db}} procedure, which uses as arguments a string representing the query and, optionally, a default value (a keyword parameter) to be used in case the query doesn't return any result. {{$db}} returns a list of lists. Below is an usage example:
+
+<enscript highlight=scheme>
+(use awful awful-postgresql)
+
+(enable-db)
+(db-credentials '((dbname . "my-db")
+                  (user . "mario")
+                  (password . "secret")
+                  (host . "localhost")))
+
+(define-page "db-example"
+  (lambda ()
+    (with-output-to-string
+      (lambda ()
+        (pp ($db "select full_name, phone from users"))))))
+</enscript>
+
+''Hint'': for Sqlite3 databases, {{db-credentials}} should be the path to the database file.
+
+There's also the {{$db-row-obj}} procedure for when you want to access the results of a query by row name.  {{$db-row-obj}} returns a procedure of two arguments: the name of the field and, optionally, a default value to be used in case the field value is {{#f}}.
+
+<enscript highlight=scheme>
+(define-page "db-example"
+  (lambda ()
+    (let ((& ($db-row-obj "select full_name, phone from users where user_id=1")))
+      (<p> "Full name: " (& 'full_name))
+      (<p> "Phone: " (& 'phone)))))
+</enscript>
+
+''Warning'': currently {{$db-row-obj}} is only implemented for Postgresql.
+
+If you need more flexibility to query the database, you can always use the {{(db-connection}}) parameter to get the database connection object and use it with the procedures available from the your favorite database egg API.
+
+
+=== Login pages and session
+
+Awful provides a very basic (awful?) support for creating authentication pages.
+
+The basic things you have to do is:
+
+1. Enable the use of sessions:
+
+<enscript highlight=scheme>
+(enable-session #t)
+</enscript>
+
+2. Set the password validation parameter.  This parameter is a two argument procedure (user and password) which returns a value (usually {{#t}} or {{#f}}) indicating whether the password is valid for the given user.  The default is a password which returns {{#f}}.  Let's set it to a procedure which returns {{#t}} is the user and the password are the same:
+
+<enscript highlight=scheme>
+(valid-password?
+  (lambda (user password)
+    (equal? user password)))
+</enscript>
+
+3. Define a login trampoline, which is an intermediate page accessed when redirecting from the login page to the main page.
+
+<enscript highlight=scheme>
+(define-login-trampoline "/login-trampoline")
+</enscript>
+
+4. Create a login page.  Awful provides a simple user/password login form ({{login-form}}), which we are going to use.  Here's our full example so far (using the basic "Hello, world!" as main page).
+
+<enscript highlight=scheme>
+(use awful)
+
+(enable-session #t)
+
+(define-login-trampoline "/login-trampoline")
+
+(valid-password?
+  (lambda (user password)
+    (equal? user password)))
+
+(define-page (main-page-path)
+  (lambda ()
+    "Hello world!"))
+
+(define-page (login-page-path)
+  (lambda ()
+    (login-form))
+  no-session: #t)
+</enscript>
+
+That's the very basic we need to set an auth page.  If the password is valid for the given user, awful will perform a redirect to the main page ({{main-page-path}} parameter) passing the {{user}} variable and its value in the query string .  If the password is not valid, awful will redirect to the login page ({{login-page-path}} parameter)) and pass the following variables and values:
+
+; {{reason}} : the reason why awful redirected to the login page. It may be {{invalid-password}}, for when the password is invalid for the given user; or {{invalid-session}} for when the session identifier is not valid (e.g., the session expired).
+
+; {{attempted-page}} : the URL path to page the user tried to access, but couldn't because either he/she was not loged in or he/she provided an invalid session identifier.
+
+; {{user}} : the user used for the form user field.
+
+Now we're gonna change our main page to store the user in the session and retrieve it to make the greetings message:
+
+<enscript highlight=scheme>
+(define-page (main-page-path)
+  (lambda ()
+    ($session-set! 'user ($ 'user))
+    (++ "Hello " ($session 'user "world") "!")))
+</enscript>
+
+Here we can see the two procedures to access the session: {{$session}} and {{$session-set!}}.
+
+{{$session-set!}} accepts two arguments: the first one is the name of the session variable and the second one is its value.
+
+{{$session}} takes the name of the session variable as argument and returns its session value.  We can optionally use a second argument to specify a default value, in case the session variable is not bound or is {{#f}}.
+
+
+=== Session inspector
+
+Awful provides a session inspector, so we can easily see the session contents for a given session identifier.  By default, the session inspector is disabled.  We can enabled it using the {{enable-session-inspector}} procedure, passing the session inspector URL path as argument:
+
+<enscript highlight=scheme>
+(enable-session-inspector "session-inspector")
+</enscript>
+
+Now, if you log in and try to access {{http://localhost:8080/session-inspector?sid=<paste the sid value here>}}, you'll get ... an access denied page.
+
+Awful provides a way to control access to the session inspector ({{session-inspector-access-control}} parameter).  The {{session-inspector-access-control}} parameter is an one-argument procedure which returns {{#f}} or some other value to indicate whether the access to the session inspector is allowed or not. By default, it blocks all access.  Let's configure it so we can access the session inspector from the local machine (whose IP number is 127.0.0.1):
+
+<enscript highlight=scheme>
+(session-inspector-access-control
+ (lambda ()
+   (member (remote-address) '("127.0.0.1"))))
+</enscript>
+
+Regarding to the access denied message, you can customize it by setting the {{session-inspector-access-denied-message}}.
+
+Now we can access {{http://localhost:8080/session-inspector?sid=<paste the sid value here>}} and see the session contents.
+
+
+=== Web REPL
+
+For further run-time, server-side web hacking, awful provides a REPL that you can use via web browser.  The activation and control access are basically the same as for the session inspector.  The relevant procedure and parameters are:
+
+* {{enable-web-repl}}
+* {{web-repl-access-control}}
+* {{web-repl-access-denied-message}}
+
+
+=== Pages access control
+
+To allow/deny access to pages, you can use the {{page-access-control}} parameter.  It's an one-argument procedure (the page path) which can be set to determine if the access to the page is allowed or not.
+
+The example bellow shows a very silly access control to the main page: it only allows the access when the value of the request variable {{user}} is {{"mario"}}:
+
+<enscript highlight=scheme>
+(use awful)
+
+(enable-session #t)
+
+(define-login-trampoline "/login-trampoline")
+
+(valid-password?
+ (lambda (user password)
+   (equal? user password)))
+
+(page-access-control
+ (lambda (path)
+   (or (member path `(,(login-page-path) "/login-trampoline")) ;; allow access to login-related pages
+       (and (equal? ($ 'user) "mario")
+            (equal? path (main-page-path))))))
+
+(define-page (main-page-path)
+  (lambda ()
+    "Hello world"))
+
+(define-page (login-page-path)
+  (lambda ()
+    (login-form))
+  no-session: #t)
+</enscript>
+
+You can customize the access denied message by setting the {{page-access-denied-message}} with an one-argument procedure (the page path).
+
+
+
+=== Compiled pages
+
+Since Chicken is a compiler and our pages are Chicken code, we can compile them to have faster pages.  We just need to compile our app and pass the generated {{.so}} to the {{awful}} application:
+
+  $ csc -s hello-world.scm
+  $ awful hello-world.so
+
+
+
+=== Multiple applications support
+
+To be able to deploy multiple awful applications with different configurations under the same server, use Spiffy access files.  See Spiffy's [[http://chicken.wiki.br/eggref/4/spiffy#access-files|access files documentation]] for further details.
+
+
+
+=== List of user configurable parameters
+
+<parameter>(debug-file [file path])</parameter>
+
+If {{#f}}, indicates that debugging should be disabled.  When set to a string, it should be the path to the file where the debug messages go (when {{debug}} or {{debug-pp}} is used.)
+
+The default value is {{#f}}.
+
+
+<parameter>(debug-db-query? [boolean])</parameter>
+
+When not {{#f}}, all queries passed to {{$db}} and to {{$db-row-obj}} are printed to the debug file.
+
+The default value is {{#f}}.
+
+
+<parameter>(debug-db-query-prefix [string])</parameter>
+
+Prefix to be used for queries debugging when {{debug-db-query}} is not {{#f}}.
+
+The default value is {{""}}.
+
+
+<parameter>(db-credentials [boolean or list])</parameter>
+
+Credentials to be used to access the database (see the [[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] egg documentation.)  When {{#f}}, no database access is performed.
+
+The default value is {{#f}}.
+
+
+<parameter>(ajax-library [string])</parameter>
+
+URL or path to the ajax library (currently only [[http://jquery.com|JQuery]] is supported.)
+
+The default value is {{"http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"}}
+
+
+<parameter>(enable-ajax [boolean])</parameter>
+
+When {{#t}}, makes {{define-page}} link the {{ajax-library}} to the generated page.
+
+The default value is {{#f}}
+
+
+<parameter>(ajax-namespace [string])</parameter>
+
+Name to be used as a namespace for ajax URL paths.
+
+The default value is {{"ajax"}}.
+
+
+<parameter>(enable-session [boolean])</parameter>
+
+When {{#t}}, session support is enabled.
+
+The default value is {{#f}}.
+
+
+<parameter>(page-access-control [procedure])</parameter>
+
+An one-argument (URL path of the current page) procedure which tells whether the access to the page is allowed or not.
+
+The default value is {{(lambda (path) #t)}}.
+
+
+<parameter>(page-access-denied-message [procedure])</parameter>
+
+An one-argument (URL path of the current page) procedure which returns the access denied message.
+
+The default value is {{(lambda (path) (<h3> "Access denied."))}}.
+
+
+<parameter>(page-doctype [string])</parameter>
+
+The doctype (see the [[http://chicken.wiki.br/eggref/4/doctype|doctype]] egg) to be applied to all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{doctype}} keyword parameter.
+
+The default value is {{""}}.
+
+<parameter>(page-css [boolean or string])</parameter>
+
+The CSS file to be linked by all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{css}} keyword parameter.  See [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} procedure to know about the {{css}} keyword parameter syntax.
+
+The default value is {{#f}} (no CSS).
+
+<parameter>(page-charset [boolean or string])</parameter>
+
+The page charset to be used by all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{charset}} keyword parameter.
+The default value is {{#f}} (no explicit charset).
+
+
+<parameter>(login-page-path [string])</parameter>
+
+The URL path for the login page.  When creating a login page, be sure to set the {{no-session}} keyword parameter for {{define-page}} to {{#t}}, otherwise you'll get an endless loop.
+
+The default value is {{"/login"}}.
+
+
+<parameter>(main-page-path [string])</parameter>
+
+The URL path to the app main page.
+
+The default value is {{"/main"}}.
+
+<parameter>(app-root-path [string])</parameter>
+
+The base path to be used by the application.  All the pages defined by {{define-page}} will use {{app-root-path}} as the base directory.  For example, if {{app-root-path}} is set to {{"/my-app"}} and {{"my-page"}} is used as first argument to {{define-page}}, the page would be available at {{http://<server>:<port>/my-app/my-page}}.
+
+The default value is {{"/"}}.
+
+<parameter>(valid-password? [procedure])</parameter>
+
+A two-argument (user and password) procedure which indicates whether the given password is valid for the given user.
+
+The default value is {{(lambda (user password) #f)}}.
+
+<parameter>(page-template [procedure])</parameter>
+
+An one-mandatory-argument procedure to be used by {{define-page}} (unless {{define-page}}'s {{no-template}} keyword parameter is set to {{#f}}) to generate HTML pages. Although this procedure can take only one mandatory argument, the following keyword arguments are passed:
+
+* css
+* title
+* doctype
+* headers
+* charset
+* no-ajax
+* no-template
+* no-session
+* no-db
+
+The default value is {{html-page}} (see the [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]] egg documentation.)
+
+<parameter>(ajax-invalid-session-message [string])</parameter>
+
+The message to be used when attempting the make an ajax call using an invalid session identifier.
+
+The default value is {{"Invalid session}}.
+
+
+<parameter>(web-repl-access-control [procedure])</parameter>
+
+A no-argument procedure to control access to the web REPL.
+
+The default value is {{(lambda () #f)}}.
+
+
+<parameter>(web-repl-access-denied-message [string])</parameter>
+
+Message to be printed when the access to the web REPL is denied.
+
+The default value is {{(<h3> "Access denied.")}}.
+
+
+<parameter>(session-inspector-access-control [procedure])</parameter>
+
+A no-argument procedure to control access to the session inspector.
+
+The default value is {{(lambda () #f)}}.
+
+
+<parameter>(session-inspector-access-denied-message [string])</parameter>
+
+Message to be printed when the access to the session inspector is denied.
+
+The default value is {{(<h3> "Access denied.")}}.
+
+
+<parameter>(page-exception-message [procedure])</parameter>
+
+An one-argument procedure to be used when an exception occurs while {{define-page}} tries to evaluate its contents.
+
+The default value is {{(lambda (exn) (<h3> "An error has accurred while processing your request."))}}
+
+
+<parameter>(enable-javascript-compression [boolean])</parameter>
+
+Enable javascript compression support.  When enabled the compressor set by {{javascript-compressor}} is used.
+
+The default value is {{#f}}.
+
+
+<parameter>(javascript-compressor [procedure])</parameter>
+
+An one-argument procedure (the javascript code) which return the given javascript code compressed.  Only used when {{enable-javascript-compression}} is not {{#f}}.
+
+The default value is the {{identity}} procedure.
+
+A possible value for {{javascript-compressor}} is {{jsmin-string}} (see the [[http://chicken.wiki.br/eggref/4/jsmin|jsmin]] egg.)
+
+
+=== List of read-only parameters available to users
+
+Note: these parameters should not be explicitly set and when their use is needed, it's a string sign you're doing something you shouldn't (except for {{db-connection}}, which can be used by procedures from the [[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] egg API).
+
+
+<parameter>(http-request-variables)</parameter>
+
+The per-request value returned by [[http://chicken.wiki.br/eggref/4/spiffy-request-vars|spiffy-request-vars]]'s {{request-vars}}.
+
+
+<parameter>(db-connection)</parameter>
+
+A per-request databaseconnection object.  The connection is automatically opened and closed by awful in a per-request basis (unless databases are not being used the {{no-db}} keyword parameter for {{define-page}} is {{#t}}.)
+
+
+<parameter>(page-javascript)</parameter>
+
+Javascript code to be added to the pages defined by {{define-page}}.
+
+
+<parameter>(sid)</parameter>
+
+The session identifier.
+
+
+<parameter>(awful-apps)</parameter>
+
+The list of awful applications, as given to the awful server when invoked from the command line.
+
+
+=== List of procedures
+
+<procedure>(++ string1 string2 ... stringn)</procedure>
+
+A shortcut to {{string-append}}.
+
+
+<procedure>(concat args #!optional (sep ""))</procedure>
+
+Convert {{args}} to string and intersperse the resulting strings with {{sep}}.
+
+
+<procedure>(include-javascript file)</procedure>
+
+A shortcut to {{(<script> type: "text/javascript" src: file)}}.
+
+
+<procedure>(add-javascript . code)</procedure>
+
+Add arbitrary javascript code to the pages defined by {{define-page}}.
+
+
+<procedure>(debug . args)</procedure>
+
+Print {{args}}, concatenated, to the file {{debug-file}}.
+
+
+<procedure>(debug-pp arg)</procedure>
+
+Pretty-print {{arg}} to the file {{debug-file}}.
+
+
+<procedure>($session var #!optional default)</procedure>
+
+Return the value of {{var}} in the session (or {{default}} if {{var}} does not exist or is {{#f}}).
+
+
+<procedure>($session-set! var #!optional val)</procedure>
+
+If {{var}} is a quoted symbol, set the value of {{var}} to {{val}}.  If {{val}} is not provided, {{var}} will have its value set to {{#f}}.
+
+{{var}} can be an alist mapping session variable names to their corresponding values.
+
+Examples:
+
+<enscript highlight=scheme>
+($session-set! 'foo "foo value")
+
+($session-set! '((foo . "foo value")
+                 (bar . "bar value")
+                 (baz . "baz value")))
+</enscript>
+
+
+<procedure>(link url text . rest)</procedure>
+
+Return a session-aware HTML code for a link, using the {{<nowiki>&lt;a&gt;</nowiki>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]].
+
+The {{rest}} arguments are the same as the ones for the {{<nowiki>&lt;a&gt;</nowiki>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]], plus the following:
+
+; {{no-session}} : a boolean.  If {{#t}}, forces {{link}} to ignore the session even when {{enable-session}} is {{#t}}.
+; {{arguments}} : an alist mapping variable names to their corresponding values, to be passed to uri-common's {{form-urlencode}} procedure.
+; {{separator}} : the value to the {{separator}} keyword argument to be passed to to uri-common's {{form-urlencode}} procedure.
+
+When {{enable-session}} is {{#t}}, {{link}} automatically encodes the session identifier in the URI (unless {{no-session}} is {{#t}}).
+
+
+<procedure>(form contents . rest)</procedure>
+
+Return a session-aware HTML code for a form, using the {{<form>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]].
+
+The {{rest}} arguments are the same as the ones for the {{<form>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]], plus {{no-session}}, a boolean.  If {{no-session}} is {{#t}}, it forces {{form}} to ignore the session even when {{enable-session}} is {{#t}}.
+
+When {{enable-session}} is {{#t}}, {{form}} automatically generates a hidden input field to pass the session identifier (unless {{no-session}} is {{#t}}).
+
+
+<procedure>($ var #!optional default converter)</procedure>
+
+Return the HTTP request value for the given variable {{var}}.  The variable is looked for in both the query string (GET method) and request body (e.g., POST method).
+
+
+<procedure>($db q #!key default values)</procedure>
+
+Execute the given query ({{q}}) on the database and return the result as a list of lists or {{default}} if the result set is empty.
+
+The {{values}} keyword parameter (a list) is a list of values to replace the placehoders in the query.
+
+Example:
+
+<enscript highlight=scheme>
+($db "insert into foo (bar, baz) values (?, ?)" values: '("bar-val" "baz-val"))
+</enscript>
+
+<procedure>($db-row-obj q)</procedure>
+
+Execute the given query {{q}} on the database and return an one-argument procedure which takes as argument the name of the database field to get the value.
+
+Example:
+
+<enscript highlight=scheme>
+(let ((& ($db-row-obj "select full_name, phone from users where user_id=1")))
+  (<p> "Full name: " (& 'full_name))
+  (<p> "Phone: " (& 'phone)))
+</enscript>
+
+''Warning'': currently {{$db-row-obj}} is only implemented for Postgresql databases.
+
+
+<procedure>(sql-quote . data)</procedure>
+
+Escape and quote the concatenation of {{data}} to be used in SQL queries.
+
+''Warning'': for Sqlite databases, {{sql-quote}} just replaces {{'}} by {{''}} and quotes the {{data}}.  For Postgresql, {{sql-quote}} quotes the result of {{escape-string}}.
+
+
+<procedure>(define-page path contents #!key css title doctype headers charset no-ajax no-template no-session no-db no-javascript-compression)</procedure>
+
+Define an awful page.
+
+{{path}} is the path to the page.  It can be represented by two types: a string and a regular expression object.  If it is a string, the path used in the URI will be bound to the given no-argument procedure {{contents}}.  If it is a regular expression object, any request whose URL path matches the regular expression will br handled by the one-argument procedure {{contents}}.  This procedure will be given the requested path.
+
+The {{css}}, {{title}}, {{doctype}}, {{headers}} and {{charset}} keyword parameters have the same meaning as [[http://chicken.wiki.br/eggref/4/html-utils]]'s {{html-page}}.
+
+If {{no-ajax}} is {{#t}}, it means that the page won't use ajax.
+
+If {{no-template}} is {{#t}}, it means that no page template (see the {{page-template}} parameter) should be used.
+
+If {{no-session}} is {{#t}}, it means that the page should not use session.
+
+If {{no-db}} is {{#t}}, it means that the page should not use the database, even when database usage is activated by {{enable-db}} and {{db-credentials}} is not {{#f}}.
+
+If {{no-javascript-compression}} is {{#t}} the javascript code for the page is not compressed, even when {{enable-javascript-compression}} is not {{#f}}.
+
+Examples:
+
+<enscript highlight=scheme>
+
+(use srfi-1 ;; for filter-map
+     regex) ;; for regexp
+
+;; http://host:port/foo => "bar"
+(define-page "/foo"
+  (lambda ()
+    "bar"))
+
+;; http://host:port/add/1/2/3 => 6
+(define-page (regexp "/add/.*")
+  (lambda (path)
+    (let ((numbers (filter-map string->number (string-split path "/"))))
+      (number->string (apply + numbers)))))
+
+</enscript>
+
+<procedure>(define-session-page path contents . rest)</procedure>
+
+Define a session-aware page.  When the page is accessed and a correponding session does not exist, it is created.  If the session already exists and is not valid, it is recreated.  If the session already exists and is valid, then it is refreshed.
+
+The {{rest}} parameters are the same as for {{define-page}}.
+
+Here's an example (the [[http://www.paulgraham.com/arcchallenge.html|arc challenge]]):
+
+<enscript highlight=scheme>
+(use awful html-utils spiffy-request-vars)
+
+(define-session-page "said"
+  (lambda ()
+    (with-request-vars $ (said)
+      (cond (said
+             ($session-set! 'said said)
+             (link "said" "click here"))
+            (($session 'said)
+             => (lambda (said)
+                  (++ "You said: " said)))
+            (else (form (++ (text-input 'said)
+                            (submit-input))
+                        action: "said"
+                        method: 'post))))))
+</enscript>
+
+
+<procedure>(ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db vhost-root-path live prelude)</procedure>
+
+Generate javascript code to be added to the page defined by {{define-page}}.  Return the generated javascript code (which usually is not useful, so should be discarded).
+
+{{path}} is the URL path (a string) of the server side handler. This path is placed under the {{(app-root-path)/(ajax-namespace)}} path.  So, if your {{app-root-path}} is {{"my-app"}}, your {{ajax-namespace}} is {{"ajax"}} and you use {{"do-something"}} as the first argument to {{ajax}}, the URL for the server side handler would be {{"/my-app/ajax/do-something"}}.
+
+{{id}} (a quoted symbol) is the id of the DOM element to be observed.
+
+{{event}} (a quoted symbol or a list) is the event(s) to be observed. If it is a quoted symbol (e.g., {{'click}}), only this event will be bound.  If {{event}} is a list of events, all the events from the list will be bound.
+
+{{proc}} is a no-argument procedure to be executed on the server side.
+
+The {{target}} keyword parameter is the id of the DOM element to be affected by the result of {{proc}}.
+
+The {{method}} (a quoted symbol, usually {{'GET}} or {{'POST}}) keyword parameter is the HTTP method to be used by the ajax request.
+
+The {{arguments}} keyword parameter is an alist mapping request variables (symbols) to their values (strings).  {{ajax}} uses these arguments to assembly the query string or the request body to send to the server when performing the ajax request.
+
+Example:
+
+<enscript highlight=scheme>
+arguments: '((var1 . "$('#var1').val()")
+             (var2 . "$('#var2').val()"))
+</enscript>
+
+If the {{no-session}} keyword parameter is {{#t}}, it means that no session should be considered ({{ajax}} implicit sends the session identifier when {{no-session}} is {{#f}}).
+
+If the {{no-db}} keyword parameter is {{#t}}, it means that the should be no attempt to connect the database, even when database usage is activated by {{enable-db}} and {{db-credentials}} is not {{#f}}.
+
+The {{vhost-root-path}} keyword parameter (a string) is the vhost root path.  It is useful for explicitly separate pages defined using the same path (see {{define-page}}) but for different vhosts.
+
+The {{live}} keyword parameter (boolean) indicates wheter ajax should use JQuery's live method (see [[http://api.jquery.com/live/]]).
+
+The {{prelude}} keyword parameter (string) is an arbitrary piece of javascript code to be placed right before the ajax request.
+
+The {{ajax}} procedure is session, HTTP request and database -aware.
+
+
+<procedure>(periodical-ajax path interval proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db vhost-root-path live prelude)</procedure>
+
+Periodically execute {{proc}} on the server side, using {{(app-root-path)/(ajax-namespace)/path}} as the URL path for the server side handler.
+
+{{interval}} (a number) is the interval between consecutive executions of {{proc}}, in milliseconds.
+
+The meaning of the keyword parameters is the same as for {{ajax}}'s.
+
+
+<procedure>(ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db (event 'click) vhost-root-path live class hreflang type rel rev charset coords shape accesskey tabindex a-target prelude)</procedure>
+
+A shortcut to
+
+<enscript highlight=scheme>
+(begin
+  (ajax path id 'click proc ...)
+  (<a> href: "#" [...other <a> keyword parameters...] id: id text))
+</enscript>
+
+The meaning of the {{target}}, {{action}}, {{method}}, {{arguments}}, {{js}}, {{no-session}}, {{no-db}}, {{event}}, {{vhost-root-path}} and {{live}} keyword parameters is the same as for {{ajax}}'s.
+
+The meaning of the {{class}}, {{hreflang}}, {{type}}, {{rel}}, {{rev}}, {{charset}}, {{coords}}, {{shape}}, {{accesskey}}, {{tabindex}} and {{a-target}} are the same as for [[http://chicken.wiki.br/eggref/4/html-tags]]' {{<nowiki>&lt;a&gt;</nowiki>}} procedure (except that {{a-target}} is {{<nowiki>&lt;a&gt;</nowiki>}}'s {{target}}, since {{ajax}} uses the {{target}} keyword parameter).
+
+The {{event}} keyword parameter syntax is the same for {{ajax}}'s {{event}} mandatory parameter.
+
+
+<procedure>(login-form #!key (user-label "User: ") (password-label "Password: ") (submit-label "Submit") (refill-user #t))</procedure>
+
+Return a user/password login form (e.g., for using in authentication pages).
+
+When the {{refill-user}} is {{#t}}, the User field is reffiled with the value from the {{user}} query string value when either the session or the password is invalid.
+
+The {{user-label}}, {{password-label}} and {{submit-label}} keyword parameters are labels to be used for the user, password and submit form widgets, respectively.
+
+
+<procedure>(enable-web-repl path #!key css title)</procedure>
+
+Enable the web REPL.  {{path}} is the URL path to the web REPL.
+
+The keyword parameter {{css}} is the CSS to be used the the web REPL page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{css}} keyword parameter.)
+
+The keyword parameter {{title}} (a string) is the title for the web REPL page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
+
+{{enable-web-repl}} automatically enables ajax (see {{enable-ajax}}.)
+
+<procedure>(enable-session-inspector path #!key css title)</procedure>
+
+Enable the session inspector.  {{path}} is the URL path to the session inspector.
+
+The keyword parameter {{css}} is the CSS to be used the the session inspector page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{css}} keyword parameter.)
+
+The keyword parameter {{title}} (a string) is the title for the session inspector page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
+
+{{enable-session-inspector}} automatically enables session (see {{enable-session}}.)
+
+<procedure>(define-login-trampoline path #!key vhost-root-path hook)</procedure>
+
+Define a trampoline -- an intermediate page accessed when redirecting from the login page to the main page.
+
+
+
+=== Tips and tricks
+
+==== Use {{link}} and {{form}} for links and forms
+
+Instead of using {{<nowiki>&lt;a&gt;</nowiki>}} and {{<form>}} for creating links and forms, respectively, consider using the {{link}} and {{form}} procedures instead.  They are specially useful when using sessions, since they transparently handle the session identifier for you.  Even if you don't use sessions, they may save you some work if one day you decide to use sessions (then you won't have do to anything regarding to links and forms).
+
+
+==== Use {{with-request-vars}} when referencing the same request variable multiple times
+
+When you need to access the same request variable more than once, consider using [[http://chicken.wiki.br/eggref/4/spiffy-request-vars|spiffy-request-vars]]' {{with-request-vars}}.
+
+For example, instead of:
+
+<enscript highlight=scheme>
+(use awful)
+
+(define-page "save-and-show-user"
+  (lambda ()
+    ($session-set! 'user ($ 'user))
+    (++ "Welcome " ($ 'user) "!")))
+</enscript>
+
+consider using something like:
+
+<enscript highlight=scheme>
+(use awful spiffy-request-vars)
+
+(define-page "save-and-show-user"
+  (lambda ()
+    (with-request-vars $ (user)
+      ($session-set! 'user user)
+      (++ "Welcome " user))))
+</enscript>
+
+
+==== Use the web REPL and the session inspector for debugging
+
+Here's a simple recipe to allow access for your local machine to the web REPL ({{/repl}}) and to the session inspector ({{/session-inspector}}).
+
+<enscript highlight=scheme>
+(session-inspector-access-control
+ (lambda ()
+   (member (remote-address) '("127.0.0.1"))))
+
+(enable-session-inspector "/session-inspector")
+
+
+(web-repl-access-control
+ (lambda ()
+   (member (remote-address) '("127.0.0.1"))))
+
+(enable-web-repl "/repl")
+</enscript>
+
+To access them, just point your browser to {{http://localhost:<port>/repl}} and {{http://localhost:<port>/session-inspector}}, respectively.
+
+
+==== Create custom page definers when {{page-template}} and/or plain {{define-page}} are not enough
+
+You can define your own page definers when {{page-template}} or the plain {{define-page}} is not enough for what you need.  Here's an example:
+
+<enscript highlight=scheme>
+#!/usr/bin/awful
+
+(use awful html-tags)
+
+(define (define-custom-page path contents)
+  (define-page path
+    (lambda ()
+      (<html> (<body> (contents))))
+    no-template: #t))
+
+(define-custom-page (main-page-path)
+  (lambda ()
+    "Hey!"))
+</enscript>
+
+If you access {{http://localhost:8080}} you'll get the following HTML code:
+
+  <html><body>Hey!</body></html>
+
+
+==== Debugging: error messages on the browser window
+
+Error messages right on the browser window can be quite handy for debugging (although not for production environments).  Here's a way to accomplish that:
+
+<enscript highlight=scheme>
+(use awful html-tags)
+
+(page-exception-message
+ (lambda (exn)
+   (<pre> convert-to-entities?: #t
+          (with-output-to-string
+            (lambda ()
+              (print-call-chain)
+              (print-error-message exn))))))
+</enscript>
+
+
+==== Run awful without arguments to quickly share a file
+
+When invoked without arguments, awful (the application) starts the web server using the current directory as root path and keeps listening on port 8080.  So, if you want to quickly share a file (or some files), change to the directory containing the files and execute {{awful}}.  The access {{http://<host>:8080/<the-file-you-want>}}.
+
+
+==== Awful badge
+
+Here's a suggestion:  [[image:http://parenteses.org/mario/img/thats-awful.png|That's awful!]]
+
+=== The name
+
+Awful doesn't mean anything special.  It's just awful.  But folks on freenode's #chicken (IRC) have suggested some acronym expansions:
+
+* A Whole Freaking Universe of Lambdas
+* Authored Without Full Understanding of Logic
+* Another Web Framework Understating Logic
+* All Worthless Frameworks Unchain Laziness
+* Armed With Flimsy Utility Lisp
+* Awful Will Fed Up Lispers
+* Awful Wildly Finalizes Unfinished Loops
+* Another Widely Foolish Unknown Language
+* Ain't Work For Unpleasant Laywers
+* Aliens Would Find it Utterly Lame
+* Aren't We Funny and Uncaring Lurkers
+* Awful Will F*** Up Logic
+* Awful Will Fart Upon Leaving
+* Again Web Frameworks Underscore Lameness
+* Attention While Fully Utilizing Laziness
+* Another Webserver F***ing Up the Line
+* Again We Forget Unclosed Lambdas
+* All Web Features Understood Losslessly
+* Anything With Fully Universal Lambdas
+* Again We Fail Under Load
+* Apocalyptic Warthogs Find Undiscovered Lands
+* Accessible Web Framework Using Lisp
+* Another Weird Framework Using Lisp
+* All Waffles Fear Unicorn Landings
+* A Working Facility Underscoring Laziness
+* Another Webbot Flapping Under Lines
+* Anybody Will Fake Unrealistic Loveletters
+* Armadillos Would First Use Legs
+* Astonishing Whales Fill Up Lakes
+* Alternative Way to F*** Up Lisp
+* Another Way to Find Undressed Ladies
+* Amazing! Wonderful! Fantastic! Unbelievable! Lame.
+* All Wonders Feel Useless Later
+* Amazingly Wonderful Feeling, Using Lambdas
+* Alligators Will Fear Us, Lunatics
+* All Wussies Fear Ultimate Lambda
+* Animals Will Find Us Letal
+* Advanced Web Framework: Ultimate Lucubration
+* Awful Will Feed Urban Lethargy
+* Argument With Focus Upon Labelling
+* Another Word Faking Unpremeditated Label
+* Again We Find it Utterly Useless
+* Ain't Work For Unattractive Ladies
+* A Way For Using Lambdas
+* Awful Way For Using Lambdas
+* Apparently We Freaks Understand Lambdas
+* Again We Foolishly Use Lists
+* At Work Fools Use Lisp
+* Again We Foolishly Use Lisp
+* Another Wimp Fall Upon Lisp
+* Accepting Whatever Fools Undertake Lightly
+* Absurd Word For Unnatural Lingo
+* Alternative Word For Useless Loser
+* Acronym With Filled Up Letters
+* Acronym We Find Utterly Lame
+* Another Webserver Functioning Until Launched
+* Applications With Familiar, Understandable Language
+* (Awful Words Forming Useless List)
+* All Who Force Unusual Layout
+* Again We Fear Undescribable Lamenting
+* Awful Will Favour Ugly Layouts
+* Apes With Frequent Uncontrolled Lunacy
+
+==== Acknowledgements (IRC nicknames on freenode's #chicken):
+
+
+* C-Keen
+* DerGuteMoritz
+* elderK
+* elf
+* florz
+* merlincorey
+* sjamaan
+
+
+=== License
+
+BSD
+
+
+=== Version history
+
+; 0.22:
+* bug fix: fixed unintended shadowing of {{js}} in ajax
+* added the {{prelude}} keyword parameter for {{ajax}}, {{periodical-ajax}} and {{ajax-link}}
+* {{$db}} supports the {{values}} keyword parameter (patch by Stephen Eilert)
+* awful (the application) can now be invoked without arguments
+* awful (the application) handles {{-h}} and {{--help}}
+* dropped [[/eggref/4/jsmin|jsmin]] requirement
+
+; 0.21: ajax and main page redirection issues fixes
+
+; 0.20:
+* {{page-access-control}} controls access to pages even when no session is in use
+* '''Warning''': the following parameters have been removed: {{enable-reload}}, {{reload-path}} and {{reload-message}}.  Now the way to define reloaders is via {{define-page}}.
+* new parameter: {{awful-apps}} (a list of awful applications as passed to the awful server)
+
+; 0.19: bug fix for {{(reload-path)}} handler
+
+; 0.18:
+* support for regex-based page paths (see {{define-page}})
+* {{define-page}} checks whether the second arg is a procedure.
+* use {{-O3 -lambda-lift}} instead of {{-O2}} for compilation
+* {{main-page-path}} redirection made with code stolen from [[http://chicken.wiki.br/eggref/4/spiffy|spiffy]]'s {{send-response}}
+
+; 0.17 : .meta bug fix.  postgresql is not required as a dependency (thanks to Stephen Pedrosa Eilert for pointing this issue).
+; 0.16 :
+* added {{define-session-page}}
+* bug fix for {{link}}
+
+; 0.15 : jquery updated to 1.4.2 ({{ajax-library}}).
+; 0.14 : {{link}}'s {{args}} keyword parameter renamed to {{arguments}} (the same as {{ajax}}'s).
+; 0.13 : Session-aware {{link}} and {{form}} procedures.  Bug fix for {{ajax-link}} (was not passing the {{class}} keyword argument to <nowiki>&lt;a&gt;</nowiki>).
+; 0.12 : Containers for user and password fields ({{login-form}})
+; 0.11 : awful sets Spiffy's {{root-path}} to {{(current-directory)}}
+; 0.10 :
+* Multiple database support. Currently Postgresql (via [[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] egg) and Sqlite3 (via [[http://chicken.wiki.br/eggref/4/sqlite3|sqlite3]] and [[http://chicken.wiki.br/eggref/4/sql-de-lite|sql-de-lite]] eggs) are supported.  See [[http://chicken.wiki.br/eggref/4/awful-postgresql|awful-postgresql]], [[http://chicken.wiki.br/eggref/4/sqlite3|sqlite3]] and [[http://chicken.wiki.br/eggref/4/sql-de-lite|sql-de-lite]] eggs.
+
+* Removed requirement for postgresql
+
+* {{enable-db}} is now a procedure (not a parameter as before) and accepts no arguments
+
+; 0.9 : {{login-form}} gets the {{user}} refilled when the session or passowrd is not valid.  This feature may be disabled by setting the {{refill-user}} keyword parameter for {{login-form}} to {{#f}} (default is {{#t}}).  Thanks to Arthur Maciel for suggesting this feature.
+; 0.8 :
+* jquery updated to 1.4.1 ({{ajax-library}}).
+
+* support for jquery's {{live}} method ({{live}} keyword parameter for {{ajax}}, {{ajax-link}} and {{periodical-ajax}}).  See [[http://api.jquery.com/live/]]
+
+* bug fixes: {{periodical-ajax}} and {{ajax-link}} propagate {{vhost-root-path}} to {{ajax}}
+
+* added {{awful-start}} and dropped spiffy requirement for awful (the server)
+
+* dropped requirement for miscmacros
+
+* added more ajax tests
+
+; 0.7 : {{ajax-link}} accepts all {{<nowiki>&lt;a&gt;</nowiki>}}'s keyword arguments
+; 0.6 : Explicitly depends on [[http://chicken.wiki.br/eggref/4/http-session|http-session]] 2.0
+; 0.5 : Reload handler register the reload path after reloading.
+; 0.4 : {{disable-reload?}} renamed to {{enable-reload}}.  {{enable-reload}} is {{#f}} by default.
+; 0.3 : {{awful}} (the server) allows applications to use Chicken syntax ({{use}}, {{include}} etc)
+; 0.2 : Added javascript compression support
+; 0.1 : Initial release
