@@ -459,7 +459,7 @@
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) js no-session no-db vhost-root-path live
-                         content-type prelude)
+                         content-type prelude update-targets)
   (if (enable-ajax)
       (page-javascript
        (++ "setInterval("
@@ -475,6 +475,7 @@
                  live: live
                  content-type: content-type
                  prelude: prelude
+                 update-targets: update-targets
                  no-page-javascript: #t)
            ", " (->string interval) ");\n"))
       ""))
@@ -482,7 +483,7 @@
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    js no-session no-db (event 'click) vhost-root-path live class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
-                   content-type prelude)
+                   content-type prelude update-targets)
   (ajax path id event proc
         target: target
         action: action
@@ -494,6 +495,7 @@
         live: live
         content-type: content-type
         prelude: prelude
+        update-targets: update-targets
         no-db: no-db)
   (<a> href: "#"
        id: id

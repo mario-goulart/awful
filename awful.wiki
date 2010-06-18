@@ -824,7 +824,7 @@ Here's an example (the [[http://www.paulgraham.com/arcchallenge.html|arc challen
 </enscript>
 
 
-<procedure>(ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db vhost-root-path live prelude)</procedure>
+<procedure>(ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db vhost-root-path live prelude update-targets)</procedure>
 
 Generate javascript code to be added to the page defined by {{define-page}}.  Return the generated javascript code (which usually is not useful, so should be discarded).
 
