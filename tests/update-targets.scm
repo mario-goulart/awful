@@ -1,6 +1,6 @@
 #!/usr/bin/awful
 
-(use awful)
+(use awful html-tags)
 
 (enable-ajax #t)
 
