@@ -33,7 +33,7 @@
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
-     http-session)
+     http-session json)
 
 ;;; Version
 (define (awful-version) "0.22")
@@ -383,7 +383,7 @@
 
 ;;; Ajax
 (define (ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '())
-              js no-session no-db no-page-javascript vhost-root-path live content-type prelude)
+              js no-session no-db no-page-javascript vhost-root-path live content-type prelude update-targets)
   (if (enable-ajax)
       (let ((path (if (regexp? path)
                   path
@@ -400,7 +400,11 @@
                                  no-session
                                  (and (enable-session) (session-valid? (sid))))
                              (if ((page-access-control) path)
-                                 (let ((out (proc)))
+                                 (let ((out (if update-targets
+                                                (with-output-to-string
+                                                  (lambda ()
+                                                    (json-write (list->vector (proc)))))
+                                                (proc))))
                                    (when (and (db-credentials) (db-enabled?) (not no-db))
                                      ((db-disconnect) (db-connection)))
                                    out)
@@ -428,12 +432,17 @@
                         (if content-type
                             (conc "contentType: '" content-type "',")
                             "")
-                        "success:function(h){"
-                        (or js
-                            (if target
-                                (++ "$('#" target "')." (->string action) "(h);")
-                                "return;"))
+                        "success:function(response){"
+                        (if update-targets
+                            "$.each(response, function(id, html) { $('#' + id).html(html);});"
+                            (or js
+                                (if target
+                                    (++ "$('#" target "')." (->string action) "(response);")
+                                    "return;")))
                         "},"
+                        (if update-targets
+                            "dataType: 'json',"
+                            "")
                         (++ "data:{"
                             (string-intersperse
                              (map (lambda (var/val)
