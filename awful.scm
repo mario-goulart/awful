@@ -278,17 +278,6 @@
 
 
 ;;; Root dir
-(define (redirect-to dest)
-  (parameterize
-    ((current-response
-      (update-response
-       (current-response)
-       code: 302
-       headers: (headers `((location ,dest)
-                           (content-length 0))
-                         (response-headers (current-response))))))
-    (write-logged-response)))
-
 (define (register-root-dir-handler)
   (handle-directory
    (let ((old-handler (handle-directory)))
