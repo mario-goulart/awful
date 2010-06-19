@@ -824,7 +824,7 @@ Here's an example (the [[http://www.paulgraham.com/arcchallenge.html|arc challen
 </enscript>
 
 
-<procedure>(ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db vhost-root-path live prelude update-targets)</procedure>
+<procedure>(ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '()) success no-session no-db vhost-root-path live prelude update-targets)</procedure>
 
 Generate javascript code to be added to the page defined by {{define-page}}.  Return the generated javascript code (which usually is not useful, so should be discarded).
 
@@ -885,10 +885,31 @@ Here's an example:
      (<div> id: "c"))))
 </enscript>
 
+The {{success}} keyword parameter (string) can be any arbitrary javascript code to be executed on the successful ajax request.  The javascript code can assume that a variable {{response}} is bound and contains the request resulting data.  Here's an example:
+
+<enscript highlight=scheme>
+#!/usr/bin/awful
+
+(use awful html-tags)
+
+(enable-ajax #t)
+
+(define-page (main-page-path)
+  (lambda ()
+
+    (ajax "foo" 'foo "click"
+          (lambda ()
+            "hey")
+          success: "$('#bar').html(response + ' you!')")
+
+    (++ (link "#" "foo" id: "foo")
+        (<div> id: "bar"))))
+</enscript>
+
 The {{ajax}} procedure is session, HTTP request and database -aware.
 
 
-<procedure>(periodical-ajax path interval proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db vhost-root-path live prelude update-targets)</procedure>
+<procedure>(periodical-ajax path interval proc #!key target (action 'html) (method 'POST) (arguments '()) success no-session no-db vhost-root-path live prelude update-targets)</procedure>
 
 Periodically execute {{proc}} on the server side, using {{(app-root-path)/(ajax-namespace)/path}} as the URL path for the server side handler.
 
@@ -897,7 +918,7 @@ Periodically execute {{proc}} on the server side, using {{(app-root-path)/(ajax-
 The meaning of the keyword parameters is the same as for {{ajax}}'s.
 
 
-<procedure>(ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '()) js no-session no-db (event 'click) vhost-root-path live class hreflang type rel rev charset coords shape accesskey tabindex a-target prelude update-targets)</procedure>
+<procedure>(ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '()) success no-session no-db (event 'click) vhost-root-path live class hreflang type rel rev charset coords shape accesskey tabindex a-target prelude update-targets)</procedure>
 
 A shortcut to
 
@@ -907,7 +928,7 @@ A shortcut to
   (<a> href: "#" [...other <a> keyword parameters...] id: id text))
 </enscript>
 
-The meaning of the {{target}}, {{action}}, {{method}}, {{arguments}}, {{js}}, {{no-session}}, {{no-db}}, {{event}}, {{vhost-root-path}}, {{update-targets}} and {{live}} keyword parameters is the same as for {{ajax}}'s.
+The meaning of the {{target}}, {{action}}, {{method}}, {{arguments}}, {{success}}, {{no-session}}, {{no-db}}, {{event}}, {{vhost-root-path}}, {{update-targets}} and {{live}} keyword parameters is the same as for {{ajax}}'s.
 
 The meaning of the {{class}}, {{hreflang}}, {{type}}, {{rel}}, {{rev}}, {{charset}}, {{coords}}, {{shape}}, {{accesskey}}, {{tabindex}} and {{a-target}} are the same as for [[http://chicken.wiki.br/eggref/4/html-tags]]' {{<nowiki>&lt;a&gt;</nowiki>}} procedure (except that {{a-target}} is {{<nowiki>&lt;a&gt;</nowiki>}}'s {{target}}, since {{ajax}} uses the {{target}} keyword parameter).
 
