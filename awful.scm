@@ -382,8 +382,9 @@
 
 
 ;;; Ajax
-(define (ajax path id event proc #!key target (action 'html) (method 'POST) (arguments '())
-              js no-session no-db no-page-javascript vhost-root-path live content-type prelude update-targets)
+(define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
+              target success no-session no-db no-page-javascript vhost-root-path
+              live content-type prelude update-targets)
   (if (enable-ajax)
       (let ((path (if (regexp? path)
                   path
@@ -435,7 +436,7 @@
                         "success:function(response){"
                         (if update-targets
                             "$.each(response, function(id, html) { $('#' + id).html(html);});"
-                            (or js
+                            (or success
                                 (if target
                                     (++ "$('#" target "')." (->string action) "(response);")
                                     "return;")))
@@ -458,7 +459,7 @@
       "")) ;; empty if no-ajax
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
-                         (arguments '()) js no-session no-db vhost-root-path live
+                         (arguments '()) success no-session no-db vhost-root-path live
                          content-type prelude update-targets)
   (if (enable-ajax)
       (page-javascript
@@ -468,7 +469,7 @@
                  action: action
                  method: method
                  arguments: arguments
-                 js: js
+                 success: success
                  no-session: no-session
                  no-db: no-db
                  vhost-root-path: vhost-root-path
@@ -481,7 +482,7 @@
       ""))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
-                   js no-session no-db (event 'click) vhost-root-path live class
+                   success no-session no-db (event 'click) vhost-root-path live class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
                    content-type prelude update-targets)
   (ajax path id event proc
@@ -489,7 +490,7 @@
         action: action
         method: method
         arguments: arguments
-        js: js
+        success: success
         no-session: no-session
         vhost-root-path: vhost-root-path
         live: live
