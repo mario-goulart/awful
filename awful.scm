@@ -10,6 +10,7 @@
    session-inspector-access-denied-message page-exception-message
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
+   enable-cookies session-cookie-name
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -33,7 +34,7 @@
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
-     http-session json)
+     http-session json spiffy-cookies)
 
 ;;; Version
 (define (awful-version) "0.23")
@@ -72,7 +73,9 @@
   (make-parameter
    (lambda (exn)
      (<h3> "An error has accurred while processing your request."))))
-(define debug-resources (make-parameter #f)) ;; usually usefule for awful development debugging
+(define debug-resources (make-parameter #f)) ;; usually useful for awful development debugging
+(define enable-cookies (make-parameter #t))
+(define session-cookie-name (make-parameter "awful-cookie"))
 
 ;; Parameters for internal use
 (define http-request-variables (make-parameter #f))
@@ -107,6 +110,10 @@
 
 (define awful-start start-server)
 
+(define (get-sid)
+  (if (enable-cookies)
+      (or (read-cookie (session-cookie-name)) ($ 'sid))
+      ($ 'sid)))
 
 ;;; Javascript
 (define (include-javascript file)
@@ -154,20 +161,21 @@
 
 ;;; Session-aware procedures for HTML code generation
 (define (link url text . rest)
-  (let ((use-session? (and (sid)
-                           (session-valid? (sid))
-                           (not (get-keyword no-session: rest))))
+  (let ((pass-sid? (and (not (enable-cookies))
+                        (sid)
+                        (session-valid? (sid))
+                        (not (get-keyword no-session: rest))))
         (arguments (or (get-keyword arguments: rest) '()))
         (separator (or (get-keyword separator: rest) ";&")))
     (apply <a>
            (append
             (list href: (if url
                             (++ url
-                                (if (or use-session? (not (null? arguments)))
+                                (if (or pass-sid? (not (null? arguments)))
                                     (++ "?"
                                         (form-urlencode
                                          (append arguments
-                                                 (if use-session?
+                                                 (if pass-sid?
                                                      `((sid . ,(sid)))
                                                      '()))
                                          separator: separator))
@@ -177,13 +185,14 @@
             (list text)))))
 
 (define (form contents . rest)
-  (let ((use-session? (and (sid)
-                           (session-valid? (sid))
-                           (not (get-keyword no-session: rest)))))
+  (let ((pass-sid? (and (not (enable-cookies))
+                        (sid)
+                        (session-valid? (sid))
+                        (not (get-keyword no-session: rest)))))
     (apply <form>
            (append rest
                    (list
-                    (++ (if use-session?
+                    (++ (if pass-sid?
                             (hidden-input 'sid (sid))
                             "")
                         contents))))))
@@ -299,7 +308,7 @@
      (or vhost-root-path (root-path))
      (lambda (#!optional given-path)
        (http-request-variables (request-vars))
-       (sid ($ 'sid))
+       (sid (get-sid))
        (when (and (db-credentials) (db-enabled?) (not no-db))
          (db-connection ((db-connect) (db-credentials))))
        (page-javascript "")
@@ -314,7 +323,8 @@
                         (when use-session
                           (if (session-valid? (sid))
                               (awful-refresh-session!)
-                              (sid (session-create))))
+                              (sid (session-create))
+                              ))
                         (let ((contents
                                (handle-exceptions
                                 exn
@@ -361,7 +371,9 @@
                                     content: (++ "0;url=" (login-page-path)
                                                  "?reason=invalid-session&attempted-path=" path
                                                  "&user=" ($ 'user "")
-                                                 (if ($ 'sid) (++ "&sid=" ($ 'sid)) "")))))))
+                                                 (if (and (not (enable-cookies)) ($ 'sid))
+                                                     (++ "&sid=" ($ 'sid))
+                                                     "")))))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
          out)))))
 
@@ -382,7 +394,7 @@
                        (or vhost-root-path (root-path))
                        (lambda (#!optional given-path)
                          (http-request-variables (request-vars))
-                         (sid ($ 'sid))
+                         (sid (get-sid))
                          (when (and (db-credentials) (db-enabled?) (not no-db))
                            (db-connection ((db-connect) (db-credentials))))
                          (awful-refresh-session!)
@@ -400,7 +412,8 @@
                                    out)
                                  ((page-access-denied-message) path))
                              (ajax-invalid-session-message))))
-        (let* ((arguments (if (or (not (enable-session))
+        (let* ((arguments (if (or (not (enable-cookies))
+                                  (not (enable-session))
                                   no-session
                                   (not (and (sid) (session-valid? (sid)))))
                               arguments
@@ -534,13 +547,19 @@
              (password-valid? ((valid-password?) user password))
              (new-sid (and password-valid? (session-create))))
         (sid new-sid)
+        (when (enable-cookies)
+          (set-cookie! (session-cookie-name) new-sid))
         (when hook (hook user))
         (html-page
          ""
          headers: (<meta> http-equiv: "refresh"
                           content: (++ "0;url="
                                        (if new-sid
-                                           (++ (or attempted-path (main-page-path)) "?user=" user "&sid=" new-sid)
+                                           (++ (or attempted-path (main-page-path))
+                                               "?user=" user
+                                               (if (enable-cookies)
+                                                   ""
+                                                   (++ "&sid=" new-sid)))
                                            (++ (login-page-path) "?reason=invalid-password&user=" user)))))))
     vhost-root-path: vhost-root-path
     no-session: #t

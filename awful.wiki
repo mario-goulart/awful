@@ -30,6 +30,7 @@ Here's a short summary of awful features:
 The following eggs are required:
 
 * [[http://chicken.wiki.br/eggref/4/spiffy|spiffy]]
+* [[http://chicken.wiki.br/eggref/4/spiffy-cookies|spiffy-cookies]]
 * [[http://chicken.wiki.br/eggref/4/spiffy-request-vars|spiffy-request-vars]]
 * [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]]
 * [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]
@@ -1251,6 +1252,9 @@ BSD
 
 
 === Version history
+
+; 0.24:
+* initial support for storing session identifiers in cookies.  Added the {{enable-cookies}} and {{session-cookie-name}} parameters.  By default, cookies-sessions are enabled by default (relevant only when using sessions, of course). '''Warning''': if your code relies on the availability of session identifiers in the query string or in the request body for whatever reason, it will break.
 
 ; 0.23:
 * added the {{update-targets}} keyword parameter for {{ajax}}, {{periodical-ajax}} and {{ajax-link}} procedures (multiple targets update support)
