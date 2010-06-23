@@ -17,7 +17,7 @@
    $session-set! $ $db $db-row-obj sql-quote define-page define-session-page
    ajax ajax-link periodical-ajax login-form define-login-trampoline
    enable-web-repl enable-session-inspector awful-version load-apps
-   link form
+   link form redirect-to
 
    ;; Required by the awful server
    add-resource! register-dispatcher register-root-dir-handler awful-start
@@ -77,12 +77,15 @@
 (define enable-cookies (make-parameter #t))
 (define session-cookie-name (make-parameter "awful-cookie"))
 
-;; Parameters for internal use
+;; Parameters for internal use (but exported, since they are internally used by other eggs)
 (define http-request-variables (make-parameter #f))
 (define db-connection (make-parameter #f))
 (define page-javascript (make-parameter ""))
 (define sid (make-parameter #f))
 (define db-enabled? (make-parameter #f))
+
+;; Parameters for internal use and not exported
+(define %redirect (make-parameter #f))
 
 ;; db-support parameters (set by awful-<db> eggs)
 (define missing-db-msg "Database access is not enabled (see `enable-db').")
@@ -114,6 +117,12 @@
   (if (enable-cookies)
       (or (read-cookie (session-cookie-name)) ($ 'sid))
       ($ 'sid)))
+
+(define (redirect-to new-uri)
+  ;; Just set the `%redirect' internal parameter, so `run-resource' is
+  ;; able to know where to redirect.
+  (%redirect new-uri))
+
 
 ;;; Javascript
 (define (include-javascript file)
@@ -246,12 +255,17 @@
 
 (define (run-resource proc path)
   (let ((out (->string (proc path))))
-    (with-headers `((content-type text/html)
-                    (content-length ,(string-length out)))
-                  (lambda ()
-                    (write-logged-response)
-                    (unless (eq? 'HEAD (request-method (current-request)))
-                      (display out (response-port (current-response))))))))
+    (if (%redirect) ;; redirection
+        (with-headers `((location ,(%redirect)))
+                      (lambda ()
+                        (%redirect #f)
+                        (send-status 302 "Found")))
+        (with-headers `((content-type text/html)
+                        (content-length ,(string-length out)))
+                      (lambda ()
+                        (write-logged-response)
+                        (unless (eq? 'HEAD (request-method (current-request)))
+                          (display out (response-port (current-response)))))))))
 
 (define (resource-ref path vhost-root-path #!optional check-existence)
   (when (debug-resources)
@@ -337,33 +351,35 @@
                                 (if (regexp? path)
                                     (contents given-path)
                                     (contents)))))
-                          (if no-template
-                              contents
-                              ((page-template)
-                               contents
-                               css: (or css (page-css))
-                               title: title
-                               doctype: (or doctype (page-doctype))
-                               headers: (++ (if (or no-ajax (not (ajax-library)) (not (enable-ajax)))
-                                                ""
-                                                (<script> type: "text/javascript"
-                                                          src: (ajax-library)))
-                                            (or headers "")
-                                            (if (or no-ajax
-                                                    (not (enable-ajax))
-                                                    (not (ajax-library)))
-                                                (if (string-null? (page-javascript))
+                          (if (%redirect)
+                              #f ;; no need to do anything.  Let run-resource perform the redirection
+                              (if no-template
+                                  contents
+                                  ((page-template)
+                                   contents
+                                   css: (or css (page-css))
+                                   title: title
+                                   doctype: (or doctype (page-doctype))
+                                   headers: (++ (if (or no-ajax (not (ajax-library)) (not (enable-ajax)))
                                                     ""
                                                     (<script> type: "text/javascript"
+                                                              src: (ajax-library)))
+                                                (or headers "")
+                                                (if (or no-ajax
+                                                        (not (enable-ajax))
+                                                        (not (ajax-library)))
+                                                    (if (string-null? (page-javascript))
+                                                        ""
+                                                        (<script> type: "text/javascript"
+                                                                  (maybe-compress-javascript
+                                                                   (page-javascript)
+                                                                   no-javascript-compression)))
+                                                    (<script> type: "text/javascript"
                                                               (maybe-compress-javascript
-                                                               (page-javascript)
-                                                               no-javascript-compression)))
-                                                (<script> type: "text/javascript"
-                                                          (maybe-compress-javascript
-                                                           (++ "$(document).ready(function(){"
-                                                               (page-javascript) "});")
-                                                           no-javascript-compression))))
-                               charset: (or charset (page-charset))))))
+                                                               (++ "$(document).ready(function(){"
+                                                                   (page-javascript) "});")
+                                                               no-javascript-compression))))
+                               charset: (or charset (page-charset)))))))
                       ((page-template) ((page-access-denied-message) path)))
                   ((page-template)
                    ""

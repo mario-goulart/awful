@@ -47,4 +47,8 @@
 
 (delete-file* "a")
 
+;; Redirections
+(test "bar" (get "/foo"))
+(test "D" (get "/ra"))
+
 (test-end "awful")
