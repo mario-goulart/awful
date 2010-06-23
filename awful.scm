@@ -10,7 +10,7 @@
    session-inspector-access-denied-message page-exception-message
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
-   enable-cookies session-cookie-name
+   enable-session-cookie session-cookie-name
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -74,7 +74,7 @@
    (lambda (exn)
      (<h3> "An error has accurred while processing your request."))))
 (define debug-resources (make-parameter #f)) ;; usually useful for awful development debugging
-(define enable-cookies (make-parameter #t))
+(define enable-session-cookie (make-parameter #t))
 (define session-cookie-name (make-parameter "awful-cookie"))
 
 ;; Parameters for internal use (but exported, since they are internally used by other eggs)
@@ -114,7 +114,7 @@
 (define awful-start start-server)
 
 (define (get-sid)
-  (if (enable-cookies)
+  (if (enable-session-cookie)
       (or (read-cookie (session-cookie-name)) ($ 'sid))
       ($ 'sid)))
 
@@ -170,7 +170,7 @@
 
 ;;; Session-aware procedures for HTML code generation
 (define (link url text . rest)
-  (let ((pass-sid? (and (not (enable-cookies))
+  (let ((pass-sid? (and (not (enable-session-cookie))
                         (sid)
                         (session-valid? (sid))
                         (not (get-keyword no-session: rest))))
@@ -194,7 +194,7 @@
             (list text)))))
 
 (define (form contents . rest)
-  (let ((pass-sid? (and (not (enable-cookies))
+  (let ((pass-sid? (and (not (enable-session-cookie))
                         (sid)
                         (session-valid? (sid))
                         (not (get-keyword no-session: rest)))))
@@ -388,7 +388,7 @@
                                     content: (++ "0;url=" (login-page-path)
                                                  "?reason=invalid-session&attempted-path=" path
                                                  "&user=" ($ 'user "")
-                                                 (if (and (not (enable-cookies)) ($ 'sid))
+                                                 (if (and (not (enable-session-cookie)) ($ 'sid))
                                                      (++ "&sid=" ($ 'sid))
                                                      "")))))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
@@ -429,7 +429,7 @@
                                    out)
                                  ((page-access-denied-message) path))
                              (ajax-invalid-session-message))))
-        (let* ((arguments (if (or (not (enable-cookies))
+        (let* ((arguments (if (or (not (enable-session-cookie))
                                   (not (enable-session))
                                   no-session
                                   (not (and (sid) (session-valid? (sid)))))
@@ -564,7 +564,7 @@
              (password-valid? ((valid-password?) user password))
              (new-sid (and password-valid? (session-create))))
         (sid new-sid)
-        (when (enable-cookies)
+        (when (enable-session-cookie)
           (set-cookie! (session-cookie-name) new-sid))
         (when hook (hook user))
         (html-page
@@ -574,7 +574,7 @@
                                        (if new-sid
                                            (++ (or attempted-path (main-page-path))
                                                "?user=" user
-                                               (if (enable-cookies)
+                                               (if (enable-session-cookie)
                                                    ""
                                                    (++ "&sid=" new-sid)))
                                            (++ (login-page-path) "?reason=invalid-password&user=" user)))))))
