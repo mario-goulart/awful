@@ -1275,9 +1275,12 @@ When a procedure is bound to a path {{a}} (like {{(define-page "a" (lambda ...))
 * if {{a}} is an existing directory and does not contain index files, the server replies with the result of the evaluation of the  procedure bound to {{a}}.
 
 
-=== Known bugs
+=== Known bugs and limitations
 
-* The {{ajax}} procedure is not session-aware when called from {{define-session-page}} (it is when called from {{define-page}}).  To workaround this bug, you can explicitly pass the sid (see the read-only {{sid}} parameter) along with requests (see the {{arguments}} keyword parameter for {{ajax}} and ajax-related procedures).
+* The {{ajax}} procedure is not session-aware when called from {{define-session-page}} (it is when called from {{define-page}}) and cookies are not enabled (i.e., {{enable-session-cookie}} is {{#f}}).  To workaround this bug, you can explicitly pass the sid (see the read-only {{sid}} parameter) along with requests (see the {{arguments}} keyword parameter for {{ajax}} and ajax-related procedures).
+
+* Awful currently doesn't detect if cookies are enabled on the client side.
+
 
 
 === License
@@ -1288,7 +1291,7 @@ BSD
 === Version history
 
 ; 0.24:
-* initial support for storing session identifiers in cookies.  Added the {{enable-cookies}} and {{session-cookie-name}} parameters.  By default, cookies-sessions are enabled by default (relevant only when using sessions, of course). '''Warning''': if your code relies on the availability of session identifiers in the query string or in the request body for whatever reason, it will break.
+* initial support for storing session identifiers in cookies.  Added the {{enable-session-cookie}} and {{session-cookie-name}} parameters.  By default, cookies-sessions are enabled by default (relevant only when using sessions, of course). '''Warning''': if your code relies on the availability of session identifiers in the query string or in the request body for whatever reason, it will break.
 * support for HTTP redirection via {{redirect-to}}.
 
 ; 0.23:
