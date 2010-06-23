@@ -5,6 +5,6 @@
  (author "<a href=\"http://chicken.wiki.br/users/mario-domenech-goulart\">Mario Domenech Goulart</a>")
  (license "BSD")
  (category web)
- (depends spiffy (spiffy-request-vars 0.8) html-tags html-utils (http-session 2.0) json spiffy-cookies)
+ (depends (spiffy 4.2) (spiffy-request-vars 0.8) html-tags html-utils (http-session 2.0) json spiffy-cookies)
  (test-depends http-client test)
  (files "awful.scm" "awful.setup" "awful.html" "awful-server.scm"))
