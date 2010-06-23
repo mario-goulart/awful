@@ -2,7 +2,7 @@
 
 (define-session-page "said"
   (lambda ()
-    (with-request-vars $ (said)
+    (with-request-vars* $ (said)
       (cond (said
              ($session-set! 'said said)
              (link "said" "click here"))
