@@ -882,7 +882,7 @@ Here's an example (the [[http://www.paulgraham.com/arcchallenge.html|arc challen
 
 (define-session-page "said"
   (lambda ()
-    (with-request-vars $ (said)
+    (with-request-vars* $ (said)
       (cond (said
              ($session-set! 'said said)
              (link "said" "click here"))
