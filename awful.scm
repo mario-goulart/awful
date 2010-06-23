@@ -337,8 +337,9 @@
                         (when use-session
                           (if (session-valid? (sid))
                               (awful-refresh-session!)
-                              (sid (session-create))
-                              ))
+                              (begin
+                                (sid (session-create))
+                                (set-cookie! (session-cookie-name) (sid)))))
                         (let ((contents
                                (handle-exceptions
                                 exn
