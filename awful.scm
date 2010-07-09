@@ -453,12 +453,12 @@
                             (conc "contentType: '" content-type "',")
                             "")
                         "success:function(response){"
-                        (if update-targets
-                            "$.each(response, function(id, html) { $('#' + id).html(html);});"
-                            (or success
-                                (if target
-                                    (++ "$('#" target "')." (->string action) "(response);")
-                                    "return;")))
+                        (or success
+                            (cond (update-targets
+                                   "$.each(response, function(id, html) { $('#' + id).html(html);});")
+                                  (target
+                                   (++ "$('#" target "')." (->string action) "(response);"))
+                                  (else "return;")))
                         "},"
                         (if update-targets
                             "dataType: 'json',"
