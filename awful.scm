@@ -402,7 +402,7 @@
 ;;; Ajax
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
-              live content-type prelude update-targets multiple-values)
+              live content-type prelude update-targets)
   (if (enable-ajax)
       (let ((path (if (regexp? path)
                   path
@@ -419,7 +419,7 @@
                                  no-session
                                  (and (enable-session) (session-valid? (sid))))
                              (if ((page-access-control) path)
-                                 (let ((out (if (or multiple-values update-targets)
+                                 (let ((out (if update-targets
                                                 (with-output-to-string
                                                   (lambda ()
                                                     (json-write (list->vector (proc)))))
@@ -479,7 +479,7 @@
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live
-                         content-type prelude update-targets multiple-values)
+                         content-type prelude update-targets)
   (if (enable-ajax)
       (page-javascript
        (++ "setInterval("
@@ -496,7 +496,6 @@
                  content-type: content-type
                  prelude: prelude
                  update-targets: update-targets
-                 multiple-values: multiple-values
                  no-page-javascript: #t)
            ", " (->string interval) ");\n"))
       ""))
@@ -504,7 +503,7 @@
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    success no-session no-db (event 'click) vhost-root-path live class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
-                   content-type prelude update-targets multiple-values)
+                   content-type prelude update-targets)
   (ajax path id event proc
         target: target
         action: action
@@ -517,7 +516,6 @@
         content-type: content-type
         prelude: prelude
         update-targets: update-targets
-        multiple-values: multiple-values
         no-db: no-db)
   (<a> href: "#"
        id: id
