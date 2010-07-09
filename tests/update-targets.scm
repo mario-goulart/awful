@@ -10,7 +10,7 @@
     (ajax "foo" 'foo 'click
           (lambda ()
             '((a . 1) (b . 2) (c . 3)))
-          update-targets: '(a b c))
+          update-targets: #t)
 
     (<div>
      (link "#" "foo" id: "foo")
