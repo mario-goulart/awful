@@ -21,3 +21,6 @@
 (define-page "/b" (cut redirect-to "/c"))
 (define-page "/c" (cut redirect-to "/d"))
 (define-page "/d" (lambda () "D"))
+
+(define-page "/chicken"
+  (cut redirect-to "http://www.call-with-current-continuation.org"))
