@@ -332,7 +332,7 @@
                       no-session
                       use-session
                       (and (enable-session) (session-valid? (sid))))
-                  (if ((page-access-control) path)
+                  (if ((page-access-control) (or given-path path))
                       (begin
                         (when use-session
                           (if (session-valid? (sid))
@@ -381,12 +381,12 @@
                                                                    (page-javascript) "});")
                                                                no-javascript-compression))))
                                charset: (or charset (page-charset)))))))
-                      ((page-template) ((page-access-denied-message) path)))
+                      ((page-template) ((page-access-denied-message) (or given-path path))))
                   ((page-template)
                    ""
                    headers: (<meta> http-equiv: "refresh"
                                     content: (++ "0;url=" (login-page-path)
-                                                 "?reason=invalid-session&attempted-path=" path
+                                                 "?reason=invalid-session&attempted-path=" (or given-path path)
                                                  "&user=" ($ 'user "")
                                                  (if (and (not (enable-session-cookie)) ($ 'sid))
                                                      (++ "&sid=" ($ 'sid))
