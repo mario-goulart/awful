@@ -587,7 +587,7 @@
 
 
 ;;; Web repl
-(define (enable-web-repl path #!key css (title "Awful Web REPL"))
+(define (enable-web-repl path #!key css (title "Awful Web REPL") headers)
   (enable-ajax #t)
   (define-page path
     (lambda ()
@@ -622,39 +622,59 @@
                 (<h2> "Output area")
                 (<div> id: "result")))
           (web-repl-access-denied-message)))
-    headers: (if css
-                 #f
-                 (<style> type: "text/css"
+    headers: (let ((builtin-css (if css
+                                    #f
+                                    (<style> type: "text/css"
 "h1 { font-size: 18pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
 h2 { font-size: 14pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
 ul#button-bar { margin-left: 0; padding-left: 0; }
 #button-bar li {display: inline; list-style-type: none; padding-right: 10px; }
 #prompt { width: 600px; }
-#result { border: 1px solid #333; padding: 5px; width: 590px; }"))
+#result { border: 1px solid #333; padding: 5px; width: 590px; }"))))
+               (if headers
+                   (++ (or builtin-css "") headers)
+                   builtin-css))
     title: title
     css: css))
 
 
 ;;; Session inspector
-(define (enable-session-inspector path #!key css title)
+(define (enable-session-inspector path #!key css (title "Awful session inspector") headers)
   (enable-session #t)
   (define-page path
     (lambda ()
       (if ((session-inspector-access-control))
           (let ((bindings (session-bindings (sid))))
-            (if (null? bindings)
-                (<h2> "Session for sid " (sid) " is empty")
-                (++ (<h2> "Session for " (sid))
-                    (tabularize
-                     (map (lambda (binding)
-                            (let ((var (car binding))
-                                  (val (with-output-to-string
-                                         (lambda ()
-                                           (pp (cdr binding))))))
-                              (list var (<pre> val))))
-                          bindings)))))
+            (++ (<h1> title)
+                (if (null? bindings)
+                    (<p> "Session for sid " (sid) " is empty")
+                    (++ (<p> "Session for " (sid))
+                        (tabularize
+                         (map (lambda (binding)
+                                (let ((var (car binding))
+                                      (val (with-output-to-string
+                                             (lambda ()
+                                               (pp (cdr binding))))))
+                                  (list (<span> class: "session-inspector-var" var)
+                                        (<pre> convert-to-entities?: #t
+                                               class: "session-inspector-value"
+                                               val))))
+                              bindings)
+                         header: '("Variables" "Values")
+                         table-id: "session-inspector-table")))))
           (session-inspector-access-denied-message)))
-    title: (or title "Session inspector")
+    headers: (let ((builtin-css (if css
+                                    #f
+                                    (<style> type: "text/css"
+"h1 { font-size: 16pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
+.session-inspector-value { margin: 2px;}
+.session-inspector-var { margin: 0px; }
+#session-inspector-table { margin: 0px; width: 600px;}
+#session-inspector-table tr td, th { padding-left: 10px; border: 1px solid #333; vertical-align: middle; }"))))
+               (if headers
+                   (++ (or builtin-css "") headers)
+                   builtin-css))
+    title: title
     css: css))
 
 ) ; end module
