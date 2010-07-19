@@ -587,7 +587,7 @@
 
 
 ;;; Web repl
-(define (enable-web-repl path #!key css title)
+(define (enable-web-repl path #!key css (title "Awful Web REPL"))
   (enable-ajax #t)
   (define-page path
     (lambda ()
@@ -610,16 +610,28 @@
                   target: "result"
                   arguments: '((code . "$('#prompt').val()")))
 
-            (++ (<textarea> id: "prompt" name: "prompt" rows: "6" cols: "90")
+            (++ (<h1> title)
+                (<h2> "Input area")
+                (<textarea> id: "prompt" name: "prompt" rows: "10" cols: "90")
                 (itemize
                  (map (lambda (item)
-                        (<a> href: "#" id: (car item) (cdr item)))
+                        (<button> id: (car item) (cdr item)))
                       '(("eval"  . "Eval")
                         ("clear" . "Clear")))
                  list-id: "button-bar")
+                (<h2> "Output area")
                 (<div> id: "result")))
           (web-repl-access-denied-message)))
-    title: (or title "Web REPL")
+    headers: (if css
+                 #f
+                 (<style> type: "text/css"
+"h1 { font-size: 18pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
+h2 { font-size: 14pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
+ul#button-bar { margin-left: 0; padding-left: 0; }
+#button-bar li {display: inline; list-style-type: none; padding-right: 10px; }
+#prompt { width: 600px; }
+#result { border: 1px solid #333; padding: 5px; width: 590px; }"))
+    title: title
     css: css))
 
 
