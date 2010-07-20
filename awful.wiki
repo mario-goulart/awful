@@ -66,7 +66,7 @@ Without any configuration, awful listens on port 8080.  Since awful uses Spiffy 
 
 In the example we use the {{main-page-path}} parameter, which is one of the awful configuration parameters.  The default is {{"/"}}.
 
-If you look at the page source code, you'll see that awful created an HTML page for you.  Awful uses the [[http://chicken.wiki.br/eggref/4/html-utils|html-tags]]'s {{html-page}} procedure behind the scenes.  You can customize the page either by passing {{html-page}}'s keyword parameters to {{define-page}} or by setting the {{page-template}} parameter with your favourite procedure to generate pages (a one argument procedure which receives the page contents and returns a string representing the formatted contents). {{define-page}} would still pass the {{html-page}} keyword parameters, so you can make use of them.
+If you look at the page source code, you'll see that awful created an HTML page for you.  Awful uses the [[http://chicken.wiki.br/eggref/4/html-utils|html-tags]]'s {{html-page}} procedure behind the scenes.  You can customize the page either by passing {{html-page}}'s keyword parameters to {{define-page}} or by setting the {{page-template}} parameter with your favourite procedure to generate pages. {{page-template}} is a one-mandatory-argument procedure which receives the page contents and returns a string representing the formatted contents. {{define-page}} would still pass the {{html-page}} keyword parameters, so you can make use of them (the {{page-template}} procedure should be defined considering them -- if you don't need them, just ignore them by defining {{(lambda (contents . args) ...)}}).
 
 You can also use some global page-related parameters if all pages use the same CSS, doctype and charset ({{page-css}}, {{page-doctype}} and {{page-charset}}, respectively).
 
@@ -352,7 +352,7 @@ Awful provides a session inspector, so we can easily see the session contents fo
 (enable-session-inspector "session-inspector")
 </enscript>
 
-Now, if you log in and try to access {{http://localhost:8080/session-inspector?sid=<paste the sid value here>}}, you'll get ... an access denied page.
+Now, if you log in and try to access {{http://localhost:8080/session-inspector}}, you'll get ... an access denied page.
 
 Awful provides a way to control access to the session inspector ({{session-inspector-access-control}} parameter).  The {{session-inspector-access-control}} parameter is an one-argument procedure which returns {{#f}} or some other value to indicate whether the access to the session inspector is allowed or not. By default, it blocks all access.  Let's configure it so we can access the session inspector from the local machine (whose IP number is 127.0.0.1):
 
@@ -364,7 +364,13 @@ Awful provides a way to control access to the session inspector ({{session-inspe
 
 Regarding to the access denied message, you can customize it by setting the {{session-inspector-access-denied-message}}.
 
-Now we can access {{http://localhost:8080/session-inspector?sid=<paste the sid value here>}} and see the session contents.
+Now we can access {{http://localhost:8080/session-inspector}} and see the session contents.
+
+''Note'': if {{enable-session-cookie}} is {{#f}}, you need to pass the session identifier in the query string (e.g., {{http://localhost:8080/session-inspector?sid=the-session-cookie-here}}).
+
+Here's a screenshot:
+
+[[image:http://parenteses.org/mario/img/awful/session-inspector.png|Awful session inspector]]
 
 
 === Web REPL
@@ -411,7 +417,9 @@ The example bellow shows a very silly access control to the main page: it only a
 
 You can customize the access denied message by setting the {{page-access-denied-message}} with an one-argument procedure (the page path).
 
+Here's a screenshot:
 
+[[image:http://parenteses.org/mario/img/awful/repl.png|Awful web REPL]]
 
 === Compiled pages
 
@@ -462,7 +470,7 @@ When {{#t}}, enables debugging of awful's resources table (an alist mapping path
 
 <parameter>(db-credentials [boolean or list])</parameter>
 
-Credentials to be used to access the database (see the [[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] egg documentation.)  When {{#f}}, no database access is performed.
+Credentials to be used to access the database (see the documentation for the egg corresponding to the database backend you selected.)  When {{#f}}, no database access is performed.
 
 The default value is {{#f}}.
 
@@ -494,7 +502,7 @@ The default value is {{"ajax"}}.
 
 The message to be used when attempting the make an ajax call using an invalid session identifier.
 
-The default value is {{"Invalid session}}.
+The default value is {{"Invalid session"}}.
 
 
 
@@ -505,6 +513,16 @@ The default value is {{"Invalid session}}.
 When {{#t}}, session support is enabled.
 
 The default value is {{#f}}.
+
+
+<parameter>(enable-session-cookie [boolean])</parameter>
+
+When {{#t}}, awful uses cookies to store the session identifier.  Otherwise, the session identifier is passed as a value in the query string or in the request body. The default value is {{#t}}.
+
+
+<parameter>(session-cookie-name [string])</parameter>
+
+The name of the cookie for storing the session identifier.  The dafult value is {{"awful-cookie"}}.
 
 
 ==== Access control
@@ -786,9 +804,9 @@ The {{user-label}}, {{password-label}} and {{submit-label}} keyword parameters a
 
 ==== Request variables and values
 
-<procedure>($ var #!optional default converter)</procedure>
+<procedure>($ var #!optional default/converter)</procedure>
 
-Return the HTTP request value for the given variable {{var}}.  The variable is looked for in both the query string (GET method) and request body (e.g., POST method).
+Return the HTTP request value for the given variable {{var}}.  The variable is looked for in both the query string (GET method) and request body (e.g., POST method).  See the documentation for the procedure returned by [[/eggref/4/spiffy-request-vars|spiffy-request-vars]]'s {{request-vars}} for further details.
 
 
 ==== Database access
@@ -1014,7 +1032,7 @@ The {{event}} keyword parameter syntax is the same for {{ajax}}'s {{event}} mand
 
 <procedure>(redirect-to uri)</procedure>
 
-Perform an HTTP redirection (code 302) to the given {{uri}}.  To be used from {{define-page}} contents.  Example:
+Perform an HTTP redirection (code 302) to the given {{uri}} (either a string or a [[/eggref/4/uri-common|uri-common]] uri object).  To be used from {{define-page}} contents.  Example:
 
 <enscript highlight=scheme>
 (use awful)
@@ -1292,7 +1310,12 @@ BSD
 
 ; 0.24:
 * initial support for storing session identifiers in cookies.  Added the {{enable-session-cookie}} and {{session-cookie-name}} parameters.  By default, cookies-sessions are enabled by default (relevant only when using sessions, of course). '''Warning''': if your code relies on the availability of session identifiers in the query string or in the request body for whatever reason, it will break.
-* support for HTTP redirection via {{redirect-to}}.
+* initial support for HTTP redirection via {{redirect-to}}.
+* web-repl and session-inspector beautification
+* web-repl and session inspector provide a {{headers}} keyword parameter
+* fixes for {{define-page}} regarding to regex-based paths
+* {{ajax}} always prioritizes the {{success}} keyword parameter value (when it's given) to generate code for JQuery's {{success}} attribute, even when {{target}} and {{update-targets}} are given
+
 
 ; 0.23:
 * added the {{update-targets}} keyword parameter for {{ajax}}, {{periodical-ajax}} and {{ajax-link}} procedures (multiple targets update support)
