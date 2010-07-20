@@ -1315,7 +1315,7 @@ BSD
 * web-repl and session inspector provide a {{headers}} keyword parameter
 * fixes for {{define-page}} regarding to regex-based paths
 * {{ajax}} always prioritizes the {{success}} keyword parameter value (when it's given) to generate code for JQuery's {{success}} attribute, even when {{target}} and {{update-targets}} are given
-
+* awful (the application) handles the {{-v}} and {{--version}} command line options
 
 ; 0.23:
 * added the {{update-targets}} keyword parameter for {{ajax}}, {{periodical-ajax}} and {{ajax-link}} procedures (multiple targets update support)
