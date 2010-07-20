@@ -37,7 +37,7 @@
      http-session json spiffy-cookies)
 
 ;;; Version
-(define (awful-version) "0.23")
+(define (awful-version) "0.24")
 
 
 ;;; Parameters
