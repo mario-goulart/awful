@@ -381,6 +381,10 @@ For further run-time, server-side web hacking, awful provides a REPL that you ca
 * {{web-repl-access-control}}
 * {{web-repl-access-denied-message}}
 
+Here's a screenshot:
+
+[[image:http://parenteses.org/mario/img/awful/repl.png|Awful web REPL]]
+
 
 === Pages access control
 
@@ -417,9 +421,6 @@ The example bellow shows a very silly access control to the main page: it only a
 
 You can customize the access denied message by setting the {{page-access-denied-message}} with an one-argument procedure (the page path).
 
-Here's a screenshot:
-
-[[image:http://parenteses.org/mario/img/awful/repl.png|Awful web REPL]]
 
 === Compiled pages
 
