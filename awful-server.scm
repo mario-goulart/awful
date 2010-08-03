@@ -2,11 +2,11 @@
 ;; -*- scheme -*-
 
 (declare (uses chicken-syntax))
-(use posix awful)
+(use posix awful srfi-1)
 
 (define (usage #!optional exit-code)
   (print (pathname-strip-directory (program-name))
-         " [ -h | --help ] [ -v | --version ] | [ <app1> <app2> ... ]")
+         " [ -h | --help ] [ -v | --version ] | [ --development-mode ] [ <app1> <app2> ... ]")
   (when exit-code (exit exit-code)))
 
 (let ((args (command-line-arguments)))
@@ -17,8 +17,10 @@
             (member "--version" args))
     (print (awful-version))
     (exit 0))
-  (awful-apps args)
-  (load-apps (awful-apps))
-  (register-root-dir-handler)
-  (register-dispatcher)
-  (awful-start))
+  (let ((development-mode? (member "--development-mode" args))
+        (args (remove (cut equal? <> "--development-mode") args)))
+    (awful-apps args)
+    (load-apps (awful-apps))
+    (register-root-dir-handler)
+    (register-dispatcher)
+    (awful-start development-mode?: development-mode?)))

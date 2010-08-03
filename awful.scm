@@ -86,6 +86,8 @@
 
 ;; Parameters for internal use and not exported
 (define %redirect (make-parameter #f))
+(define %web-repl-path (make-parameter #f))
+(define %session-inspector-path (make-parameter #f))
 
 ;; db-support parameters (set by awful-<db> eggs)
 (define missing-db-msg "Database access is not enabled (see `enable-db').")
@@ -111,7 +113,52 @@
   (set! *resources* (make-hash-table equal?))
   (for-each load apps))
 
-(define awful-start start-server)
+(define (awful-start #!key development-mode?)
+  (when development-mode?
+    (print "Awful is running in development mode.")
+
+    (debug-log (current-error-port))
+
+    ;; Print the call chain, the error message and links to the
+    ;; web-repl and session-inspector (if enabled)
+    (page-exception-message
+     (lambda (exn)
+       (++ (<pre> convert-to-entities?: #t
+                  (with-output-to-string
+                    (lambda ()
+                      (print-call-chain)
+                      (print-error-message exn))))
+           (<p> "[" (<a> href: (or (%web-repl-path) "/web-repl") "Web REPL") "]"
+                (if (enable-session)
+                    (++ " [" (<a> href: (or (%session-inspector-path) "/session-inspector")
+                                  "Session inspector") "]")
+                    "")))))
+
+    ;; If web-repl has not been activated, activate it allowing access
+    ;; to the localhost at least (`web-repl-access-control' can be
+    ;; used to provide more permissive control)
+    (unless (%web-repl-path)
+      (let ((old-access-control (web-repl-access-control)))
+        (web-repl-access-control
+         (lambda ()
+           (or (old-access-control)
+               (equal? (remote-address) "127.0.0.1")))))
+      (enable-web-repl "/web-repl"))
+
+    ;; If session-inspector has not been activated, and if
+    ;; `enable-session' is #t, activate it allowing access to the
+    ;; localhost at least (`session-inspector-access-control' can be
+    ;; used to provide more permissive control)
+    (when (and (enable-session) (not (%session-inspector-path)))
+      (let ((old-access-control (session-inspector-access-control)))
+        (session-inspector-access-control
+         (lambda ()
+           (or (old-access-control)
+               (equal? (remote-address) "127.0.0.1"))))
+        (enable-session-inspector "/session-inspector"))))
+
+  ;; Start Spiffy
+  (start-server))
 
 (define (get-sid)
   (if (enable-session-cookie)
@@ -315,7 +362,7 @@
 ;;; Pages
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
-                     use-session) ;; for define-session-page
+                     use-ajax use-session) ;; for define-session-page
   (##sys#check-closure contents 'define-page)
   (let ((path (if (regexp? path)
                   path
@@ -354,9 +401,14 @@
                                   ((page-exception-message) exn))
                                 (if (regexp? path)
                                     (contents given-path)
-                                    (contents)))))
+                                    (contents))))
+                              (ajax? (cond (no-ajax #f)
+                                           ((not (ajax-library)) #f)
+                                           ((and (ajax-library) use-ajax) #t)
+                                           ((enable-ajax) #t)
+                                           (else #f))))
                           (if (%redirect)
-                              #f ;; no need to do anything.  Let run-resource perform the redirection
+                              #f ;; no need to do anything.  Let `run-resource' perform the redirection
                               (if no-template
                                   contents
                                   ((page-template)
@@ -364,25 +416,23 @@
                                    css: (or css (page-css))
                                    title: title
                                    doctype: (or doctype (page-doctype))
-                                   headers: (++ (if (or no-ajax (not (ajax-library)) (not (enable-ajax)))
-                                                    ""
+                                   headers: (++ (if ajax?
                                                     (<script> type: "text/javascript"
-                                                              src: (ajax-library)))
+                                                              src: (ajax-library))
+                                                    "")
                                                 (or headers "")
-                                                (if (or no-ajax
-                                                        (not (enable-ajax))
-                                                        (not (ajax-library)))
+                                                (if ajax?
+                                                    (<script> type: "text/javascript"
+                                                              (maybe-compress-javascript
+                                                               (++ "$(document).ready(function(){"
+                                                                   (page-javascript) "});")
+                                                               no-javascript-compression))
                                                     (if (string-null? (page-javascript))
                                                         ""
                                                         (<script> type: "text/javascript"
                                                                   (maybe-compress-javascript
                                                                    (page-javascript)
-                                                                   no-javascript-compression)))
-                                                    (<script> type: "text/javascript"
-                                                              (maybe-compress-javascript
-                                                               (++ "$(document).ready(function(){"
-                                                                   (page-javascript) "});")
-                                                               no-javascript-compression))))
+                                                                   no-javascript-compression)))))
                                charset: (or charset (page-charset)))))))
                       ((page-template) ((page-access-denied-message) (or given-path path))))
                   ((page-template)
@@ -406,79 +456,77 @@
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
               live content-type prelude update-targets)
-  (if (enable-ajax)
-      (let ((path (if (regexp? path)
+  (let ((path (if (regexp? path)
                   path
                   (make-pathname (list (app-root-path) (ajax-namespace)) path))))
-        (add-resource! path
-                       (or vhost-root-path (root-path))
-                       (lambda (#!optional given-path)
-                         (http-request-variables (request-vars))
-                         (sid (get-sid))
-                         (when (and (db-credentials) (db-enabled?) (not no-db))
-                           (db-connection ((db-connect) (db-credentials))))
-                         (awful-refresh-session!)
-                         (if (or (not (enable-session))
-                                 no-session
-                                 (and (enable-session) (session-valid? (sid))))
-                             (if ((page-access-control) path)
-                                 (let ((out (if update-targets
-                                                (with-output-to-string
-                                                  (lambda ()
-                                                    (json-write (list->vector (proc)))))
-                                                (proc))))
-                                   (when (and (db-credentials) (db-enabled?) (not no-db))
-                                     ((db-disconnect) (db-connection)))
-                                   out)
-                                 ((page-access-denied-message) path))
-                             (ajax-invalid-session-message))))
-        (let* ((arguments (if (or (not (enable-session-cookie))
-                                  (not (enable-session))
-                                  no-session
-                                  (not (and (sid) (session-valid? (sid)))))
-                              arguments
-                              (cons `(sid . ,(++ "'" (sid) "'")) arguments)))
-               (js-code
-                (++ (page-javascript)
-                    (if (and id event)
-                        (let ((events (concat (if (list? event) event (list event)) " "))
-                              (binder (if live "live" "bind")))
-                          (++ "$('" (if (symbol? id)
-                                        (conc "#" id)
-                                        id)
-                              "')." binder "('" events "',"))
+    (add-resource! path
+                   (or vhost-root-path (root-path))
+                   (lambda (#!optional given-path)
+                     (http-request-variables (request-vars))
+                     (sid (get-sid))
+                     (when (and (db-credentials) (db-enabled?) (not no-db))
+                       (db-connection ((db-connect) (db-credentials))))
+                     (awful-refresh-session!)
+                     (if (or (not (enable-session))
+                             no-session
+                             (and (enable-session) (session-valid? (sid))))
+                         (if ((page-access-control) path)
+                             (let ((out (if update-targets
+                                            (with-output-to-string
+                                              (lambda ()
+                                                (json-write (list->vector (proc)))))
+                                            (proc))))
+                               (when (and (db-credentials) (db-enabled?) (not no-db))
+                                 ((db-disconnect) (db-connection)))
+                               out)
+                             ((page-access-denied-message) path))
+                         (ajax-invalid-session-message))))
+    (let* ((arguments (if (or (not (enable-session-cookie))
+                              (not (enable-session))
+                              no-session
+                              (not (and (sid) (session-valid? (sid)))))
+                          arguments
+                          (cons `(sid . ,(++ "'" (sid) "'")) arguments)))
+           (js-code
+            (++ (page-javascript)
+                (if (and id event)
+                    (let ((events (concat (if (list? event) event (list event)) " "))
+                          (binder (if live "live" "bind")))
+                      (++ "$('" (if (symbol? id)
+                                    (conc "#" id)
+                                    id)
+                          "')." binder "('" events "',"))
+                    "")
+                (++ "function(){"
+                    (or prelude "")
+                    "$.ajax({type:'" (->string method) "',"
+                    "url:'" path "',"
+                    (if content-type
+                        (conc "contentType: '" content-type "',")
                         "")
-                    (++ "function(){"
-                        (or prelude "")
-                        "$.ajax({type:'" (->string method) "',"
-                        "url:'" path "',"
-                        (if content-type
-                            (conc "contentType: '" content-type "',")
-                            "")
-                        "success:function(response){"
-                        (or success
-                            (cond (update-targets
-                                   "$.each(response, function(id, html) { $('#' + id).html(html);});")
-                                  (target
-                                   (++ "$('#" target "')." (->string action) "(response);"))
-                                  (else "return;")))
-                        "},"
-                        (if update-targets
-                            "dataType: 'json',"
-                            "")
-                        (++ "data:{"
-                            (string-intersperse
-                             (map (lambda (var/val)
-                                    (conc  "'" (car var/val) "':" (cdr var/val)))
-                                  arguments)
-                             ",") "}")
-                        "})}")
-                    (if (and id event)
-                        ");\n"
-                        ""))))
-          (unless no-page-javascript (page-javascript js-code))
-          js-code))
-      "")) ;; empty if no-ajax
+                    "success:function(response){"
+                    (or success
+                        (cond (update-targets
+                               "$.each(response, function(id, html) { $('#' + id).html(html);});")
+                              (target
+                               (++ "$('#" target "')." (->string action) "(response);"))
+                              (else "return;")))
+                    "},"
+                    (if update-targets
+                        "dataType: 'json',"
+                        "")
+                    (++ "data:{"
+                        (string-intersperse
+                         (map (lambda (var/val)
+                                (conc  "'" (car var/val) "':" (cdr var/val)))
+                              arguments)
+                         ",") "}")
+                    "})}")
+                (if (and id event)
+                    ");\n"
+                    ""))))
+      (unless no-page-javascript (page-javascript js-code))
+      js-code)))
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live
@@ -588,7 +636,7 @@
 
 ;;; Web repl
 (define (enable-web-repl path #!key css (title "Awful Web REPL") headers)
-  (enable-ajax #t)
+  (%web-repl-path path)
   (define-page path
     (lambda ()
       (if ((web-repl-access-control))
@@ -634,12 +682,14 @@ ul#button-bar { margin-left: 0; padding-left: 0; }
                (if headers
                    (++ (or builtin-css "") headers)
                    builtin-css))
+    use-ajax: #t
     title: title
     css: css))
 
 
 ;;; Session inspector
 (define (enable-session-inspector path #!key css (title "Awful session inspector") headers)
+  (%session-inspector-path path)
   (define-page path
     (lambda ()
       (parameterize ((enable-session #t))

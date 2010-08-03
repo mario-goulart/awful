@@ -9,7 +9,7 @@ awful provides an application and an extension to ease the development of web-ba
 Here's a short summary of awful features:
 
 * Straightforward interface to databases (currently supported are postgresql and sqlite3)
-* Page dispatching via regular expressions
+* Support for page dispatching via regular expressions
 * Easy access to query string and body request variables from HTTP requests
 * Ajax support via JQuery
 * Reasonably flexible (several configuration parameters)
@@ -135,20 +135,21 @@ You can control which IP numbers can access the reload page by using the {{page-
 
 Awful provides a way to (hopefully) make the use of ajax straightforward for web applications.
 
-By default, the ajax support is disabled, but it can be easily enabled by setting the {{enable-ajax}} parameter to {{#t}}.  When you enable ajax, all the pages defined via {{define-page}} will be linked to the JQuery javascript library. The URL of the JQuery file can be customized by setting the {{ajax-library}} parameter (the default is Google's API JQuery file version 1.4.2).
+By default, the ajax support is disabled, but it can be easily globally enabled by setting the {{enable-ajax}} parameter to {{#t}}.  When you enable ajax via {{enable-ajax}}, all the pages defined via {{define-page}} will be linked to the JQuery javascript library. If you want just a couple of pages to have ajax support (i.e., not global ajax support), you can use the {{use-ajax}} keyword parameter for {{define-page}}, so only the pages defined with {{use-ajax: #t}} have ajax support.
 
 When you have ajax enabled and you want to disable it for specific pages, you can pass {{#f}} as the value for the {{define-page}} keyword parameter {{no-ajax}}.
+
+The URL of the JQuery file can be customized by setting the {{ajax-library}} parameter (the default is Google's API JQuery file version 1.4.2).
 
 So, if we now change our code to
 
 <enscript highlight=scheme>
 (use awful)
 
-(enable-ajax #t)
-
 (define-page (main-page-path)
   (lambda ()
-    (++ "Hello, " ($ 'person "world") "!")))
+    (++ "Hello, " ($ 'person "world") "!"))
+  use-ajax: #t)
 </enscript>
 
 and reload the application, we'll have our page linked to JQuery.
@@ -157,8 +158,6 @@ Awful provides some procedures to do ajax.  We start by the more generic one ({{
 
 <enscript highlight=scheme>
 (use awful html-tags)
-
-(enable-ajax #t)
 
 (define-page (main-page-path)
   (lambda ()
@@ -169,7 +168,8 @@ Awful provides some procedures to do ajax.  We start by the more generic one ({{
     (++ (<a> href: "#"
              id: "greetings"
              (++ "Hello, " ($ 'person "world") "!"))
-        (<div> id: "greetings-reply"))))
+        (<div> id: "greetings-reply")))
+  use-ajax: #t)
 </enscript>
 
 The {{ajax}} procedure uses at least four arguments:
@@ -189,15 +189,14 @@ For the very specific case of creating links that execute server side code when 
 <enscript highlight=scheme>
 (use awful)
 
-(enable-ajax #t)
-
 (define-page (main-page-path)
   (lambda ()
     (++ (ajax-link "greetings" 'greetings
                    (lambda ()
                      (<b> "Hello, awful!"))
                    target: "greetings-reply")
-        (<div> id: "greetings-reply"))))
+        (<div> id: "greetings-reply")))
+  use-ajax: #t)
 </enscript>
 
 
@@ -209,8 +208,6 @@ Awful provides a procedure which can be used to add arbitrary javascript code to
 <enscript highlight=scheme>
 (use awful)
 
-(enable-ajax #t)
-
 (define-page (main-page-path)
   (lambda ()
     (add-javascript "alert('Hello!');")
@@ -218,7 +215,8 @@ Awful provides a procedure which can be used to add arbitrary javascript code to
                    (lambda ()
                      (<b> "Hello, awful!"))
                    target: "greetings-reply")
-        (<div> id: "greetings-reply"))))
+        (<div> id: "greetings-reply")))
+  use-ajax: #t)
 </enscript>
 
 
@@ -372,6 +370,7 @@ Here's a screenshot:
 
 [[image:http://parenteses.org/mario/img/awful/session-inspector.png|Awful session inspector]]
 
+When {{enable-session}} is {{#t}} and the {{--development-mode}} option is given to the awful application server, the session inspector is automatically enabled and is avaliable from {{/session-inspector}}.
 
 === Web REPL
 
@@ -384,6 +383,8 @@ For further run-time, server-side web hacking, awful provides a REPL that you ca
 Here's a screenshot:
 
 [[image:http://parenteses.org/mario/img/awful/repl.png|Awful web REPL]]
+
+When the {{--development-mode}} option is given to the awful application server, the web REPL is automatically enabled and is avaliable from {{/web-repl}}.
 
 
 === Pages access control
@@ -436,6 +437,21 @@ Since Chicken is a compiler and our pages are Chicken code, we can compile them 
 To be able to deploy multiple awful applications with different configurations under the same server, use Spiffy access files.  See Spiffy's [[http://chicken.wiki.br/eggref/4/spiffy#access-files|access files documentation]] for further details.
 
 
+=== The awful application server
+
+Awful consists of an application server and an extension module.  The awful application server is a command line program whose usage is:
+
+  $ awful --help
+  awful [ -h | --help ] [ -v | --version ] | [ --development-mode ] [ <app1> <app2> ... ]
+
+{{<app1> <app2> ...}} are files containing code to be loaded by the awful application server.
+
+The {{--development-mode}} is intended to be used during the development of your web application.  It's not recommended to run awful with {{--development-mode}} in production.  The development mode enables the web REPL and the session inspector (when {{enable-session}} is {{#t}}) for the localhost, prints error messages and backtraces to the client (e.g., web browser) and HTTP server debugging messages to the {{current-error-port}}.
+
+When in development mode, the web REPL and the session inspector are available from the {{/web-repl}} and {{/session-inspector}} paths.
+
+If you enable the development mode you can still use {{enable-web-repl}} and {{enable-session-inspector}} to customize their respective paths and access control procedures (although the development mode always allows access to web REPL and session inspector for the localhost).
+
 
 === List of user configurable parameters
 
@@ -487,7 +503,7 @@ The default value is {{"http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery
 
 <parameter>(enable-ajax [boolean])</parameter>
 
-When {{#t}}, makes {{define-page}} link the {{ajax-library}} to the generated page.
+When {{#t}}, makes {{define-page}} link the {{ajax-library}} to the generated page.  It's effect is global, that is, once {{enable-ajax}} is set to {{#t}}, all pages defined via {{define-page}} will be linked to the ajax library, unless when the {{no-ajax}} keyword parameter is explicitly set.
 
 The default value is {{#f}}
 
@@ -849,7 +865,7 @@ Escape and quote the concatenation of {{data}} to be used in SQL queries.
 
 ==== Pages
 
-<procedure>(define-page path contents #!key css title doctype headers charset no-ajax no-template no-session no-db no-javascript-compression)</procedure>
+<procedure>(define-page path contents #!key css title doctype headers charset no-ajax use-ajax no-template no-session no-db no-javascript-compression)</procedure>
 
 Define an awful page.
 
@@ -857,7 +873,9 @@ Define an awful page.
 
 The {{css}}, {{title}}, {{doctype}}, {{headers}} and {{charset}} keyword parameters have the same meaning as [[http://chicken.wiki.br/eggref/4/html-utils]]'s {{html-page}}.
 
-If {{no-ajax}} is {{#t}}, it means that the page won't use ajax.
+If {{no-ajax}} is {{#t}}, it means that the page won't use ajax, even if the {{enable-ajax}} parameter is {{#t}}.
+
+If {{use-ajax}} is {{#t}}, it means that the page will be linked to the ajax library, even if the {{enable-ajax}} parameter is {{#f}}.
 
 If {{no-template}} is {{#t}}, it means that no page template (see the {{page-template}} parameter) should be used.
 
@@ -1074,7 +1092,7 @@ The keyword parameter {{css}} is the CSS to be used the the web REPL page (see [
 
 The keyword parameter {{title}} (a string) is the title for the web REPL page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
 
-{{enable-web-repl}} automatically enables ajax (see {{enable-ajax}}.)
+The web REPL is automatically enabled by the awful application server when the {{--development-mode}} is provided (available from {{/web-repl}}).
 
 
 ==== Session inspector
@@ -1087,8 +1105,7 @@ The keyword parameter {{css}} is the CSS to be used the the session inspector pa
 
 The keyword parameter {{title}} (a string) is the title for the session inspector page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
 
-{{enable-session-inspector}} automatically enables session (see {{enable-session}}.)
-
+The session inspector is automatically enabled by the awful application server when the {{--development-mode}} is provided (available from {{/session-inspector}}).
 
 
 === Tips and tricks
@@ -1127,6 +1144,10 @@ consider using something like:
 
 
 ==== Use the web REPL and the session inspector for debugging
+
+You can simply use the {{--development-mode}} option for the awful application server to enable the web REPL and the session inspector (when {{enable-session}} is {{#t}}).  The development mode allows access to them for the localhost.  When in development mode, the web REPL and the session inspector are available at the {{/web-repl}} and {{/session-inspector}} paths.
+
+If you want further flexibility, you can customize the web REPL and the session inspector.
 
 Here's a simple recipe to allow access for your local machine to the web REPL ({{/repl}}) and to the session inspector ({{/session-inspector}}).
 
@@ -1189,10 +1210,14 @@ Error messages right on the browser window can be quite handy for debugging (alt
               (print-error-message exn))))))
 </enscript>
 
+This feature is automatically enabled when the awful application server is used with the {{--development-mode}} option.
+
+
 
 ==== Run awful without arguments to quickly share a file
 
 When invoked without arguments, awful (the application) starts the web server using the current directory as root path and keeps listening on port 8080.  So, if you want to quickly share a file (or some files), change to the directory containing the files and execute {{awful}}.  The access {{http://<host>:8080/<the-file-you-want>}}.
+
 
 
 ==== Awful badge
@@ -1308,6 +1333,9 @@ BSD
 
 
 === Version history
+
+; 0.25:
+* The awful application server can now be used with the {{--development-mode}} command line option, which enables the web REPL, the session inspector (when {{enable-session}} is #t) for the localhost and on-browser error messages and backtraces.
 
 ; 0.24:
 * initial support for storing session identifiers in cookies.  Added the {{enable-session-cookie}} and {{session-cookie-name}} parameters.  By default, cookies-sessions are enabled (relevant only when using sessions, of course). '''Warning''': if your code relies on the availability of session identifiers in the query string or in the request body for whatever reason, it will break.
