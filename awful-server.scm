@@ -5,13 +5,14 @@
 (use regex posix awful srfi-1 srfi-13)
 
 (define (usage #!optional exit-code)
-  (print (pathname-strip-directory (program-name))
-         " [ -h | --help ] [ -v | --version ] | "
-         "[ --development-mode ] "
-         "[ --ip-address=<ip address> ] "
-         "[ --port=<port number> ] "
-         "[ <app1> <app2> ... ]")
-  (when exit-code (exit exit-code)))
+  (let ((awful (pathname-strip-directory (program-name))))
+    (print awful " [ -h | --help ]")
+    (print awful " [ -v | --version ]")
+    (print awful " [ --development-mode ] "
+           "[ --ip-address=<ip address> ] "
+           "[ --port=<port number> ] "
+           "[ <app1> <app2> ... ]")
+  (when exit-code (exit exit-code))))
 
 (define (cmd-line-arg option args)
   ;; Returns the argument associated to the command line option OPTION

@@ -442,7 +442,9 @@ To be able to deploy multiple awful applications with different configurations u
 Awful consists of an application server and an extension module.  The awful application server is a command line program whose usage is:
 
  $ awful --help
- awful [ -h | --help ] [ -v | --version ] | [ --development-mode ] [ --ip-address=<ip address> ] [ --port=<port number> ] [ <app1> <app2> ... ]
+ awful [ -h | --help ]
+ awful [ -v | --version ]
+ awful [ --development-mode ] [ --ip-address=<ip address> ] [ --port=<port number> ] [ <app1> <app2> ... ]
 
 {{<app1> <app2> ...}} are files containing code to be loaded by the awful application server.
 
