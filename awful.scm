@@ -113,7 +113,7 @@
   (set! *resources* (make-hash-table equal?))
   (for-each load apps))
 
-(define (awful-start #!key development-mode?)
+(define (awful-start #!key development-mode? port ip-address)
   (when development-mode?
     (print "Awful is running in development mode.")
 
@@ -158,7 +158,7 @@
         (enable-session-inspector "/session-inspector"))))
 
   ;; Start Spiffy
-  (start-server))
+  (start-server port: port bind-address: ip-address))
 
 (define (get-sid)
   (if (enable-session-cookie)

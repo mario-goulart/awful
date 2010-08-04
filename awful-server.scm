@@ -2,12 +2,23 @@
 ;; -*- scheme -*-
 
 (declare (uses chicken-syntax))
-(use posix awful srfi-1)
+(use regex posix awful srfi-1 srfi-13)
 
 (define (usage #!optional exit-code)
   (print (pathname-strip-directory (program-name))
-         " [ -h | --help ] [ -v | --version ] | [ --development-mode ] [ <app1> <app2> ... ]")
+         " [ -h | --help ] [ -v | --version ] | "
+         "[ --development-mode ] "
+         "[ --ip-address=<ip address> ] "
+         "[ --port=<port number> ] "
+         "[ <app1> <app2> ... ]")
   (when exit-code (exit exit-code)))
+
+(define (cmd-line-arg option args)
+  ;; Returns the argument associated to the command line option OPTION
+  ;; in ARGS or #f if OPTION is not found in ARGS or doesn't have any
+  ;; argument.
+  (let ((val (any (cut string-match (conc option "=(.*)") <>) args)))
+    (and val (cadr val))))
 
 (let ((args (command-line-arguments)))
   (when (or (member "-h" args)
@@ -18,9 +29,16 @@
     (print (awful-version))
     (exit 0))
   (let ((development-mode? (member "--development-mode" args))
-        (args (remove (cut equal? <> "--development-mode") args)))
+        (port (cmd-line-arg '--port args))
+        (ip-address (cmd-line-arg '--ip-address args))
+        (args (remove (lambda (arg)
+                        (or (equal? arg "--development-mode")
+                            (string-prefix? "--port=" arg)))
+                      args)))
     (awful-apps args)
     (load-apps (awful-apps))
     (register-root-dir-handler)
     (register-dispatcher)
-    (awful-start development-mode?: development-mode?)))
+    (awful-start development-mode?: development-mode?
+                 port: (and port (string->number port))
+                 bind-address: ip-address)))

@@ -441,12 +441,18 @@ To be able to deploy multiple awful applications with different configurations u
 
 Awful consists of an application server and an extension module.  The awful application server is a command line program whose usage is:
 
-  $ awful --help
-  awful [ -h | --help ] [ -v | --version ] | [ --development-mode ] [ <app1> <app2> ... ]
+ $ awful --help
+ awful [ -h | --help ] [ -v | --version ] | [ --development-mode ] [ --ip-address=<ip address> ] [ --port=<port number> ] [ <app1> <app2> ... ]
 
 {{<app1> <app2> ...}} are files containing code to be loaded by the awful application server.
 
-The {{--development-mode}} is intended to be used during the development of your web application.  It's not recommended to run awful with {{--development-mode}} in production.  The development mode enables the web REPL and the session inspector (when {{enable-session}} is {{#t}}) for the localhost, prints error messages and backtraces to the client (e.g., web browser) and HTTP server debugging messages to the {{current-error-port}}.
+{{--ip-address}} can be used to bind the web server to the given IP address.
+
+{{--port}} can be used to make the web server listen to the given port.
+
+{{--ip-address}} and {{--port}} take precedence over the Spiffy parameters to specify the server IP address ({{server-bind-address}}) and port ({{server-port}}).
+
+The {{--development-mode}} option is intended to be used during the development of your web application.  It's not recommended to run awful with {{--development-mode}} in production.  The development mode enables the web REPL and the session inspector (when {{enable-session}} is {{#t}}) for the localhost, prints error messages and backtraces to the client (e.g., web browser) and HTTP server debugging messages to the {{current-error-port}}.
 
 When in development mode, the web REPL and the session inspector are available from the {{/web-repl}} and {{/session-inspector}} paths.
 
@@ -1335,7 +1341,7 @@ BSD
 === Version history
 
 ; 0.25:
-* The awful application server can now be used with the {{--development-mode}} command line option, which enables the web REPL, the session inspector (when {{enable-session}} is #t) for the localhost and on-browser error messages and backtraces.
+* The awful application server can now be used with the {{--development-mode}} command line option, which enables the web REPL, the session inspector (when {{enable-session}} is #t) for the localhost and on-browser error messages and backtraces.  It also supports the {{--ip-address}} and {{--port}} command line options.
 
 ; 0.24:
 * initial support for storing session identifiers in cookies.  Added the {{enable-session-cookie}} and {{session-cookie-name}} parameters.  By default, cookies-sessions are enabled (relevant only when using sessions, of course). '''Warning''': if your code relies on the availability of session identifiers in the query string or in the request body for whatever reason, it will break.
