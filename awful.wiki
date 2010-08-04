@@ -1344,6 +1344,7 @@ BSD
 
 ; 0.25:
 * The awful application server can now be used with the {{--development-mode}} command line option, which enables the web REPL, the session inspector (when {{enable-session}} is #t) for the localhost and on-browser error messages and backtraces.  It also supports the {{--ip-address}} and {{--port}} command line options.
+* {{use-ajax}} keyword parameter for {{define-page}} (for when {{enable-ajax}} is {{#f}} and you need ajax for some specific pages)
 
 ; 0.24:
 * initial support for storing session identifiers in cookies.  Added the {{enable-session-cookie}} and {{session-cookie-name}} parameters.  By default, cookies-sessions are enabled (relevant only when using sessions, of course). '''Warning''': if your code relies on the availability of session identifiers in the query string or in the request body for whatever reason, it will break.
