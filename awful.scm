@@ -158,7 +158,8 @@
         (enable-session-inspector "/session-inspector"))))
 
   ;; Start Spiffy
-  (start-server port: port bind-address: ip-address))
+  (start-server port: (or port (server-port))
+                bind-address: (or ip-address (server-bind-address))))
 
 (define (get-sid)
   (if (enable-session-cookie)
