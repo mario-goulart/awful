@@ -792,9 +792,9 @@ Examples:
 
 <procedure>(link url text . rest)</procedure>
 
-Return a session-aware HTML code for a link, using the {{<nowiki>&lt;a&gt;</nowiki>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]].
+Return a session-aware HTML code for a link, using the {{<a>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]].
 
-The {{rest}} arguments are the same as the ones for the {{<nowiki>&lt;a&gt;</nowiki>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]], plus the following:
+The {{rest}} arguments are the same as the ones for the {{<a>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]], plus the following:
 
 ; {{no-session}} : a boolean.  If {{#t}}, forces {{link}} to ignore the session even when {{enable-session}} is {{#t}}.
 ; {{arguments}} : an alist mapping variable names to their corresponding values, to be passed to uri-common's {{form-urlencode}} procedure.
@@ -1050,7 +1050,7 @@ A shortcut to
 
 The meaning of the {{target}}, {{action}}, {{method}}, {{arguments}}, {{success}}, {{no-session}}, {{no-db}}, {{event}}, {{vhost-root-path}}, {{update-targets}} and {{live}} keyword parameters is the same as for {{ajax}}'s.
 
-The meaning of the {{class}}, {{hreflang}}, {{type}}, {{rel}}, {{rev}}, {{charset}}, {{coords}}, {{shape}}, {{accesskey}}, {{tabindex}} and {{a-target}} are the same as for [[http://chicken.wiki.br/eggref/4/html-tags]]' {{<nowiki>&lt;a&gt;</nowiki>}} procedure (except that {{a-target}} is {{<nowiki>&lt;a&gt;</nowiki>}}'s {{target}}, since {{ajax}} uses the {{target}} keyword parameter).
+The meaning of the {{class}}, {{hreflang}}, {{type}}, {{rel}}, {{rev}}, {{charset}}, {{coords}}, {{shape}}, {{accesskey}}, {{tabindex}} and {{a-target}} are the same as for [[http://chicken.wiki.br/eggref/4/html-tags]]' {{<a>}} procedure (except that {{a-target}} is {{<a>}}'s {{target}}, since {{ajax}} uses the {{target}} keyword parameter).
 
 The {{event}} keyword parameter syntax is the same for {{ajax}}'s {{event}} mandatory parameter.
 
@@ -1120,7 +1120,7 @@ The session inspector is automatically enabled by the awful application server w
 
 ==== Use {{link}} and {{form}} for links and forms
 
-Instead of using {{<nowiki>&lt;a&gt;</nowiki>}} and {{<form>}} for creating links and forms, respectively, consider using the {{link}} and {{form}} procedures instead.  They are specially useful when using sessions, since they transparently handle the session identifier for you.  Even if you don't use sessions, they may save you some work if one day you decide to use sessions (then you won't have do to anything regarding to links and forms).
+Instead of using {{<a>}} and {{<form>}} for creating links and forms, respectively, consider using the {{link}} and {{form}} procedures instead.  They are specially useful when using sessions, since they transparently handle the session identifier for you.  Even if you don't use sessions, they may save you some work if one day you decide to use sessions (then you won't have do to anything regarding to links and forms).
 
 
 ==== Use {{with-request-vars}} when referencing the same request variable multiple times
@@ -1394,7 +1394,7 @@ BSD
 
 ; 0.15 : jquery updated to 1.4.2 ({{ajax-library}}).
 ; 0.14 : {{link}}'s {{args}} keyword parameter renamed to {{arguments}} (the same as {{ajax}}'s).
-; 0.13 : Session-aware {{link}} and {{form}} procedures.  Bug fix for {{ajax-link}} (was not passing the {{class}} keyword argument to <nowiki>&lt;a&gt;</nowiki>).
+; 0.13 : Session-aware {{link}} and {{form}} procedures.  Bug fix for {{ajax-link}} (was not passing the {{class}} keyword argument to <a>).
 ; 0.12 : Containers for user and password fields ({{login-form}})
 ; 0.11 : awful sets Spiffy's {{root-path}} to {{(current-directory)}}
 ; 0.10 :
@@ -1418,7 +1418,7 @@ BSD
 
 * added more ajax tests
 
-; 0.7 : {{ajax-link}} accepts all {{<nowiki>&lt;a&gt;</nowiki>}}'s keyword arguments
+; 0.7 : {{ajax-link}} accepts all {{<a>}}'s keyword arguments
 ; 0.6 : Explicitly depends on [[http://chicken.wiki.br/eggref/4/http-session|http-session]] 2.0
 ; 0.5 : Reload handler register the reload path after reloading.
 ; 0.4 : {{disable-reload?}} renamed to {{enable-reload}}.  {{enable-reload}} is {{#f}} by default.
