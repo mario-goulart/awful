@@ -17,25 +17,25 @@ Here's a short summary of awful features:
 * Session inspector
 * Web REPL
 
-[[http://chicken.wiki.br/video/awful.ogv|Here's]] a 35 seconds video ([[http://en.wikipedia.org/wiki/Ogv|OGV]]) showing the deployment of awful and a "hello, world" example ([[http://chicken.wiki.br/video/awful.avi|here's]] the same video, but in [[http://en.wikipedia.org/wiki/Audio_Video_Interleave|AVI]]).
+[[http://wiki.call-cc.org/video/awful.ogv|Here's]] a 35 seconds video ([[http://en.wikipedia.org/wiki/Ogv|OGV]]) showing the deployment of awful and a "hello, world" example ([[http://wiki.call-cc.org/video/awful.avi|here's]] the same video, but in [[http://en.wikipedia.org/wiki/Audio_Video_Interleave|AVI]]).
 
 
 === Author
 
-[[http://chicken.wiki.br/users/mario-domenech-goulart|Mario Domenech Goulart]]
+[[/users/mario-domenech-goulart|Mario Domenech Goulart]]
 
 
 === Requirements
 
 The following eggs are required:
 
-* [[http://chicken.wiki.br/eggref/4/spiffy|spiffy]]
-* [[http://chicken.wiki.br/eggref/4/spiffy-cookies|spiffy-cookies]]
-* [[http://chicken.wiki.br/eggref/4/spiffy-request-vars|spiffy-request-vars]]
-* [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]]
-* [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]
-* [[http://chicken.wiki.br/eggref/4/json|json]]
-* [[http://chicken.wiki.br/eggref/4/http-session|http-session]] (>= 2.0)
+* [[/egg/spiffy|spiffy]]
+* [[/egg/spiffy-cookies|spiffy-cookies]]
+* [[/egg/spiffy-request-vars|spiffy-request-vars]]
+* [[/egg/html-tags|html-tags]]
+* [[/egg/html-utils|html-utils]]
+* [[/egg/json|json]]
+* [[/egg/http-session|http-session]] (>= 2.0)
 
 
 === Components
@@ -66,7 +66,7 @@ Without any configuration, awful listens on port 8080.  Since awful uses Spiffy 
 
 In the example we use the {{main-page-path}} parameter, which is one of the awful configuration parameters.  The default is {{"/"}}.
 
-If you look at the page source code, you'll see that awful created an HTML page for you.  Awful uses the [[http://chicken.wiki.br/eggref/4/html-utils|html-tags]]'s {{html-page}} procedure behind the scenes.  You can customize the page either by passing {{html-page}}'s keyword parameters to {{define-page}} or by setting the {{page-template}} parameter with your favourite procedure to generate pages. {{page-template}} is a one-mandatory-argument procedure which receives the page contents and returns a string representing the formatted contents. {{define-page}} would still pass the {{html-page}} keyword parameters, so you can make use of them (the {{page-template}} procedure should be defined considering them -- if you don't need them, just ignore them by defining {{(lambda (contents . args) ...)}}).
+If you look at the page source code, you'll see that awful created an HTML page for you.  Awful uses the [[/egg/html-utils|html-tags]]'s {{html-page}} procedure behind the scenes.  You can customize the page either by passing {{html-page}}'s keyword parameters to {{define-page}} or by setting the {{page-template}} parameter with your favourite procedure to generate pages. {{page-template}} is a one-mandatory-argument procedure which receives the page contents and returns a string representing the formatted contents. {{define-page}} would still pass the {{html-page}} keyword parameters, so you can make use of them (the {{page-template}} procedure should be defined considering them -- if you don't need them, just ignore them by defining {{(lambda (contents . args) ...)}}).
 
 You can also use some global page-related parameters if all pages use the same CSS, doctype and charset ({{page-css}}, {{page-doctype}} and {{page-charset}}, respectively).
 
@@ -225,14 +225,14 @@ Awful provides a procedure which can be used to add arbitrary javascript code to
 
 To access databases, you need some of the awful eggs which provide database access.  Currently, these are the possible options:
 
-* [[http://chicken.wiki.br/eggref/4/awful-postgresql|awful-postgresql]] (for Postgresql databases, using the [[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] egg)
+* [[/egg/awful-postgresql|awful-postgresql]] (for Postgresql databases, using the [[/egg/postgresql|postgresql]] egg)
 
-* [[http://chicken.wiki.br/eggref/4/awful-sqlite3|awful-sqlite3]] (for Sqlite3 databases, using the [[http://chicken.wiki.br/eggref/4/sqlite3|sqlite3]] egg)
-* [[http://chicken.wiki.br/eggref/4/awful-sql-de-lite|awful-sql-de-lite]] (for Sqlite3 databases, using the [[http://chicken.wiki.br/eggref/4/sql-de-lite|sql-de-lite]] egg)
+* [[/egg/awful-sqlite3|awful-sqlite3]] (for Sqlite3 databases, using the [[/egg/sqlite3|sqlite3]] egg)
+* [[/egg/awful-sql-de-lite|awful-sql-de-lite]] (for Sqlite3 databases, using the [[/egg/sql-de-lite|sql-de-lite]] egg)
 
 As with ajax, database access is not enabled by default.  To enable it, you need to pick one the awful database support eggs and call the {{enable-db}} procedure.  Since version 0.10, and differently from the {{enable-*}} parameters, {{enable-db}} is a zero-argument procedure provided by each of awful database-support eggs.  So, if you use {{awful-postgresql}}, the {{enable-db}} procedure will automatically set up awful to use a postgresql database.
 
-Additionally, to access the db, you need to provide the credentials.  You can provide the credentials by setting the {{db-credentials}} parameter.  See the documentation for the eggs corresponding to the database type you are using ([[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] for Postgresql and [[http://chicken.wiki.br/eggref/4/sqlite3|sqlite3]] or [[http://chicken.wiki.br/eggref/4/sql-de-lite|sql-de-lite]] for Sqlite3.)
+Additionally, to access the db, you need to provide the credentials.  You can provide the credentials by setting the {{db-credentials}} parameter.  See the documentation for the eggs corresponding to the database type you are using ([[/egg/postgresql|postgresql]] for Postgresql and [[/egg/sqlite3|sqlite3]] or [[/egg/sql-de-lite|sql-de-lite]] for Sqlite3.)
 
 To actually query the database, there's the {{$db}} procedure, which uses as arguments a string representing the query and, optionally, a default value (a keyword parameter) to be used in case the query doesn't return any result. {{$db}} returns a list of lists. Below is an usage example:
 
@@ -434,7 +434,7 @@ Since Chicken is a compiler and our pages are Chicken code, we can compile them 
 
 === Multiple applications support
 
-To be able to deploy multiple awful applications with different configurations under the same server, use Spiffy access files.  See Spiffy's [[http://chicken.wiki.br/eggref/4/spiffy#access-files|access files documentation]] for further details.
+To be able to deploy multiple awful applications with different configurations under the same server, use Spiffy access files.  See Spiffy's [[/egg/spiffy#access-files|access files documentation]] for further details.
 
 
 === The awful application server
@@ -577,14 +577,14 @@ The default value is {{(lambda (user password) #f)}}.
 
 <parameter>(page-doctype [string])</parameter>
 
-The doctype (see the [[http://chicken.wiki.br/eggref/4/doctype|doctype]] egg) to be applied to all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{doctype}} keyword parameter.
+The doctype (see the [[/egg/doctype|doctype]] egg) to be applied to all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{doctype}} keyword parameter.
 
 The default value is {{""}}.
 
 
 <parameter>(page-css [boolean or string])</parameter>
 
-The CSS file to be linked by all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{css}} keyword parameter.  See [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} procedure to know about the {{css}} keyword parameter syntax.
+The CSS file to be linked by all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{css}} keyword parameter.  See [[/egg/html-utils|html-utils]]'s {{html-page}} procedure to know about the {{css}} keyword parameter syntax.
 
 The default value is {{#f}} (no CSS).
 
@@ -609,7 +609,7 @@ An one-mandatory-argument procedure to be used by {{define-page}} (unless {{defi
 * no-session
 * no-db
 
-The default value is {{html-page}} (see the [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]] egg documentation.)
+The default value is {{html-page}} (see the [[/egg/html-utils|html-utils]] egg documentation.)
 
 
 <parameter>(page-exception-message [procedure])</parameter>
@@ -691,18 +691,18 @@ An one-argument procedure (the javascript code) which return the given javascrip
 
 The default value is the {{identity}} procedure.
 
-A possible value for {{javascript-compressor}} is {{jsmin-string}} (see the [[http://chicken.wiki.br/eggref/4/jsmin|jsmin]] egg.)
+A possible value for {{javascript-compressor}} is {{jsmin-string}} (see the [[/egg/jsmin|jsmin]] egg.)
 
 
 
 === List of read-only parameters available to users
 
-Note: these parameters should not be explicitly set and when their use is needed, it's a string sign you're doing something you shouldn't (except for {{db-connection}}, which can be used by procedures from the [[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] egg API).
+Note: these parameters should not be explicitly set and when their use is needed, it's a string sign you're doing something you shouldn't (except for {{db-connection}}, which can be used by procedures from the [[/egg/postgresql|postgresql]] egg API).
 
 
 <parameter>(http-request-variables)</parameter>
 
-The per-request value returned by [[http://chicken.wiki.br/eggref/4/spiffy-request-vars|spiffy-request-vars]]'s {{request-vars}}.
+The per-request value returned by [[/egg/spiffy-request-vars|spiffy-request-vars]]'s {{request-vars}}.
 
 
 <parameter>(db-connection)</parameter>
@@ -792,9 +792,9 @@ Examples:
 
 <procedure>(link url text . rest)</procedure>
 
-Return a session-aware HTML code for a link, using the {{<a>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]].
+Return a session-aware HTML code for a link, using the {{<a>}} procedure from [[/egg/html-tags|html-tags]].
 
-The {{rest}} arguments are the same as the ones for the {{<a>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]], plus the following:
+The {{rest}} arguments are the same as the ones for the {{<a>}} procedure from [[/egg/html-tags|html-tags]], plus the following:
 
 ; {{no-session}} : a boolean.  If {{#t}}, forces {{link}} to ignore the session even when {{enable-session}} is {{#t}}.
 ; {{arguments}} : an alist mapping variable names to their corresponding values, to be passed to uri-common's {{form-urlencode}} procedure.
@@ -805,9 +805,9 @@ When {{enable-session}} is {{#t}}, {{link}} automatically encodes the session id
 
 <procedure>(form contents . rest)</procedure>
 
-Return a session-aware HTML code for a form, using the {{<form>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]].
+Return a session-aware HTML code for a form, using the {{<form>}} procedure from [[/egg/html-tags|html-tags]].
 
-The {{rest}} arguments are the same as the ones for the {{<form>}} procedure from [[http://chicken.wiki.br/eggref/4/html-tags|html-tags]], plus {{no-session}}, a boolean.  If {{no-session}} is {{#t}}, it forces {{form}} to ignore the session even when {{enable-session}} is {{#t}}.
+The {{rest}} arguments are the same as the ones for the {{<form>}} procedure from [[/egg/html-tags|html-tags]], plus {{no-session}}, a boolean.  If {{no-session}} is {{#t}}, it forces {{form}} to ignore the session even when {{enable-session}} is {{#t}}.
 
 When {{enable-session}} is {{#t}}, {{form}} automatically generates a hidden input field to pass the session identifier (unless {{no-session}} is {{#t}}).
 
@@ -879,7 +879,7 @@ Define an awful page.
 
 {{path}} is the path to the page.  It can be represented by two types: a string and a regular expression object.  If it is a string, the path used in the URI will be bound to the given no-argument procedure {{contents}}.  If it is a regular expression object, any request whose URL path matches the regular expression will br handled by the one-argument procedure {{contents}}.  This procedure will be given the requested path.
 
-The {{css}}, {{title}}, {{doctype}}, {{headers}} and {{charset}} keyword parameters have the same meaning as [[http://chicken.wiki.br/eggref/4/html-utils]]'s {{html-page}}.
+The {{css}}, {{title}}, {{doctype}}, {{headers}} and {{charset}} keyword parameters have the same meaning as [[/egg/html-utils]]'s {{html-page}}.
 
 If {{no-ajax}} is {{#t}}, it means that the page won't use ajax, even if the {{enable-ajax}} parameter is {{#t}}.
 
@@ -1050,7 +1050,7 @@ A shortcut to
 
 The meaning of the {{target}}, {{action}}, {{method}}, {{arguments}}, {{success}}, {{no-session}}, {{no-db}}, {{event}}, {{vhost-root-path}}, {{update-targets}} and {{live}} keyword parameters is the same as for {{ajax}}'s.
 
-The meaning of the {{class}}, {{hreflang}}, {{type}}, {{rel}}, {{rev}}, {{charset}}, {{coords}}, {{shape}}, {{accesskey}}, {{tabindex}} and {{a-target}} are the same as for [[http://chicken.wiki.br/eggref/4/html-tags]]' {{<a>}} procedure (except that {{a-target}} is {{<a>}}'s {{target}}, since {{ajax}} uses the {{target}} keyword parameter).
+The meaning of the {{class}}, {{hreflang}}, {{type}}, {{rel}}, {{rev}}, {{charset}}, {{coords}}, {{shape}}, {{accesskey}}, {{tabindex}} and {{a-target}} are the same as for [[/egg/html-tags]]' {{<a>}} procedure (except that {{a-target}} is {{<a>}}'s {{target}}, since {{ajax}} uses the {{target}} keyword parameter).
 
 The {{event}} keyword parameter syntax is the same for {{ajax}}'s {{event}} mandatory parameter.
 
@@ -1096,9 +1096,9 @@ The example above shows a redirection from {{/}} to {{/foo}}.  Redirections can 
 
 Enable the web REPL.  {{path}} is the URL path to the web REPL.
 
-The keyword parameter {{css}} is the CSS to be used the the web REPL page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{css}} keyword parameter.)
+The keyword parameter {{css}} is the CSS to be used the the web REPL page (see [[/egg/html-utils|html-utils]]'s {{html-page}} documentation for the {{css}} keyword parameter.)
 
-The keyword parameter {{title}} (a string) is the title for the web REPL page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
+The keyword parameter {{title}} (a string) is the title for the web REPL page (see [[/egg/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
 
 The web REPL is automatically enabled by the awful application server when the {{--development-mode}} is provided (available from {{/web-repl}}).
 
@@ -1109,9 +1109,9 @@ The web REPL is automatically enabled by the awful application server when the {
 
 Enable the session inspector.  {{path}} is the URL path to the session inspector.
 
-The keyword parameter {{css}} is the CSS to be used the the session inspector page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{css}} keyword parameter.)
+The keyword parameter {{css}} is the CSS to be used the the session inspector page (see [[/egg/html-utils|html-utils]]'s {{html-page}} documentation for the {{css}} keyword parameter.)
 
-The keyword parameter {{title}} (a string) is the title for the session inspector page (see [[http://chicken.wiki.br/eggref/4/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
+The keyword parameter {{title}} (a string) is the title for the session inspector page (see [[/egg/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
 
 The session inspector is automatically enabled by the awful application server when the {{--development-mode}} is provided (available from {{/session-inspector}}).
 
@@ -1125,7 +1125,7 @@ Instead of using {{<a>}} and {{<form>}} for creating links and forms, respective
 
 ==== Use {{with-request-vars}} when referencing the same request variable multiple times
 
-When you need to access the same request variable more than once, consider using [[http://chicken.wiki.br/eggref/4/spiffy-request-vars|spiffy-request-vars]]' {{with-request-vars}}.
+When you need to access the same request variable more than once, consider using [[/egg/spiffy-request-vars|spiffy-request-vars]]' {{with-request-vars}}.
 
 For example, instead of:
 
@@ -1320,9 +1320,9 @@ When a procedure is bound to a path {{a}} (like {{(define-page "a" (lambda ...))
 
 * if the path {{a}} does not exist, the server replies with the result of the evaluation of the procedure bound to {{a}}.
 
-* if {{a}} is an existent file, the server replies with the file contents (or the result of processing the file, in case it is a special one like [[http://chicken.wiki.br/eggref/4/spiffy#web-scheme-handler|web-scheme]] or {{.ssp}} files)
+* if {{a}} is an existent file, the server replies with the file contents (or the result of processing the file, in case it is a special one like [[/egg/spiffy#web-scheme-handler|web-scheme]] or {{.ssp}} files)
 
-* if {{a}} is an existing directory and the directory contains one of the files in {{index-file}} (see documentation for [[http://chicken.wiki.br/eggref/4/spiffy|Spiffy]]), with the index file contents (or the result of processing the file, in case it is a special one like [[http://chicken.wiki.br/eggref/4/spiffy#web-scheme-handler|web-scheme]]'s or {{.ssp}})
+* if {{a}} is an existing directory and the directory contains one of the files in {{index-file}} (see documentation for [[/egg/spiffy|Spiffy]]), with the index file contents (or the result of processing the file, in case it is a special one like [[/egg/spiffy#web-scheme-handler|web-scheme]]'s or {{.ssp}})
 
 * if {{a}} is an existing directory and does not contain index files, the server replies with the result of the evaluation of the  procedure bound to {{a}}.
 
@@ -1385,7 +1385,7 @@ BSD
 * support for regex-based page paths (see {{define-page}})
 * {{define-page}} checks whether the second arg is a procedure.
 * use {{-O3 -lambda-lift}} instead of {{-O2}} for compilation
-* {{main-page-path}} redirection made with code stolen from [[http://chicken.wiki.br/eggref/4/spiffy|spiffy]]'s {{send-response}}
+* {{main-page-path}} redirection made with code stolen from [[/egg/spiffy|spiffy]]'s {{send-response}}
 
 ; 0.17 : .meta bug fix.  postgresql is not required as a dependency (thanks to Stephen Pedrosa Eilert for pointing this issue).
 ; 0.16 :
@@ -1398,7 +1398,7 @@ BSD
 ; 0.12 : Containers for user and password fields ({{login-form}})
 ; 0.11 : awful sets Spiffy's {{root-path}} to {{(current-directory)}}
 ; 0.10 :
-* Multiple database support. Currently Postgresql (via [[http://chicken.wiki.br/eggref/4/postgresql|postgresql]] egg) and Sqlite3 (via [[http://chicken.wiki.br/eggref/4/sqlite3|sqlite3]] and [[http://chicken.wiki.br/eggref/4/sql-de-lite|sql-de-lite]] eggs) are supported.  See [[http://chicken.wiki.br/eggref/4/awful-postgresql|awful-postgresql]], [[http://chicken.wiki.br/eggref/4/sqlite3|sqlite3]] and [[http://chicken.wiki.br/eggref/4/sql-de-lite|sql-de-lite]] eggs.
+* Multiple database support. Currently Postgresql (via [[/egg/postgresql|postgresql]] egg) and Sqlite3 (via [[/egg/sqlite3|sqlite3]] and [[/egg/sql-de-lite|sql-de-lite]] eggs) are supported.  See [[/egg/awful-postgresql|awful-postgresql]], [[/egg/sqlite3|sqlite3]] and [[/egg/sql-de-lite|sql-de-lite]] eggs.
 
 * Removed requirement for postgresql
 
@@ -1419,7 +1419,7 @@ BSD
 * added more ajax tests
 
 ; 0.7 : {{ajax-link}} accepts all {{<a>}}'s keyword arguments
-; 0.6 : Explicitly depends on [[http://chicken.wiki.br/eggref/4/http-session|http-session]] 2.0
+; 0.6 : Explicitly depends on [[/egg/http-session|http-session]] 2.0
 ; 0.5 : Reload handler register the reload path after reloading.
 ; 0.4 : {{disable-reload?}} renamed to {{enable-reload}}.  {{enable-reload}} is {{#f}} by default.
 ; 0.3 : {{awful}} (the server) allows applications to use Chicken syntax ({{use}}, {{include}} etc)
