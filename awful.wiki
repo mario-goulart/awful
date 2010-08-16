@@ -11,7 +11,7 @@ Here's a short summary of awful features:
 * Straightforward interface to databases (currently supported are postgresql and sqlite3)
 * Support for page dispatching via regular expressions
 * Easy access to query string and body request variables from HTTP requests
-* Ajax support via JQuery
+* Ajax support via [[http://jquery.com/|JQuery]]
 * Reasonably flexible (several configuration parameters)
 * Compiled pages made easy
 * Session inspector
@@ -176,7 +176,7 @@ Awful provides some procedures to do ajax.  We start by the more generic one ({{
 
 The {{ajax}} procedure uses at least four arguments:
 
-1. The URL path to the server-side handler (a string).  This path is relative to {{ajax-namespace}} parameter (default is {{ajax}}.  So, in the example, we'll have "/ajax/greetings" as the ajax path to be generated if we pass "ajax" as the first argument.
+1. The URL path to the server-side handler (a string).  This path is relative to {{ajax-namespace}} parameter (default is {{ajax}}.  So, in the example, we'll have {{/ajax/greetings}} as the ajax path to be generated if we pass {{ajax}} as the first argument.
 
 2. The ID of the DOM element to observe.
 
@@ -184,7 +184,7 @@ The {{ajax}} procedure uses at least four arguments:
 
 4. The procedure to be run on the server-side.
 
-So, in the example, {{ajax}} will bind the fourth argument (the procedure) to the first argument (the path) on the server side. Then it will add javascript code to the page in order to wait for click events for the element of ID {{greetings}}.  When we click "Hello, <person>!", we'll get "Hello, awful!" printed on the page as reply.  {{ajax}} updates the DOM element whose id is the value of the {{target}} keyword parameter ({{"greetings-reply"}}, in the example).
+So, in the example, {{ajax}} will bind the fourth argument (the procedure) to the first argument (the path) on the server side. Then it will add javascript code to the page in order to wait for click events for the element of ID {{greetings}}.  When we click "Hello, <person>!", we'll get {{Hello, awful!}} printed on the page as reply.  {{ajax}} updates the DOM element whose id is the value of the {{target}} keyword parameter ({{"greetings-reply"}}, in the example).
 
 For the very specific case of creating links that execute server side code when clicked, awful provides the {{ajax-link}} procedure.  So our example could be coded like:
 
@@ -320,11 +320,11 @@ The basic things you have to do is:
   no-session: #t)
 </enscript>
 
-That's the very basic we need to set an auth page.  If the password is valid for the given user, awful will perform a redirect to the main page ({{main-page-path}} parameter) passing the {{user}} variable and its value in the query string .  If the password is not valid, awful will redirect to the login page ({{login-page-path}} parameter)) and pass the following variables and values:
+That's the very basic we need to set an auth page.  If the password is valid for the given user, awful will perform a redirect to the main page ({{main-page-path}} parameter) passing the {{user}} variable and its value in the query string .  If the password is not valid, awful will redirect to the login page ({{login-page-path}} parameter) and pass the following variables and values:
 
 ; {{reason}} : the reason why awful redirected to the login page. It may be {{invalid-password}}, for when the password is invalid for the given user; or {{invalid-session}} for when the session identifier is not valid (e.g., the session expired).
 
-; {{attempted-page}} : the URL path to page the user tried to access, but couldn't because either he/she was not loged in or he/she provided an invalid session identifier.
+; {{attempted-page}} : the URL path to page the user tried to access, but couldn't because either he/she was not logged in or he/she provided an invalid session identifier.
 
 ; {{user}} : the user used for the form user field.
 
@@ -579,21 +579,21 @@ The default value is {{(lambda (user password) #f)}}.
 
 <parameter>(page-doctype [string])</parameter>
 
-The doctype (see the [[/egg/doctype|doctype]] egg) to be applied to all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{doctype}} keyword parameter.
+The doctype (see the [[/egg/doctype|doctype]] egg) to be applied to all pages defined by {{define-page}}.  It can be overwritten by {{define-page}}'s {{doctype}} keyword parameter.
 
 The default value is {{""}}.
 
 
 <parameter>(page-css [boolean or string])</parameter>
 
-The CSS file to be linked by all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{css}} keyword parameter.  See [[/egg/html-utils|html-utils]]'s {{html-page}} procedure to know about the {{css}} keyword parameter syntax.
+The CSS file to be linked by all pages defined by {{define-page}}.  It can be overwritten by {{define-page}}'s {{css}} keyword parameter.  See [[/egg/html-utils|html-utils]]'s {{html-page}} procedure to know about the {{css}} keyword parameter syntax.
 
 The default value is {{#f}} (no CSS).
 
 
 <parameter>(page-charset [boolean or string])</parameter>
 
-The page charset to be used by all pages defined by {{define-page}}.  Can be overwritten by {{define-page}}'s {{charset}} keyword parameter.
+The page charset to be used by all pages defined by {{define-page}}.  It can be overwritten by {{define-page}}'s {{charset}} keyword parameter.
 The default value is {{#f}} (no explicit charset).
 
 
@@ -915,7 +915,7 @@ Define an awful page.
 
 {{path}} is the path to the page.  It can be represented by two types: a string and a regular expression object.  If it is a string, the path used in the URI will be bound to the given no-argument procedure {{contents}}.  If it is a regular expression object, any request whose URL path matches the regular expression will br handled by the one-argument procedure {{contents}}.  This procedure will be given the requested path.
 
-The {{css}}, {{title}}, {{doctype}}, {{headers}} and {{charset}} keyword parameters have the same meaning as [[/egg/html-utils]]'s {{html-page}}.
+The {{css}}, {{title}}, {{doctype}}, {{headers}} and {{charset}} keyword parameters have the same meaning as {{html-page}} (from the [[/egg/html-utils|html-utils]] egg).
 
 If {{no-ajax}} is {{#t}}, it means that the page won't use ajax, even if the {{enable-ajax}} parameter is {{#t}}.
 
@@ -1086,7 +1086,7 @@ A shortcut to
 
 The meaning of the {{target}}, {{action}}, {{method}}, {{arguments}}, {{success}}, {{no-session}}, {{no-db}}, {{event}}, {{vhost-root-path}}, {{update-targets}} and {{live}} keyword parameters is the same as for {{ajax}}'s.
 
-The meaning of the {{class}}, {{hreflang}}, {{type}}, {{rel}}, {{rev}}, {{charset}}, {{coords}}, {{shape}}, {{accesskey}}, {{tabindex}} and {{a-target}} are the same as for [[/egg/html-tags]]' {{<a>}} procedure (except that {{a-target}} is {{<a>}}'s {{target}}, since {{ajax}} uses the {{target}} keyword parameter).
+The meaning of the {{class}}, {{hreflang}}, {{type}}, {{rel}}, {{rev}}, {{charset}}, {{coords}}, {{shape}}, {{accesskey}}, {{tabindex}} and {{a-target}} are the same as for [[/egg/html-tags|html-tags]]' {{<a>}} procedure (except that {{a-target}} is {{<a>}}'s {{target}}, since {{ajax}} uses the {{target}} keyword parameter).
 
 The {{event}} keyword parameter syntax is the same for {{ajax}}'s {{event}} mandatory parameter.
 
@@ -1132,9 +1132,9 @@ The example above shows a redirection from {{/}} to {{/foo}}.  Redirections can 
 
 Enable the web REPL.  {{path}} is the URL path to the web REPL.
 
-The keyword parameter {{css}} is the CSS to be used the the web REPL page (see [[/egg/html-utils|html-utils]]'s {{html-page}} documentation for the {{css}} keyword parameter.)
+The keyword parameter {{css}} is the CSS to be used the the web REPL page (see the documentation for {{html-page}}, from the [[/egg/html-utils|html-utils]] egg, for the {{css}} keyword parameter.)
 
-The keyword parameter {{title}} (a string) is the title for the web REPL page (see [[/egg/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
+The keyword parameter {{title}} (a string) is the title for the web REPL page (see the documentation for {{html-page}}, from the [[/egg/html-utils|html-utils]] egg, for the {{title}} keyword parameter.)
 
 The web REPL is automatically enabled by the awful application server when the {{--development-mode}} is provided (available from {{/web-repl}}).
 
@@ -1145,9 +1145,9 @@ The web REPL is automatically enabled by the awful application server when the {
 
 Enable the session inspector.  {{path}} is the URL path to the session inspector.
 
-The keyword parameter {{css}} is the CSS to be used the the session inspector page (see [[/egg/html-utils|html-utils]]'s {{html-page}} documentation for the {{css}} keyword parameter.)
+The keyword parameter {{css}} is the CSS to be used the the session inspector page (see the documentation for {{html-page}}, from the [[/egg/html-utils|html-utils]] egg, for the {{css}} keyword parameter.)
 
-The keyword parameter {{title}} (a string) is the title for the session inspector page (see [[/egg/html-utils|html-utils]]'s {{html-page}} documentation for the {{title}} keyword parameter.)
+The keyword parameter {{title}} (a string) is the title for the session inspector page (see the documentation for {{html-page}}, from the [[/egg/html-utils|html-utils]] egg, for the {{title}} keyword parameter.)
 
 The session inspector is automatically enabled by the awful application server when the {{--development-mode}} is provided (available from {{/session-inspector}}).
 
