@@ -10,7 +10,7 @@
    session-inspector-access-denied-message page-exception-message
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
-   enable-session-cookie session-cookie-name
+   enable-session-cookie session-cookie-name awful-response-headers
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -69,6 +69,7 @@
 (define session-inspector-access-denied-message (make-parameter (<h3> "Access denied.")))
 (define enable-javascript-compression (make-parameter #f))
 (define javascript-compressor (make-parameter identity))
+(define awful-response-headers (make-parameter #f))
 (define page-exception-message
   (make-parameter
    (lambda (exn)
@@ -311,8 +312,13 @@
                         (lambda ()
                           (%redirect #f)
                           (send-status 302 "Found"))))
-        (with-headers `((content-type text/html)
-                        (content-length ,(string-length out)))
+        (with-headers (append
+                       (or (awful-response-headers)
+                           `((content-type text/html)))
+                       (or (and-let* ((headers (awful-response-headers))
+                                      (content-length (alist-ref 'content-length headers)))
+                             (list (cons 'content-length content-length)))
+                           `((content-length ,(string-length out)))))
                       (lambda ()
                         (write-logged-response)
                         (unless (eq? 'HEAD (request-method (current-request)))
