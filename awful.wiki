@@ -130,7 +130,7 @@ You can control which IP numbers can access the reload page by using the {{page-
        #t)))
 </enscript>
 
-When used in development mode (see the {{--development-mode}} command line option for the [[egg/awful#the-awful-application-server|awful application server), awful automatically defines a {{/reload}} path (available to any host) for reloading all the applications.
+When used in development mode (see the {{--development-mode}} command line option for the awful application server), awful automatically defines a {{/reload}} path (available to any host) for reloading all the applications.
 
 
 === Using ajax
@@ -758,7 +758,7 @@ The list of awful applications, as given to the awful server when invoked from t
 
 <parameter>(development-mode?)</parameter>
 
-Indicates whether awful is running in development mode (see the {{--development-mode}} command line option for the [[egg/awful#the-awful-application-server|awful application server).
+Indicates whether awful is running in development mode (see the {{--development-mode}} command line option for the awful application server).
 
 
 
