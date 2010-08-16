@@ -29,7 +29,7 @@
             (member "--version" args))
     (print (awful-version))
     (exit 0))
-  (let ((development-mode? (member "--development-mode" args))
+  (let ((dev-mode? (member "--development-mode" args))
         (port (cmd-line-arg '--port args))
         (ip-address (cmd-line-arg '--ip-address args))
         (args (remove (lambda (arg)
@@ -41,6 +41,6 @@
     (load-apps (awful-apps))
     (register-root-dir-handler)
     (register-dispatcher)
-    (awful-start development-mode?: development-mode?
+    (awful-start dev-mode?: dev-mode?
                  port: (and port (string->number port))
                  bind-address: ip-address)))

@@ -11,6 +11,7 @@
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
    enable-session-cookie session-cookie-name awful-response-headers
+   development-mode?
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -70,6 +71,7 @@
 (define enable-javascript-compression (make-parameter #f))
 (define javascript-compressor (make-parameter identity))
 (define awful-response-headers (make-parameter #f))
+(define development-mode? (make-parameter #f))
 (define page-exception-message
   (make-parameter
    (lambda (exn)
@@ -112,12 +114,24 @@
 
 (define (load-apps apps)
   (set! *resources* (make-hash-table equal?))
+  (when (development-mode?) (define-reload-page))
   (for-each load apps))
 
-(define (awful-start #!key development-mode? port ip-address)
-  (when development-mode?
-    (print "Awful is running in development mode.")
+(define (define-reload-page)
+  ;; Define a /reload page for reloading awful apps
+  (define-page "/reload"
+    (lambda ()
+      (load-apps (awful-apps))
+      (++ (<p> "The following awful apps have been reloaded on "
+               (seconds->string (current-seconds)))
+          (itemize (map <code> (awful-apps)))))
+    no-ajax: #t
+    title: "Awful reloaded applications"))
 
+(define (awful-start #!key dev-mode? port ip-address)
+  (when dev-mode?
+    (development-mode? dev-mode?)
+    (print "Awful is running in development mode.")
     (debug-log (current-error-port))
 
     ;; Print the call chain, the error message and links to the
@@ -156,7 +170,10 @@
          (lambda ()
            (or (old-access-control)
                (equal? (remote-address) "127.0.0.1"))))
-        (enable-session-inspector "/session-inspector"))))
+        (enable-session-inspector "/session-inspector")))
+
+    (define-reload-page)
+    ) ; end development-mode actions
 
   ;; Start Spiffy
   (start-server port: (or port (server-port))
