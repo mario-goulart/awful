@@ -782,6 +782,11 @@ A shortcut to {{string-append}}.
 Convert {{args}} to string and intersperse the resulting strings with {{sep}}.
 
 
+<procedure>(awful-version)</procedure>
+
+Return the awful version (a string).
+
+
 ==== Javascript
 
 <procedure>(include-javascript file)</procedure>
