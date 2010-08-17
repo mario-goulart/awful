@@ -1,0 +1,139 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          awful
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Awful web framework
+# Description:       This script starts the awful web framework (see http://wiki.call-cc.org/egg/awful)
+### END INIT INFO
+
+# Author: Mario Domenech Goulart (http://parenteses.org/mario)
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="Awful web framework"
+NAME=awful
+DAEMON=/usr/bin/$NAME
+DAEMON_ARGS=""
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+[ -e "/etc/awful/awful.conf" ] && DAEMON_ARGS="/etc/awful/awful.conf $DAEMON_ARGS"
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
+. /lib/lsb/init-functions
+
+awful_pid () {
+    ps ax | grep "$DAEMON" 2> /dev/null | grep -v grep | awk '{print $1}'
+}
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+    # Return
+    #   0 if daemon has been started
+    #   1 if daemon was already running
+    #   2 if daemon could not be started
+    pid=`awful_pid`
+    if  [ -z "$pid" ]; then
+        # make sure /var/log/awful exists an awful can write to it
+        $DAEMON $DAEMON_ARGS &> /var/log/awful/init.log &
+        if [ "$?" == "0" ]; then
+            return 0
+        else
+            return 2
+        fi
+    else
+        return 1
+    fi
+}
+
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+    # Return
+    #   0 if daemon has been stopped
+    #   1 if daemon was already stopped
+    #   2 if daemon could not be stopped
+    #   other if a failure occurred
+    pid=`awful_pid`
+    if [ -z "$pid" ]; then
+        return 1
+    fi
+
+    kill $pid
+    if [ "$?" == "0" ]; then
+        return 0
+    else
+        return 2
+    fi
+}
+
+#
+# Function to reload
+#
+do_reload() {
+    # Considering awful defines a /reload page
+    wget -O /dev/null http://localhost/reload &> /dev/null
+}
+
+case "$1" in
+  start)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+        do_start
+        case "$?" in
+                0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+                2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+  stop)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+        do_stop
+        case "$?" in
+                0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+                2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+  reload|force-reload)
+        do_reload
+        ;;
+  restart)
+        log_daemon_msg "Restarting $DESC" "$NAME"
+        do_stop
+        case "$?" in
+          0|1)
+                do_start
+                case "$?" in
+                        0) log_end_msg 0 ;;
+                        1) log_end_msg 1 ;; # Old process is still running
+                        *) log_end_msg 1 ;; # Failed to start
+                esac
+                ;;
+          *)
+                # Failed to stop
+                log_end_msg 1
+                ;;
+        esac
+        ;;
+  *)
+        echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
+        exit 3
+        ;;
+esac
+
+:
