@@ -463,6 +463,11 @@ When in development mode, the web REPL and the session inspector are available f
 If you enable the development mode you can still use {{enable-web-repl}} and {{enable-session-inspector}} to customize their respective paths and access control procedures (although the development mode always allows access to web REPL and session inspector for the localhost).
 
 
+=== Deploying awful
+
+See the [[/deploying-awful|Deploying Awful]] page on the [[http://wiki.call-cc.org|Chicken Wiki]].
+
+
 === List of user configurable parameters
 
 ==== Debugging
