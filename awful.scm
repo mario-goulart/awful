@@ -15,10 +15,10 @@
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
-   $session-set! $ $db $db-row-obj sql-quote define-page define-session-page
-   ajax ajax-link periodical-ajax login-form define-login-trampoline
-   enable-web-repl enable-session-inspector awful-version load-apps
-   link form redirect-to
+   $session-set! $ $db $db-row-obj sql-quote define-page undefine-page
+   define-session-page ajax ajax-link periodical-ajax login-form
+   define-login-trampoline enable-web-repl enable-session-inspector
+   awful-version load-apps link form redirect-to
 
    ;; Required by the awful server
    add-resource! register-dispatcher register-root-dir-handler awful-start
@@ -375,6 +375,9 @@
              (else (old-handler path)))))))
 
 ;;; Pages
+(define (undefine-page path #!optional vhost-root-path)
+  (hash-table-delete! *resources* (cons path (or vhost-root-path (root-path)))))
+
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
                      use-ajax use-session) ;; for define-session-page
