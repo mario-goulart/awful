@@ -1388,6 +1388,9 @@ BSD
 
 === Version history
 
+; 0.26:
+* {{define-page}} allows page redefinitions
+
 ; 0.25:
 * The awful application server can now be used with the {{--development-mode}} command line option, which enables the web REPL, the session inspector (when {{enable-session}} is #t) for the localhost and on-browser error messages and backtraces.  When running in development mode, the {{/reload}} path is defined to reload awful apps.
 * The awful application server now supports the {{--ip-address}} and {{--port}} command line options.

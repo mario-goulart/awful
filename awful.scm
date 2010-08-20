@@ -341,16 +341,13 @@
                         (unless (eq? 'HEAD (request-method (current-request)))
                           (display out (response-port (current-response)))))))))
 
-(define (resource-ref path vhost-root-path #!optional check-existence)
+(define (resource-ref path vhost-root-path)
   (when (debug-resources)
     (debug-pp (hash-table->alist *resources*)))
   (or (hash-table-ref/default *resources* (cons path vhost-root-path) #f)
-      (resource-match path vhost-root-path check-existence)))
+      (resource-match path vhost-root-path)))
 
-(define (resource-match path vhost-root-path #!optional check-existence)
-  ;; When `check-existence' is #f, `resource-match' will try to
-  ;; actually match the given path and the path from `*resources*',
-  ;; instead of just checking whether they are equal.
+(define (resource-match path vhost-root-path)
   (let loop ((resources (hash-table->alist *resources*)))
     (if (null? resources)
         #f
@@ -360,18 +357,12 @@
                (current-proc (cdr current-resource)))
           (if (and (regexp? current-path)
                    (equal? current-vhost vhost-root-path)
-                   (if check-existence
-                       (equal? current-path path)
-                       (string-match current-path path)))
+                   (string-match current-path path))
               current-proc
               (loop (cdr resources)))))))
 
-(define (resource-exists? path vhost-root-path #!optional check-existence)
-  (not (not (resource-ref path vhost-root-path check-existence))))
-
 (define (add-resource! path vhost-root-path proc)
-  (unless (resource-exists? path vhost-root-path 'check-existence)
-    (hash-table-set! *resources* (cons path vhost-root-path) proc)))
+  (hash-table-set! *resources* (cons path vhost-root-path) proc))
 
 
 ;;; Root dir
