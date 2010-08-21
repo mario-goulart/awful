@@ -690,6 +690,11 @@
                                             "editor.getCode()"
                                             "$('#prompt').val()"))))
 
+            (when use-fancy-editor
+              (ajax (++ path "-eval") 'eval-region 'click web-eval
+                    target: "result"
+                    arguments: `((code . "editor.selection()"))))
+
             (++ (<h1> title)
                 (<h2> "Input area")
                 (let ((prompt (<textarea> id: "prompt" name: "prompt" rows: "10" cols: "90")))
@@ -699,8 +704,11 @@
                 (itemize
                  (map (lambda (item)
                         (<button> id: (car item) (cdr item)))
-                      '(("eval"  . "Eval")
-                        ("clear" . "Clear")))
+                      (append '(("eval"  . "Eval"))
+                              (if use-fancy-editor
+                                  '(("eval-region" . "Eval region"))
+                                  '())
+                              '(("clear" . "Clear"))))
                  list-id: "button-bar")
                 (<h2> "Output area")
                 (<div> id: "result")
