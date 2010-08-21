@@ -191,8 +191,11 @@
 
 
 ;;; Javascript
-(define (include-javascript file)
-  (<script> type: "text/javascript" src: file))
+(define (include-javascript . files)
+  (string-intersperse
+   (map (lambda (file)
+          (<script> type: "text/javascript" src: file))
+        files)))
 
 (define (add-javascript . code)
   (page-javascript (++ (page-javascript) (concat code))))
@@ -463,7 +466,8 @@
                                                      (++ "&sid=" ($ 'sid))
                                                      "")))))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
-         out)))))
+         out))))
+  path)
 
 (define (define-session-page path contents . rest)
   ;; `rest' are same keyword params as for `define-page' (except `no-session', obviously)
@@ -653,7 +657,9 @@
 
 
 ;;; Web repl
-(define (enable-web-repl path #!key css (title "Awful Web REPL") headers)
+(define (enable-web-repl path #!key css (title "Awful Web REPL") headers
+                         (use-fancy-editor #t)
+                         (fancy-editor-base-uri "http://parenteses.org/awful/codemirror"))
   (%web-repl-path path)
   (define-page path
     (lambda ()
@@ -671,14 +677,25 @@
                                    (eval `(begin
                                             ,@(with-input-from-string ($ 'code "")
                                                 read-file)))))))))))
-            (page-javascript "$('#clear').click(function(){$('#prompt').val('');});")
+            (page-javascript
+             (++ "$('#clear').click(function(){"
+                 (if use-fancy-editor
+                     "editor.setCode('');"
+                     "$('#prompt').val('');")
+                 "});"))
+
             (ajax (++ path "-eval") 'eval 'click web-eval
                   target: "result"
-                  arguments: '((code . "$('#prompt').val()")))
+                  arguments: `((code . ,(if use-fancy-editor
+                                            "editor.getCode()"
+                                            "$('#prompt').val()"))))
 
             (++ (<h1> title)
                 (<h2> "Input area")
-                (<textarea> id: "prompt" name: "prompt" rows: "10" cols: "90")
+                (let ((prompt (<textarea> id: "prompt" name: "prompt" rows: "10" cols: "90")))
+                  (if use-fancy-editor
+                      (<div> class: "border" prompt)
+                      prompt))
                 (itemize
                  (map (lambda (item)
                         (<button> id: (car item) (cdr item)))
@@ -686,20 +703,53 @@
                         ("clear" . "Clear")))
                  list-id: "button-bar")
                 (<h2> "Output area")
-                (<div> id: "result")))
+                (<div> id: "result")
+                (if use-fancy-editor
+                    (<script> type: "text/javascript" "
+  function addClass(element, className) {
+    if (!editor.win.hasClass(element, className)) {
+      element.className = ((element.className.split(' ')).concat([className])).join(' ');}}
+
+  function removeClass(element, className) {
+    if (editor.win.hasClass(element, className)) {
+      var classes = element.className.split(' ');
+      for (var i = classes.length - 1 ; i >= 0; i--) {
+        if (classes[i] === className) {
+            classes.splice(i, 1)}}
+      element.className = classes.join(' ');}}
+
+  var textarea = document.getElementById('prompt');
+  var editor = new CodeMirror(CodeMirror.replace(textarea), {
+    height: '350px',
+    width: '600px',
+    content: textarea.value,
+    parserfile: ['" fancy-editor-base-uri "/tokenizescheme.js',
+                 '" fancy-editor-base-uri "/parsescheme.js'],
+    stylesheet:  '" fancy-editor-base-uri "/schemecolors.css',
+    autoMatchParens: true,
+    path: '" fancy-editor-base-uri "/',
+    disableSpellcheck: true,
+    markParen: function(span, good) {addClass(span, good ? 'good-matching-paren' : 'bad-matching-paren');},
+    unmarkParen: function(span) {removeClass(span, 'good-matching-paren'); removeClass(span, 'bad-matching-paren');}
+  });")
+                    "")))
           (web-repl-access-denied-message)))
-    headers: (let ((builtin-css (if css
-                                    #f
-                                    (<style> type: "text/css"
+    headers: (++ (include-javascript (make-pathname fancy-editor-base-uri "codemirror.js")
+                                     (make-pathname fancy-editor-base-uri "mirrorframe.js"))
+                 (let ((builtin-css (if css
+                                        #f
+                                        (<style> type: "text/css"
 "h1 { font-size: 18pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
 h2 { font-size: 14pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
 ul#button-bar { margin-left: 0; padding-left: 0; }
-#button-bar li {display: inline; list-style-type: none; padding-right: 10px; }
-#prompt { width: 600px; }
-#result { border: 1px solid #333; padding: 5px; width: 590px; }"))))
-               (if headers
-                   (++ (or builtin-css "") headers)
-                   builtin-css))
+#button-bar li {display: inline; list-style-type: none; padding-right: 10px; }"
+(if use-fancy-editor
+    "div.border { border: 1px solid black; width: 600px;}"
+    "#prompt { width: 600px; }")
+"#result { border: 1px solid #333; padding: 5px; width: 590px; }"))))
+                   (if headers
+                       (++ (or builtin-css "") headers)
+                       builtin-css)))
     use-ajax: #t
     title: title
     css: css))
