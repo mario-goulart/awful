@@ -11,7 +11,7 @@
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
    enable-session-cookie session-cookie-name awful-response-headers
-   development-mode?
+   development-mode? enable-fancy-web-repl
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -72,6 +72,7 @@
 (define javascript-compressor (make-parameter identity))
 (define awful-response-headers (make-parameter #f))
 (define development-mode? (make-parameter #f))
+(define enable-fancy-web-repl (make-parameter #t))
 (define page-exception-message
   (make-parameter
    (lambda (exn)
@@ -157,7 +158,7 @@
        (lambda ()
          (or (old-access-control)
              (equal? (remote-address) "127.0.0.1")))))
-    (enable-web-repl "/web-repl"))
+    (enable-web-repl "/web-repl" use-fancy-editor: (enable-fancy-web-repl)))
 
   ;; If session-inspector has not been activated, and if
   ;; `enable-session' is #t, activate it allowing access to the
@@ -174,7 +175,8 @@
   ;; The reload page
   (define-reload-page))
 
-(define (awful-start #!key dev-mode? port ip-address)
+(define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl?)
+  (enable-fancy-web-repl use-fancy-web-repl?)
   (when dev-mode? (development-mode-actions))
   ;; Start Spiffy
   (start-server port: (or port (server-port))
@@ -743,8 +745,10 @@
   });")
                     "")))
           (web-repl-access-denied-message)))
-    headers: (++ (include-javascript (make-pathname fancy-editor-base-uri "codemirror.js")
-                                     (make-pathname fancy-editor-base-uri "mirrorframe.js"))
+    headers: (++ (if use-fancy-editor
+                     (include-javascript (make-pathname fancy-editor-base-uri "codemirror.js")
+                                         (make-pathname fancy-editor-base-uri "mirrorframe.js"))
+                     "")
                  (let ((builtin-css (if css
                                         #f
                                         (<style> type: "text/css"
