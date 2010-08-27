@@ -114,7 +114,7 @@
 
 (define (load-apps apps)
   (set! *resources* (make-hash-table equal?))
-  (when (development-mode?) (define-reload-page))
+  (when (development-mode?) (development-mode-actions))
   (for-each load apps))
 
 (define (define-reload-page)
@@ -128,53 +128,54 @@
     no-ajax: #t
     title: "Awful reloaded applications"))
 
+(define (development-mode-actions)
+  (development-mode? #t)
+  (print "Awful is running in development mode.")
+  (debug-log (current-error-port))
+
+  ;; Print the call chain, the error message and links to the
+  ;; web-repl and session-inspector (if enabled)
+  (page-exception-message
+   (lambda (exn)
+     (++ (<pre> convert-to-entities?: #t
+                (with-output-to-string
+                  (lambda ()
+                    (print-call-chain)
+                    (print-error-message exn))))
+         (<p> "[" (<a> href: (or (%web-repl-path) "/web-repl") "Web REPL") "]"
+              (if (enable-session)
+                  (++ " [" (<a> href: (or (%session-inspector-path) "/session-inspector")
+                                "Session inspector") "]")
+                  "")))))
+
+  ;; If web-repl has not been activated, activate it allowing access
+  ;; to the localhost at least (`web-repl-access-control' can be
+  ;; used to provide more permissive control)
+  (unless (%web-repl-path)
+    (let ((old-access-control (web-repl-access-control)))
+      (web-repl-access-control
+       (lambda ()
+         (or (old-access-control)
+             (equal? (remote-address) "127.0.0.1")))))
+    (enable-web-repl "/web-repl"))
+
+  ;; If session-inspector has not been activated, and if
+  ;; `enable-session' is #t, activate it allowing access to the
+  ;; localhost at least (`session-inspector-access-control' can be
+  ;; used to provide more permissive control)
+  (when (and (enable-session) (not (%session-inspector-path)))
+    (let ((old-access-control (session-inspector-access-control)))
+      (session-inspector-access-control
+       (lambda ()
+         (or (old-access-control)
+             (equal? (remote-address) "127.0.0.1"))))
+      (enable-session-inspector "/session-inspector")))
+
+  ;; The reload page
+  (define-reload-page))
+
 (define (awful-start #!key dev-mode? port ip-address)
-  (when dev-mode?
-    (development-mode? dev-mode?)
-    (print "Awful is running in development mode.")
-    (debug-log (current-error-port))
-
-    ;; Print the call chain, the error message and links to the
-    ;; web-repl and session-inspector (if enabled)
-    (page-exception-message
-     (lambda (exn)
-       (++ (<pre> convert-to-entities?: #t
-                  (with-output-to-string
-                    (lambda ()
-                      (print-call-chain)
-                      (print-error-message exn))))
-           (<p> "[" (<a> href: (or (%web-repl-path) "/web-repl") "Web REPL") "]"
-                (if (enable-session)
-                    (++ " [" (<a> href: (or (%session-inspector-path) "/session-inspector")
-                                  "Session inspector") "]")
-                    "")))))
-
-    ;; If web-repl has not been activated, activate it allowing access
-    ;; to the localhost at least (`web-repl-access-control' can be
-    ;; used to provide more permissive control)
-    (unless (%web-repl-path)
-      (let ((old-access-control (web-repl-access-control)))
-        (web-repl-access-control
-         (lambda ()
-           (or (old-access-control)
-               (equal? (remote-address) "127.0.0.1")))))
-      (enable-web-repl "/web-repl"))
-
-    ;; If session-inspector has not been activated, and if
-    ;; `enable-session' is #t, activate it allowing access to the
-    ;; localhost at least (`session-inspector-access-control' can be
-    ;; used to provide more permissive control)
-    (when (and (enable-session) (not (%session-inspector-path)))
-      (let ((old-access-control (session-inspector-access-control)))
-        (session-inspector-access-control
-         (lambda ()
-           (or (old-access-control)
-               (equal? (remote-address) "127.0.0.1"))))
-        (enable-session-inspector "/session-inspector")))
-
-    (define-reload-page)
-    ) ; end development-mode actions
-
+  (when dev-mode? (development-mode-actions))
   ;; Start Spiffy
   (start-server port: (or port (server-port))
                 bind-address: (or ip-address (server-bind-address))))
@@ -660,7 +661,7 @@
 (define (enable-web-repl path #!key css (title "Awful Web REPL") headers
                          (use-fancy-editor #t)
                          (fancy-editor-base-uri "http://parenteses.org/awful/codemirror"))
-  (%web-repl-path path)
+  (unless (development-mode?) (%web-repl-path path))
   (define-page path
     (lambda ()
       (if ((web-repl-access-control))
@@ -765,7 +766,7 @@ ul#button-bar { margin-left: 0; padding-left: 0; }
 
 ;;; Session inspector
 (define (enable-session-inspector path #!key css (title "Awful session inspector") headers)
-  (%session-inspector-path path)
+  (unless (development-mode?) (%session-inspector-path path))
   (define-page path
     (lambda ()
       (parameterize ((enable-session #t))
