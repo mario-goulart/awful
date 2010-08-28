@@ -11,7 +11,7 @@
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
    enable-session-cookie session-cookie-name awful-response-headers
-   development-mode?
+   development-mode? enable-web-repl-fancy-editor web-repl-fancy-editor-base-uri
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -38,7 +38,7 @@
      http-session json spiffy-cookies)
 
 ;;; Version
-(define (awful-version) "0.25")
+(define (awful-version) "0.26")
 
 
 ;;; Parameters
@@ -72,6 +72,8 @@
 (define javascript-compressor (make-parameter identity))
 (define awful-response-headers (make-parameter #f))
 (define development-mode? (make-parameter #f))
+(define enable-web-repl-fancy-editor (make-parameter #t))
+(define web-repl-fancy-editor-base-uri (make-parameter "http://parenteses.org/awful/codemirror"))
 (define page-exception-message
   (make-parameter
    (lambda (exn)
@@ -114,7 +116,7 @@
 
 (define (load-apps apps)
   (set! *resources* (make-hash-table equal?))
-  (when (development-mode?) (define-reload-page))
+  (when (development-mode?) (development-mode-actions))
   (for-each load apps))
 
 (define (define-reload-page)
@@ -128,53 +130,55 @@
     no-ajax: #t
     title: "Awful reloaded applications"))
 
-(define (awful-start #!key dev-mode? port ip-address)
-  (when dev-mode?
-    (development-mode? dev-mode?)
-    (print "Awful is running in development mode.")
-    (debug-log (current-error-port))
+(define (development-mode-actions)
+  (development-mode? #t)
+  (print "Awful is running in development mode.")
+  (debug-log (current-error-port))
 
-    ;; Print the call chain, the error message and links to the
-    ;; web-repl and session-inspector (if enabled)
-    (page-exception-message
-     (lambda (exn)
-       (++ (<pre> convert-to-entities?: #t
-                  (with-output-to-string
-                    (lambda ()
-                      (print-call-chain)
-                      (print-error-message exn))))
-           (<p> "[" (<a> href: (or (%web-repl-path) "/web-repl") "Web REPL") "]"
-                (if (enable-session)
-                    (++ " [" (<a> href: (or (%session-inspector-path) "/session-inspector")
-                                  "Session inspector") "]")
-                    "")))))
+  ;; Print the call chain, the error message and links to the
+  ;; web-repl and session-inspector (if enabled)
+  (page-exception-message
+   (lambda (exn)
+     (++ (<pre> convert-to-entities?: #t
+                (with-output-to-string
+                  (lambda ()
+                    (print-call-chain)
+                    (print-error-message exn))))
+         (<p> "[" (<a> href: (or (%web-repl-path) "/web-repl") "Web REPL") "]"
+              (if (enable-session)
+                  (++ " [" (<a> href: (or (%session-inspector-path) "/session-inspector")
+                                "Session inspector") "]")
+                  "")))))
 
-    ;; If web-repl has not been activated, activate it allowing access
-    ;; to the localhost at least (`web-repl-access-control' can be
-    ;; used to provide more permissive control)
-    (unless (%web-repl-path)
-      (let ((old-access-control (web-repl-access-control)))
-        (web-repl-access-control
-         (lambda ()
-           (or (old-access-control)
-               (equal? (remote-address) "127.0.0.1")))))
-      (enable-web-repl "/web-repl"))
+  ;; If web-repl has not been activated, activate it allowing access
+  ;; to the localhost at least (`web-repl-access-control' can be
+  ;; used to provide more permissive control)
+  (unless (%web-repl-path)
+    (let ((old-access-control (web-repl-access-control)))
+      (web-repl-access-control
+       (lambda ()
+         (or (old-access-control)
+             (equal? (remote-address) "127.0.0.1")))))
+    (enable-web-repl "/web-repl"))
 
-    ;; If session-inspector has not been activated, and if
-    ;; `enable-session' is #t, activate it allowing access to the
-    ;; localhost at least (`session-inspector-access-control' can be
-    ;; used to provide more permissive control)
-    (when (and (enable-session) (not (%session-inspector-path)))
-      (let ((old-access-control (session-inspector-access-control)))
-        (session-inspector-access-control
-         (lambda ()
-           (or (old-access-control)
-               (equal? (remote-address) "127.0.0.1"))))
-        (enable-session-inspector "/session-inspector")))
+  ;; If session-inspector has not been activated, and if
+  ;; `enable-session' is #t, activate it allowing access to the
+  ;; localhost at least (`session-inspector-access-control' can be
+  ;; used to provide more permissive control)
+  (when (and (enable-session) (not (%session-inspector-path)))
+    (let ((old-access-control (session-inspector-access-control)))
+      (session-inspector-access-control
+       (lambda ()
+         (or (old-access-control)
+             (equal? (remote-address) "127.0.0.1"))))
+      (enable-session-inspector "/session-inspector")))
 
-    (define-reload-page)
-    ) ; end development-mode actions
+  ;; The reload page
+  (define-reload-page))
 
+(define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl?)
+  (enable-web-repl-fancy-editor use-fancy-web-repl?)
+  (when dev-mode? (development-mode-actions))
   ;; Start Spiffy
   (start-server port: (or port (server-port))
                 bind-address: (or ip-address (server-bind-address))))
@@ -657,10 +661,8 @@
 
 
 ;;; Web repl
-(define (enable-web-repl path #!key css (title "Awful Web REPL") headers
-                         (use-fancy-editor #t)
-                         (fancy-editor-base-uri "http://parenteses.org/awful/codemirror"))
-  (%web-repl-path path)
+(define (enable-web-repl path #!key css (title "Awful Web REPL") headers)
+  (unless (development-mode?) (%web-repl-path path))
   (define-page path
     (lambda ()
       (if ((web-repl-access-control))
@@ -679,18 +681,18 @@
                                                 read-file)))))))))))
             (page-javascript
              (++ "$('#clear').click(function(){"
-                 (if use-fancy-editor
+                 (if (enable-web-repl-fancy-editor)
                      "editor.setCode('');"
                      "$('#prompt').val('');")
                  "});"))
 
             (ajax (++ path "-eval") 'eval 'click web-eval
                   target: "result"
-                  arguments: `((code . ,(if use-fancy-editor
+                  arguments: `((code . ,(if (enable-web-repl-fancy-editor)
                                             "editor.getCode()"
                                             "$('#prompt').val()"))))
 
-            (when use-fancy-editor
+            (when (enable-web-repl-fancy-editor)
               (ajax (++ path "-eval") 'eval-region 'click web-eval
                     target: "result"
                     arguments: `((code . "editor.selection()"))))
@@ -698,21 +700,21 @@
             (++ (<h1> title)
                 (<h2> "Input area")
                 (let ((prompt (<textarea> id: "prompt" name: "prompt" rows: "10" cols: "90")))
-                  (if use-fancy-editor
+                  (if (enable-web-repl-fancy-editor)
                       (<div> class: "border" prompt)
                       prompt))
                 (itemize
                  (map (lambda (item)
                         (<button> id: (car item) (cdr item)))
                       (append '(("eval"  . "Eval"))
-                              (if use-fancy-editor
+                              (if (enable-web-repl-fancy-editor)
                                   '(("eval-region" . "Eval region"))
                                   '())
                               '(("clear" . "Clear"))))
                  list-id: "button-bar")
                 (<h2> "Output area")
                 (<div> id: "result")
-                (if use-fancy-editor
+                (if (enable-web-repl-fancy-editor)
                     (<script> type: "text/javascript" "
   function addClass(element, className) {
     if (!editor.win.hasClass(element, className)) {
@@ -728,22 +730,24 @@
 
   var textarea = document.getElementById('prompt');
   var editor = new CodeMirror(CodeMirror.replace(textarea), {
-    height: '350px',
+    height: '250px',
     width: '600px',
     content: textarea.value,
-    parserfile: ['" fancy-editor-base-uri "/tokenizescheme.js',
-                 '" fancy-editor-base-uri "/parsescheme.js'],
-    stylesheet:  '" fancy-editor-base-uri "/schemecolors.css',
+    parserfile: ['" (web-repl-fancy-editor-base-uri) "/tokenizescheme.js',
+                 '" (web-repl-fancy-editor-base-uri) "/parsescheme.js'],
+    stylesheet:  '" (web-repl-fancy-editor-base-uri) "/schemecolors.css',
     autoMatchParens: true,
-    path: '" fancy-editor-base-uri "/',
+    path: '" (web-repl-fancy-editor-base-uri) "/',
     disableSpellcheck: true,
     markParen: function(span, good) {addClass(span, good ? 'good-matching-paren' : 'bad-matching-paren');},
     unmarkParen: function(span) {removeClass(span, 'good-matching-paren'); removeClass(span, 'bad-matching-paren');}
   });")
                     "")))
           (web-repl-access-denied-message)))
-    headers: (++ (include-javascript (make-pathname fancy-editor-base-uri "codemirror.js")
-                                     (make-pathname fancy-editor-base-uri "mirrorframe.js"))
+    headers: (++ (if (enable-web-repl-fancy-editor)
+                     (include-javascript (make-pathname (web-repl-fancy-editor-base-uri) "codemirror.js")
+                                         (make-pathname (web-repl-fancy-editor-base-uri) "mirrorframe.js"))
+                     "")
                  (let ((builtin-css (if css
                                         #f
                                         (<style> type: "text/css"
@@ -751,7 +755,7 @@
 h2 { font-size: 14pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
 ul#button-bar { margin-left: 0; padding-left: 0; }
 #button-bar li {display: inline; list-style-type: none; padding-right: 10px; }"
-(if use-fancy-editor
+(if (enable-web-repl-fancy-editor)
     "div.border { border: 1px solid black; width: 600px;}"
     "#prompt { width: 600px; }")
 "#result { border: 1px solid #333; padding: 5px; width: 590px; }"))))
@@ -765,7 +769,7 @@ ul#button-bar { margin-left: 0; padding-left: 0; }
 
 ;;; Session inspector
 (define (enable-session-inspector path #!key css (title "Awful session inspector") headers)
-  (%session-inspector-path path)
+  (unless (development-mode?) (%session-inspector-path path))
   (define-page path
     (lambda ()
       (parameterize ((enable-session #t))

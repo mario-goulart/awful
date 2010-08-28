@@ -9,6 +9,7 @@
     (print awful " [ -h | --help ]")
     (print awful " [ -v | --version ]")
     (print awful " [ --development-mode ] "
+           "[ --disable-web-repl-fancy-editor ] "
            "[ --ip-address=<ip address> ] "
            "[ --port=<port number> ] "
            "[ <app1> <app2> ... ]")
@@ -31,9 +32,10 @@
     (exit 0))
   (let ((dev-mode? (member "--development-mode" args))
         (port (cmd-line-arg '--port args))
+        (use-fancy-web-repl? (not (member "--disable-web-repl-fancy-editor" args)))
         (ip-address (cmd-line-arg '--ip-address args))
         (args (remove (lambda (arg)
-                        (or (equal? arg "--development-mode")
+                        (or (member arg '("--development-mode" "--disable-web-repl-fancy-editor"))
                             (string-prefix? "--port=" arg)
                             (string-prefix? "--ip-address=" arg)))
                       args)))
@@ -43,4 +45,5 @@
     (register-dispatcher)
     (awful-start dev-mode?: dev-mode?
                  port: (and port (string->number port))
-                 bind-address: ip-address)))
+                 bind-address: ip-address
+                 use-fancy-web-repl?: use-fancy-web-repl?)))

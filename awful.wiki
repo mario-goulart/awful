@@ -17,7 +17,13 @@ Here's a short summary of awful features:
 * Session inspector
 * Web REPL
 
-[[http://wiki.call-cc.org/video/awful.ogv|Here's]] a 35 seconds video ([[http://en.wikipedia.org/wiki/Ogv|OGV]]) showing the deployment of awful and a "hello, world" example ([[http://wiki.call-cc.org/video/awful.avi|here's]] the same video, but in [[http://en.wikipedia.org/wiki/Audio_Video_Interleave|AVI]]).
+==== Screencasts
+
+Here are some screencasts about awful:
+
+; [[http://wiki.call-cc.org/video/awful.ogv|Awful in 35s]] : a 35 seconds video showing the installation of the awful egg and the development of a "hello, world" example
+
+; [[http://wiki.call-cc.org/video/awful-guess.ogv|Number guessing game]] : a video demonstrating the development of a very simple number guessing game using ajax and the web REPL
 
 
 === Author
@@ -44,7 +50,7 @@ awful is composed by two parts: an application, which can be thought as a web se
 
 === A "Hello, world!" example
 
-Here's a "Hello, world!" example to be run by awful (hello-world.scm).
+Here's a "Hello, world!" example to be run by awful ({{hello-world.scm}}).
 
 <enscript highlight=scheme>
 (use awful)
@@ -376,17 +382,23 @@ When {{enable-session}} is {{#t}} and the {{--development-mode}} option is given
 
 === Web REPL
 
-For further run-time, server-side web hacking, awful provides a REPL that you can use via web browser.  The activation and control access are basically the same as for the session inspector.  The relevant procedure and parameters are:
+For further run-time, server-side web hacking, awful provides a REPL that you can use via web browser. 
+
+The web REPL can use either a plain HTML textarea for the input area or a more featureful editor (based on [[http://codemirror.net|codemirror]]).  By default, the web REPL uses the ''fancy'' editor.
+
+The activation and control access are basically the same as for the session inspector.  The relevant procedure and parameters are:
 
 * {{enable-web-repl}}
 * {{web-repl-access-control}}
 * {{web-repl-access-denied-message}}
+* {{enable-web-repl-fancy-editor}}
+* {{web-repl-fancy-editor-base-uri}}
 
-Here's a screenshot:
+Here's a screenshot (using the fancy editor):
 
-[[image:http://parenteses.org/mario/img/awful/repl.png|Awful web REPL]]
+[[image:http://parenteses.org/mario/img/awful/fancy-web-repl.png|Awful web REPL]]
 
-When the {{--development-mode}} option is given to the awful application server, the web REPL is automatically enabled and is avaliable from {{/web-repl}}.
+When the {{--development-mode}} option is given to the awful application server, the web REPL is automatically enabled and is avaliable from {{/web-repl}}. The awful application server also accepts the {{--disable-web-repl-fancy-editor}} command line option to disable the web REPL fancy editor.
 
 
 === Pages access control
@@ -446,7 +458,7 @@ Awful consists of an application server and an extension module.  The awful appl
  $ awful --help
  awful [ -h | --help ]
  awful [ -v | --version ]
- awful [ --development-mode ] [ --ip-address=<ip address> ] [ --port=<port number> ] [ <app1> <app2> ... ]
+ awful [ --development-mode ] [ --disable-web-repl-fancy-editor ] [ --ip-address=<ip address> ] [ --port=<port number> ] [ <app1> <app2> ... ]
 
 {{<app1> <app2> ...}} are files containing code to be loaded by the awful application server.
 
@@ -461,6 +473,8 @@ The {{--development-mode}} option is intended to be used during the development 
 When in development mode, the web REPL and the session inspector are available from the {{/web-repl}} and {{/session-inspector}} paths.
 
 If you enable the development mode you can still use {{enable-web-repl}} and {{enable-session-inspector}} to customize their respective paths and access control procedures (although the development mode always allows access to web REPL and session inspector for the localhost).
+
+The {{--disable-web-repl-fancy-editor}} command line option disables the web REPL fancy editor.
 
 
 === Deploying awful
@@ -693,6 +707,16 @@ The default value is {{(lambda () #f)}}.
 Message to be printed when the access to the web REPL is denied.
 
 The default value is {{(<h3> "Access denied.")}}.
+
+
+<parameter>(enable-web-repl-fancy-editor [boolean])</parameter>
+
+Indicates whether the web REPL should use a fancier editor for the input area.  The editor is based on [[http://codemirror.net|codemirror]].  Without the fancy editor, the input area is a simple HTML textarea.  The default value for {{use-fancy-editor}} is {{#t}}.
+
+
+<parameter>(fancy-editor-base-uri [string])</parameter>
+
+The URI which indicates the fancy editor source files (javascript and CSS) location.  The default value is {{http://parenteses.org/awful/codemirror}}.
 
 
 
@@ -1152,7 +1176,7 @@ The keyword parameter {{css}} is the CSS to be used the the web REPL page (see t
 
 The keyword parameter {{title}} (a string) is the title for the web REPL page (see the documentation for {{html-page}}, from the [[/egg/html-utils|html-utils]] egg, for the {{title}} keyword parameter.)
 
-The web REPL is automatically enabled by the awful application server when the {{--development-mode}} is provided (available from {{/web-repl}}).
+The web REPL is automatically enabled by the awful application server when the {{--development-mode}} is provided (available from {{/web-repl}}).  By default, the fancy editor is used, but can be disabled with the {{--disable-web-repl-fancy-editor}} command line option for the awful application server.
 
 
 ==== Session inspector
@@ -1397,6 +1421,10 @@ BSD
 ; 0.26:
 * {{define-page}} allows page redefinitions
 * Added the {{undefine-page}} procedure
+* Fancy web REPL (enabled by default).  The awful application server now accepts the {{--disable-web-repl-fancy-editor}} command line option to disable the web REPL fancy editor.
+* Added the following parameters, related to the fancy web REPL: {{enable-web-repl-fancy-editor}} and {{web-repl-fancy-editor-base-uri}}.
+* Bug fix for the development mode: requests to the {{/reload}} path killed {{/web-repl}} and {{/session-inspector}}
+
 
 ; 0.25:
 * The awful application server can now be used with the {{--development-mode}} command line option, which enables the web REPL, the session inspector (when {{enable-session}} is #t) for the localhost and on-browser error messages and backtraces.  When running in development mode, the {{/reload}} path is defined to reload awful apps.
