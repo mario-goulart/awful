@@ -11,7 +11,7 @@
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
    enable-session-cookie session-cookie-name awful-response-headers
-   development-mode?
+   development-mode? enable-fancy-web-repl-editor fancy-web-repl-editor-base-uri
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -72,6 +72,8 @@
 (define javascript-compressor (make-parameter identity))
 (define awful-response-headers (make-parameter #f))
 (define development-mode? (make-parameter #f))
+(define enable-fancy-web-repl-editor (make-parameter #t))
+(define fancy-web-repl-editor-base-uri (make-parameter "http://parenteses.org/awful/codemirror"))
 (define page-exception-message
   (make-parameter
    (lambda (exn)
@@ -91,7 +93,6 @@
 (define %redirect (make-parameter #f))
 (define %web-repl-path (make-parameter #f))
 (define %session-inspector-path (make-parameter #f))
-(define %enable-fancy-web-repl (make-parameter #t))
 
 ;; db-support parameters (set by awful-<db> eggs)
 (define missing-db-msg "Database access is not enabled (see `enable-db').")
@@ -158,7 +159,7 @@
        (lambda ()
          (or (old-access-control)
              (equal? (remote-address) "127.0.0.1")))))
-    (enable-web-repl "/web-repl" use-fancy-editor: (%enable-fancy-web-repl)))
+    (enable-web-repl "/web-repl"))
 
   ;; If session-inspector has not been activated, and if
   ;; `enable-session' is #t, activate it allowing access to the
@@ -176,7 +177,7 @@
   (define-reload-page))
 
 (define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl?)
-  (%enable-fancy-web-repl use-fancy-web-repl?)
+  (enable-fancy-web-repl-editor use-fancy-web-repl?)
   (when dev-mode? (development-mode-actions))
   ;; Start Spiffy
   (start-server port: (or port (server-port))
@@ -660,9 +661,7 @@
 
 
 ;;; Web repl
-(define (enable-web-repl path #!key css (title "Awful Web REPL") headers
-                         (use-fancy-editor #t)
-                         (fancy-editor-base-uri "http://parenteses.org/awful/codemirror"))
+(define (enable-web-repl path #!key css (title "Awful Web REPL") headers)
   (unless (development-mode?) (%web-repl-path path))
   (define-page path
     (lambda ()
@@ -682,18 +681,18 @@
                                                 read-file)))))))))))
             (page-javascript
              (++ "$('#clear').click(function(){"
-                 (if use-fancy-editor
+                 (if (enable-fancy-web-repl-editor)
                      "editor.setCode('');"
                      "$('#prompt').val('');")
                  "});"))
 
             (ajax (++ path "-eval") 'eval 'click web-eval
                   target: "result"
-                  arguments: `((code . ,(if use-fancy-editor
+                  arguments: `((code . ,(if (enable-fancy-web-repl-editor)
                                             "editor.getCode()"
                                             "$('#prompt').val()"))))
 
-            (when use-fancy-editor
+            (when (enable-fancy-web-repl-editor)
               (ajax (++ path "-eval") 'eval-region 'click web-eval
                     target: "result"
                     arguments: `((code . "editor.selection()"))))
@@ -701,21 +700,21 @@
             (++ (<h1> title)
                 (<h2> "Input area")
                 (let ((prompt (<textarea> id: "prompt" name: "prompt" rows: "10" cols: "90")))
-                  (if use-fancy-editor
+                  (if (enable-fancy-web-repl-editor)
                       (<div> class: "border" prompt)
                       prompt))
                 (itemize
                  (map (lambda (item)
                         (<button> id: (car item) (cdr item)))
                       (append '(("eval"  . "Eval"))
-                              (if use-fancy-editor
+                              (if (enable-fancy-web-repl-editor)
                                   '(("eval-region" . "Eval region"))
                                   '())
                               '(("clear" . "Clear"))))
                  list-id: "button-bar")
                 (<h2> "Output area")
                 (<div> id: "result")
-                (if use-fancy-editor
+                (if (enable-fancy-web-repl-editor)
                     (<script> type: "text/javascript" "
   function addClass(element, className) {
     if (!editor.win.hasClass(element, className)) {
@@ -734,20 +733,20 @@
     height: '350px',
     width: '600px',
     content: textarea.value,
-    parserfile: ['" fancy-editor-base-uri "/tokenizescheme.js',
-                 '" fancy-editor-base-uri "/parsescheme.js'],
-    stylesheet:  '" fancy-editor-base-uri "/schemecolors.css',
+    parserfile: ['" (fancy-web-repl-editor-base-uri) "/tokenizescheme.js',
+                 '" (fancy-web-repl-editor-base-uri) "/parsescheme.js'],
+    stylesheet:  '" (fancy-web-repl-editor-base-uri) "/schemecolors.css',
     autoMatchParens: true,
-    path: '" fancy-editor-base-uri "/',
+    path: '" (fancy-web-repl-editor-base-uri) "/',
     disableSpellcheck: true,
     markParen: function(span, good) {addClass(span, good ? 'good-matching-paren' : 'bad-matching-paren');},
     unmarkParen: function(span) {removeClass(span, 'good-matching-paren'); removeClass(span, 'bad-matching-paren');}
   });")
                     "")))
           (web-repl-access-denied-message)))
-    headers: (++ (if use-fancy-editor
-                     (include-javascript (make-pathname fancy-editor-base-uri "codemirror.js")
-                                         (make-pathname fancy-editor-base-uri "mirrorframe.js"))
+    headers: (++ (if (enable-fancy-web-repl-editor)
+                     (include-javascript (make-pathname (fancy-web-repl-editor-base-uri) "codemirror.js")
+                                         (make-pathname (fancy-web-repl-editor-base-uri) "mirrorframe.js"))
                      "")
                  (let ((builtin-css (if css
                                         #f
@@ -756,7 +755,7 @@
 h2 { font-size: 14pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
 ul#button-bar { margin-left: 0; padding-left: 0; }
 #button-bar li {display: inline; list-style-type: none; padding-right: 10px; }"
-(if use-fancy-editor
+(if (enable-fancy-web-repl-editor)
     "div.border { border: 1px solid black; width: 600px;}"
     "#prompt { width: 600px; }")
 "#result { border: 1px solid #333; padding: 5px; width: 590px; }"))))
