@@ -11,7 +11,7 @@
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
    enable-session-cookie session-cookie-name awful-response-headers
-   development-mode? enable-fancy-web-repl
+   development-mode?
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -72,7 +72,6 @@
 (define javascript-compressor (make-parameter identity))
 (define awful-response-headers (make-parameter #f))
 (define development-mode? (make-parameter #f))
-(define enable-fancy-web-repl (make-parameter #t))
 (define page-exception-message
   (make-parameter
    (lambda (exn)
@@ -92,6 +91,7 @@
 (define %redirect (make-parameter #f))
 (define %web-repl-path (make-parameter #f))
 (define %session-inspector-path (make-parameter #f))
+(define %enable-fancy-web-repl (make-parameter #t))
 
 ;; db-support parameters (set by awful-<db> eggs)
 (define missing-db-msg "Database access is not enabled (see `enable-db').")
@@ -158,7 +158,7 @@
        (lambda ()
          (or (old-access-control)
              (equal? (remote-address) "127.0.0.1")))))
-    (enable-web-repl "/web-repl" use-fancy-editor: (enable-fancy-web-repl)))
+    (enable-web-repl "/web-repl" use-fancy-editor: (%enable-fancy-web-repl)))
 
   ;; If session-inspector has not been activated, and if
   ;; `enable-session' is #t, activate it allowing access to the
@@ -176,7 +176,7 @@
   (define-reload-page))
 
 (define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl?)
-  (enable-fancy-web-repl use-fancy-web-repl?)
+  (%enable-fancy-web-repl use-fancy-web-repl?)
   (when dev-mode? (development-mode-actions))
   ;; Start Spiffy
   (start-server port: (or port (server-port))
