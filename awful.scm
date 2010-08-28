@@ -11,7 +11,7 @@
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
    enable-session-cookie session-cookie-name awful-response-headers
-   development-mode? enable-fancy-web-repl-editor fancy-web-repl-editor-base-uri
+   development-mode? enable-web-repl-fancy-editor web-repl-fancy-editor-base-uri
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -72,8 +72,8 @@
 (define javascript-compressor (make-parameter identity))
 (define awful-response-headers (make-parameter #f))
 (define development-mode? (make-parameter #f))
-(define enable-fancy-web-repl-editor (make-parameter #t))
-(define fancy-web-repl-editor-base-uri (make-parameter "http://parenteses.org/awful/codemirror"))
+(define enable-web-repl-fancy-editor (make-parameter #t))
+(define web-repl-fancy-editor-base-uri (make-parameter "http://parenteses.org/awful/codemirror"))
 (define page-exception-message
   (make-parameter
    (lambda (exn)
@@ -177,7 +177,7 @@
   (define-reload-page))
 
 (define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl?)
-  (enable-fancy-web-repl-editor use-fancy-web-repl?)
+  (enable-web-repl-fancy-editor use-fancy-web-repl?)
   (when dev-mode? (development-mode-actions))
   ;; Start Spiffy
   (start-server port: (or port (server-port))
@@ -681,18 +681,18 @@
                                                 read-file)))))))))))
             (page-javascript
              (++ "$('#clear').click(function(){"
-                 (if (enable-fancy-web-repl-editor)
+                 (if (enable-web-repl-fancy-editor)
                      "editor.setCode('');"
                      "$('#prompt').val('');")
                  "});"))
 
             (ajax (++ path "-eval") 'eval 'click web-eval
                   target: "result"
-                  arguments: `((code . ,(if (enable-fancy-web-repl-editor)
+                  arguments: `((code . ,(if (enable-web-repl-fancy-editor)
                                             "editor.getCode()"
                                             "$('#prompt').val()"))))
 
-            (when (enable-fancy-web-repl-editor)
+            (when (enable-web-repl-fancy-editor)
               (ajax (++ path "-eval") 'eval-region 'click web-eval
                     target: "result"
                     arguments: `((code . "editor.selection()"))))
@@ -700,21 +700,21 @@
             (++ (<h1> title)
                 (<h2> "Input area")
                 (let ((prompt (<textarea> id: "prompt" name: "prompt" rows: "10" cols: "90")))
-                  (if (enable-fancy-web-repl-editor)
+                  (if (enable-web-repl-fancy-editor)
                       (<div> class: "border" prompt)
                       prompt))
                 (itemize
                  (map (lambda (item)
                         (<button> id: (car item) (cdr item)))
                       (append '(("eval"  . "Eval"))
-                              (if (enable-fancy-web-repl-editor)
+                              (if (enable-web-repl-fancy-editor)
                                   '(("eval-region" . "Eval region"))
                                   '())
                               '(("clear" . "Clear"))))
                  list-id: "button-bar")
                 (<h2> "Output area")
                 (<div> id: "result")
-                (if (enable-fancy-web-repl-editor)
+                (if (enable-web-repl-fancy-editor)
                     (<script> type: "text/javascript" "
   function addClass(element, className) {
     if (!editor.win.hasClass(element, className)) {
@@ -730,23 +730,23 @@
 
   var textarea = document.getElementById('prompt');
   var editor = new CodeMirror(CodeMirror.replace(textarea), {
-    height: '350px',
+    height: '250px',
     width: '600px',
     content: textarea.value,
-    parserfile: ['" (fancy-web-repl-editor-base-uri) "/tokenizescheme.js',
-                 '" (fancy-web-repl-editor-base-uri) "/parsescheme.js'],
-    stylesheet:  '" (fancy-web-repl-editor-base-uri) "/schemecolors.css',
+    parserfile: ['" (web-repl-fancy-editor-base-uri) "/tokenizescheme.js',
+                 '" (web-repl-fancy-editor-base-uri) "/parsescheme.js'],
+    stylesheet:  '" (web-repl-fancy-editor-base-uri) "/schemecolors.css',
     autoMatchParens: true,
-    path: '" (fancy-web-repl-editor-base-uri) "/',
+    path: '" (web-repl-fancy-editor-base-uri) "/',
     disableSpellcheck: true,
     markParen: function(span, good) {addClass(span, good ? 'good-matching-paren' : 'bad-matching-paren');},
     unmarkParen: function(span) {removeClass(span, 'good-matching-paren'); removeClass(span, 'bad-matching-paren');}
   });")
                     "")))
           (web-repl-access-denied-message)))
-    headers: (++ (if (enable-fancy-web-repl-editor)
-                     (include-javascript (make-pathname (fancy-web-repl-editor-base-uri) "codemirror.js")
-                                         (make-pathname (fancy-web-repl-editor-base-uri) "mirrorframe.js"))
+    headers: (++ (if (enable-web-repl-fancy-editor)
+                     (include-javascript (make-pathname (web-repl-fancy-editor-base-uri) "codemirror.js")
+                                         (make-pathname (web-repl-fancy-editor-base-uri) "mirrorframe.js"))
                      "")
                  (let ((builtin-css (if css
                                         #f
@@ -755,7 +755,7 @@
 h2 { font-size: 14pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
 ul#button-bar { margin-left: 0; padding-left: 0; }
 #button-bar li {display: inline; list-style-type: none; padding-right: 10px; }"
-(if (enable-fancy-web-repl-editor)
+(if (enable-web-repl-fancy-editor)
     "div.border { border: 1px solid black; width: 600px;}"
     "#prompt { width: 600px; }")
 "#result { border: 1px solid #333; padding: 5px; width: 590px; }"))))
