@@ -1,0 +1,49 @@
+#!/sbin/runscript
+#
+# Note:
+# /etc/conf.d/awful may define the following variables
+#
+# APPLICATIONS - the applications to start
+# OPTIONS      - daemon options
+# USER         - the user awful shall run as (defaults to awful)
+# PIDFILE      - path to the pid file
+# BINARY_PATH  - the path to the awul binary
+
+
+opts="${opts} reload"
+
+
+APPLICATIONS=${APPLICATIONS:-""}
+OPTIONS=${OPTIONS:-""}
+USER=${USER:-"awful"}
+PIDFILE=${PIDFILE:-"/var/run/awful.pid"}
+BINARY_PATH=${BINARY_PATH:-"/usr/bin/awful"}
+
+
+depend() {
+   need net
+}
+
+start() {
+  ebegin "Starting awful"
+  start-stop-daemon --chuid ${USER} --start --background --pidfile ${PIDFILE} --make-pidfile --exec ${BINARY_PATH} ${OPTIONS}  ${APPLICATIONS}
+  eend $?
+}
+
+stop() {
+  ebegin "Stopping awful"
+  start-stop-daemon --stop --pidfile ${PIDFILE} --name awful
+  eend $?
+}
+
+reload() {
+  ebegin "Reloading awful"
+  wget -O /dev/null http://localhost/reload &> /dev/null
+  eend $?
+}
+
+restart() {
+  svc_stop
+  svc_start
+}
+
