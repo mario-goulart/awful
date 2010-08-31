@@ -2,7 +2,7 @@
 
 ((egg "awful.egg")
  (synopsis "awful provides an application and an extension to ease the development of web-based applications.")
- (author "<a href=\"http://chicken.wiki.br/users/mario-domenech-goulart\">Mario Domenech Goulart</a>")
+ (author "<a href=\"http://wiki.call-cc.org/users/mario-domenech-goulart\">Mario Domenech Goulart</a>")
  (license "BSD")
  (category web)
  (depends (spiffy 4.2) (spiffy-request-vars 0.8) html-tags html-utils (http-session 2.0) json spiffy-cookies)
