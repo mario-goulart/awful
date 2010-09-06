@@ -183,10 +183,11 @@
   (start-server port: (or port (server-port))
                 bind-address: (or ip-address (server-bind-address))))
 
-(define (get-sid)
-  (if (enable-session-cookie)
-      (or (read-cookie (session-cookie-name)) ($ 'sid))
-      ($ 'sid)))
+(define (get-sid #!optional force-read-sid)
+  (and (or (enable-session) force-read-sid)
+       (if (enable-session-cookie)
+           (or (read-cookie (session-cookie-name)) ($ 'sid))
+           ($ 'sid))))
 
 (define (redirect-to new-uri)
   ;; Just set the `%redirect' internal parameter, so `run-resource' is
@@ -282,6 +283,8 @@
 
 ;;; HTTP request variables access
 (define ($ var #!optional default/converter)
+  (unless (http-request-variables)
+    (http-request-variables (request-vars)))
   ((http-request-variables) var default/converter))
 
 
@@ -396,7 +399,6 @@
      path
      (or vhost-root-path (root-path))
      (lambda (#!optional given-path)
-       (http-request-variables (request-vars))
        (sid (get-sid))
        (when (and (db-credentials) (db-enabled?) (not no-db))
          (db-connection ((db-connect) (db-credentials))))
@@ -488,7 +490,6 @@
     (add-resource! path
                    (or vhost-root-path (root-path))
                    (lambda (#!optional given-path)
-                     (http-request-variables (request-vars))
                      (sid (get-sid))
                      (when (and (db-credentials) (db-enabled?) (not no-db))
                        (db-connection ((db-connect) (db-credentials))))
