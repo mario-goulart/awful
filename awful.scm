@@ -93,6 +93,7 @@
 (define %redirect (make-parameter #f))
 (define %web-repl-path (make-parameter #f))
 (define %session-inspector-path (make-parameter #f))
+(define %error (make-parameter #f))
 
 ;; db-support parameters (set by awful-<db> eggs)
 (define missing-db-msg "Database access is not enabled (see `enable-db').")
@@ -331,25 +332,30 @@
 
 (define (run-resource proc path)
   (let ((out (->string (proc path))))
-    (if (%redirect) ;; redirection
-        (let ((new-uri (if (string? (%redirect))
-                           (uri-reference (%redirect))
-                           (%redirect))))
-          (with-headers `((location ,new-uri))
-                        (lambda ()
-                          (%redirect #f)
-                          (send-status 302 "Found"))))
-        (with-headers (append
-                       (or (awful-response-headers)
-                           `((content-type text/html)))
-                       (or (and-let* ((headers (awful-response-headers))
-                                      (content-length (alist-ref 'content-length headers)))
-                             (list (cons 'content-length content-length)))
-                           `((content-length ,(string-length out)))))
-                      (lambda ()
-                        (write-logged-response)
-                        (unless (eq? 'HEAD (request-method (current-request)))
-                          (display out (response-port (current-response)))))))))
+    (if (%error)
+        (send-response code: 500
+                       reason: "Internal server error"
+                       body: ((page-template) ((page-exception-message) (%error)))
+                       headers: '((content-type text/html)))
+        (if (%redirect) ;; redirection
+            (let ((new-uri (if (string? (%redirect))
+                               (uri-reference (%redirect))
+                               (%redirect))))
+              (with-headers `((location ,new-uri))
+                            (lambda ()
+                              (%redirect #f)
+                              (send-status 302 "Found"))))
+            (with-headers (append
+                           (or (awful-response-headers)
+                               `((content-type text/html)))
+                           (or (and-let* ((headers (awful-response-headers))
+                                          (content-length (alist-ref 'content-length headers)))
+                                 (list (cons 'content-length content-length)))
+                               `((content-length ,(string-length out)))))
+                          (lambda ()
+                            (write-logged-response)
+                            (unless (eq? 'HEAD (request-method (current-request)))
+                              (display out (response-port (current-response))))))))))
 
 (define (resource-ref path vhost-root-path)
   (when (debug-resources)
@@ -421,6 +427,7 @@
                                (handle-exceptions
                                 exn
                                 (begin
+                                  (%error exn)
                                   (debug (with-output-to-string
                                            (lambda ()
                                              (print-call-chain)
