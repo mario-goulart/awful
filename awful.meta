@@ -5,5 +5,5 @@
  (author "<a href=\"http://wiki.call-cc.org/users/mario-domenech-goulart\">Mario Domenech Goulart</a>")
  (license "BSD")
  (category web)
- (depends (spiffy 4.2) (spiffy-request-vars 0.8) html-tags html-utils (http-session 2.0) json spiffy-cookies)
+ (depends (spiffy 4.2) (spiffy-request-vars 0.8) html-tags html-utils (http-session 2.2) json spiffy-cookies)
  (test-depends http-client test))
