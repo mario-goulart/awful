@@ -28,10 +28,10 @@
 
   ) ; end export list
 
-(import scheme chicken data-structures utils extras regex ports srfi-69 files srfi-1)
+(import scheme chicken data-structures utils extras ports srfi-69 files srfi-1)
 
 ;; Units
-(use posix srfi-13)
+(use posix srfi-13 regex)
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
