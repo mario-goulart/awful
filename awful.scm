@@ -28,17 +28,17 @@
 
   ) ; end export list
 
-(import scheme chicken data-structures utils extras regex ports srfi-69 files srfi-1)
+(import scheme chicken data-structures utils extras ports srfi-69 files srfi-1)
 
 ;; Units
 (use posix srfi-13)
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
-     http-session json spiffy-cookies)
+     http-session json spiffy-cookies regex)
 
 ;;; Version
-(define (awful-version) "0.26.0")
+(define (awful-version) "0.27.0")
 
 
 ;;; Parameters
