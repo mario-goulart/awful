@@ -11,6 +11,6 @@
                    '("awful.so" "awful.import.so")
                    '((version "0.27.0")))
 
-(install-program 'awful
+(install-program 'awful-server
                  '("awful")
                  `((version "0.27.0")))
