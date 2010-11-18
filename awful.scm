@@ -567,25 +567,23 @@
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live
                          content-type prelude update-targets)
-  (if (enable-ajax)
-      (page-javascript
-       (++ "setInterval("
-           (ajax path #f #f proc
-                 target: target
-                 action: action
-                 method: method
-                 arguments: arguments
-                 success: success
-                 no-session: no-session
-                 no-db: no-db
-                 vhost-root-path: vhost-root-path
-                 live: live
-                 content-type: content-type
-                 prelude: prelude
-                 update-targets: update-targets
-                 no-page-javascript: #t)
-           ", " (->string interval) ");\n"))
-      ""))
+  (page-javascript
+   (++ "setInterval("
+       (ajax path #f #f proc
+             target: target
+             action: action
+             method: method
+             arguments: arguments
+             success: success
+             no-session: no-session
+             no-db: no-db
+             vhost-root-path: vhost-root-path
+             live: live
+             content-type: content-type
+             prelude: prelude
+             update-targets: update-targets
+             no-page-javascript: #t)
+       ", " (->string interval) ");\n")))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    success no-session no-db (event 'click) vhost-root-path live class
