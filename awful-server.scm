@@ -9,6 +9,7 @@
     (print awful " [ -h | --help ]")
     (print awful " [ -v | --version ]")
     (print awful " [ --development-mode ] "
+           "[ --conf=<configuration file> ]"
            "[ --disable-web-repl-fancy-editor ] "
            "[ --ip-address=<ip address> ] "
            "[ --port=<port number> ] "
@@ -34,16 +35,16 @@
         (port (cmd-line-arg '--port args))
         (use-fancy-web-repl? (not (member "--disable-web-repl-fancy-editor" args)))
         (ip-address (cmd-line-arg '--ip-address args))
+        (conf (cmd-line-arg '--conf args))
         (args (remove (lambda (arg)
                         (or (member arg '("--development-mode" "--disable-web-repl-fancy-editor"))
                             (string-prefix? "--port=" arg)
+                            (string-prefix? "--conf=" arg)
                             (string-prefix? "--ip-address=" arg)))
                       args)))
     (awful-apps args)
-    (load-apps (awful-apps))
-    (register-root-dir-handler)
-    (register-dispatcher)
-    (awful-start dev-mode?: dev-mode?
+    (awful-start conf: conf
+                 dev-mode?: dev-mode?
                  port: (and port (string->number port))
                  bind-address: ip-address
                  use-fancy-web-repl?: use-fancy-web-repl?)))

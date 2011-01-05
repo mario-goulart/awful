@@ -12,6 +12,7 @@
    enable-javascript-compression javascript-compressor debug-resources
    enable-session-cookie session-cookie-name awful-response-headers
    development-mode? enable-web-repl-fancy-editor web-repl-fancy-editor-base-uri
+   awful-listen awful-accept awful-backlog awful-listener
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -31,14 +32,14 @@
 (import scheme chicken data-structures utils extras ports srfi-69 files srfi-1)
 
 ;; Units
-(use posix srfi-13)
+(use posix srfi-13 tcp)
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
      http-session json spiffy-cookies regex)
 
 ;;; Version
-(define (awful-version) "0.27.0")
+(define (awful-version) "0.28")
 
 
 ;;; Parameters
@@ -88,6 +89,19 @@
 (define page-javascript (make-parameter ""))
 (define sid (make-parameter #f))
 (define db-enabled? (make-parameter #f))
+(define awful-listen (make-parameter tcp-listen))
+(define awful-accept (make-parameter tcp-accept))
+(define awful-backlog (make-parameter 10))
+(define awful-listener (make-parameter
+                        (let ((listener #f))
+                          (lambda ()
+                            (unless listener
+                              (set! listener
+                                    ((awful-listen)
+                                     (server-port)
+                                     (awful-backlog)
+                                     (server-bind-address))))
+                            listener))))
 
 ;; Parameters for internal use and not exported
 (define %redirect (make-parameter #f))
@@ -177,12 +191,23 @@
   ;; The reload page
   (define-reload-page))
 
-(define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl?)
+(define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl? conf)
   (enable-web-repl-fancy-editor use-fancy-web-repl?)
   (when dev-mode? (development-mode-actions))
-  ;; Start Spiffy
-  (start-server port: (or port (server-port))
-                bind-address: (or ip-address (server-bind-address))))
+  (when port (server-port port))
+  (when ip-address (server-bind-address ip-address))
+  ;; if configuration is provided, it is loaded before switching
+  ;; user/group
+  (when conf (load conf))
+  (let ((listener ((awful-listener))))
+    (switch-user/group (spiffy-user) (spiffy-group))
+    (when (zero? (current-effective-user-id))
+      (print "WARNING: awful is running with administrator privileges (not recommended)"))
+    ;; load apps
+    (load-apps (awful-apps))
+    (register-root-dir-handler)
+    (register-dispatcher)
+    (accept-loop listener (awful-accept))))
 
 (define (get-sid #!optional force-read-sid)
   (and (or (enable-session) force-read-sid)
