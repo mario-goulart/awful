@@ -191,14 +191,14 @@
   ;; The reload page
   (define-reload-page))
 
-(define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl? conf)
+(define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl? privileged-code)
   (enable-web-repl-fancy-editor use-fancy-web-repl?)
   (when dev-mode? (development-mode-actions))
   (when port (server-port port))
   (when ip-address (server-bind-address ip-address))
-  ;; if configuration is provided, it is loaded before switching
+  ;; if privileged-code is provided, it is loaded before switching
   ;; user/group
-  (when conf (load conf))
+  (when privileged-code (load privileged-code))
   (let ((listener ((awful-listener))))
     (switch-user/group (spiffy-user) (spiffy-group))
     (when (zero? (current-effective-user-id))

@@ -9,7 +9,7 @@
     (print awful " [ -h | --help ]")
     (print awful " [ -v | --version ]")
     (print awful " [ --development-mode ] "
-           "[ --conf=<configuration file> ]"
+           "[ --privileged-code=<code to be run with admin privileges> ]"
            "[ --disable-web-repl-fancy-editor ] "
            "[ --ip-address=<ip address> ] "
            "[ --port=<port number> ] "
@@ -35,15 +35,15 @@
         (port (cmd-line-arg '--port args))
         (use-fancy-web-repl? (not (member "--disable-web-repl-fancy-editor" args)))
         (ip-address (cmd-line-arg '--ip-address args))
-        (conf (cmd-line-arg '--conf args))
+        (privileged-code (cmd-line-arg '--privileged-code args))
         (args (remove (lambda (arg)
                         (or (member arg '("--development-mode" "--disable-web-repl-fancy-editor"))
                             (string-prefix? "--port=" arg)
-                            (string-prefix? "--conf=" arg)
+                            (string-prefix? "--privileged-code=" arg)
                             (string-prefix? "--ip-address=" arg)))
                       args)))
     (awful-apps args)
-    (awful-start conf: conf
+    (awful-start privileged-code: privileged-code
                  dev-mode?: dev-mode?
                  port: (and port (string->number port))
                  bind-address: ip-address
