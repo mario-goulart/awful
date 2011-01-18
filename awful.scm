@@ -131,8 +131,8 @@
 
 (define (load-apps apps)
   (set! *resources* (make-hash-table equal?))
-  (when (development-mode?) (development-mode-actions))
-  (for-each load apps))
+  (for-each load apps)
+  (when (development-mode?) (development-mode-actions)))
 
 (define (define-reload-page)
   ;; Define a /reload page for reloading awful apps
@@ -146,7 +146,6 @@
     title: "Awful reloaded applications"))
 
 (define (development-mode-actions)
-  (development-mode? #t)
   (print "Awful is running in development mode.")
   (debug-log (current-error-port))
 
@@ -193,7 +192,12 @@
 
 (define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl? privileged-code)
   (enable-web-repl-fancy-editor use-fancy-web-repl?)
-  (when dev-mode? (development-mode-actions))
+  (when dev-mode? (development-mode? #t))
+  ;; `load-apps' also calls `development-mode-actions', so only call
+  ;; `development-mode-actions' when `(awful-apps)' is null (in this
+  ;; case `load-apps' is not called).
+  (when (and dev-mode? (null? (awful-apps)))
+    (development-mode-actions))
   (when port (server-port port))
   (when ip-address (server-bind-address ip-address))
   ;; if privileged-code is provided, it is loaded before switching
