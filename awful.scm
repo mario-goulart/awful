@@ -520,7 +520,7 @@
 ;;; Ajax
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
-              live content-type prelude update-targets)
+              live content-type prelude update-targets (cache 'not-set))
   (let ((path (if (regexp? path)
                   path
                   (make-pathname (list (app-root-path) (ajax-namespace)) path))))
@@ -579,6 +579,11 @@
                     (if update-targets
                         "dataType: 'json',"
                         "")
+                    (if (eq? cache 'not-set)
+                        ""
+                        (if cache
+                            "cache:true,"
+                            "cache:false,"))
                     (++ "data:{"
                         (string-intersperse
                          (map (lambda (var/val)
@@ -595,7 +600,7 @@
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live
-                         content-type prelude update-targets)
+                         content-type prelude update-targets cache)
   (page-javascript
    (++ "setInterval("
        (ajax path #f #f proc
@@ -611,13 +616,14 @@
              content-type: content-type
              prelude: prelude
              update-targets: update-targets
+             cache: cache
              no-page-javascript: #t)
        ", " (->string interval) ");\n")))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    success no-session no-db (event 'click) vhost-root-path live class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
-                   content-type prelude update-targets)
+                   content-type prelude update-targets cache)
   (ajax path id event proc
         target: target
         action: action
@@ -630,6 +636,7 @@
         content-type: content-type
         prelude: prelude
         update-targets: update-targets
+        cache: cache
         no-db: no-db)
   (<a> href: "#"
        id: id
