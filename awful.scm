@@ -434,7 +434,7 @@
      path
      (or vhost-root-path (root-path))
      (lambda (#!optional given-path)
-       (sid (get-sid))
+       (sid (get-sid use-session))
        (when (and (db-credentials) (db-enabled?) (not no-db))
          (db-connection ((db-connect) (db-credentials))))
        (page-javascript "")
