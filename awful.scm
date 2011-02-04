@@ -360,6 +360,7 @@
                  (old-handler _))))))))
 
 (define (run-resource proc path)
+  (http-request-variables #f) ;; reset the http request variables
   (let ((out (->string (proc path))))
     (if (%error)
         (send-response code: 500
@@ -470,7 +471,6 @@
                                            ((and (ajax-library) use-ajax) #t)
                                            ((enable-ajax) #t)
                                            (else #f))))
-                          (http-request-variables #f)
                           (if (%redirect)
                               #f ;; no need to do anything.  Let `run-resource' perform the redirection
                               (if no-template
@@ -595,7 +595,6 @@
                     ");\n"
                     ""))))
       (unless no-page-javascript (page-javascript js-code))
-      (http-request-variables #f)
       js-code)))
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
