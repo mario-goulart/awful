@@ -108,6 +108,7 @@
 (define %web-repl-path (make-parameter #f))
 (define %session-inspector-path (make-parameter #f))
 (define %error (make-parameter #f))
+(define %ajax (make-parameter #f))
 
 ;; db-support parameters (set by awful-<db> eggs)
 (define missing-db-msg "Database access is not enabled (see `enable-db').")
@@ -439,6 +440,7 @@
        (when (and (db-credentials) (db-enabled?) (not no-db))
          (db-connection ((db-connect) (db-credentials))))
        (page-javascript "")
+       (%ajax (if use-session ajax-session ajax-no-session))
        (awful-refresh-session!)
        (let ((out
               (if (or (not (enable-session))
@@ -518,16 +520,18 @@
 
 
 ;;; Ajax
-(define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
-              target success no-session no-db no-page-javascript vhost-root-path
-              live content-type prelude update-targets (cache 'not-set))
+(define (jquery-ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
+                     target success no-session no-db no-page-javascript vhost-root-path
+                     live content-type prelude update-targets (cache 'not-set) use-session)
+  ;; `use-session' is not intended to be used by users, it's just to
+  ;; indicate that `ajax' was called from `define-session-page'.
   (let ((path (if (regexp? path)
                   path
                   (make-pathname (list (app-root-path) (ajax-namespace)) path))))
     (add-resource! path
                    (or vhost-root-path (root-path))
                    (lambda (#!optional given-path)
-                     (sid (get-sid))
+                     (sid (get-sid use-session))
                      (when (and (db-credentials) (db-enabled?) (not no-db))
                        (db-connection ((db-connect) (db-credentials))))
                      (awful-refresh-session!)
@@ -545,12 +549,16 @@
                                out)
                              ((page-access-denied-message) path))
                          (ajax-invalid-session-message))))
-    (let* ((arguments (if (or (not (enable-session-cookie))
-                              (not (enable-session))
-                              no-session
-                              (not (and (sid) (session-valid? (sid)))))
-                          arguments
-                          (cons `(sid . ,(++ "'" (sid) "'")) arguments)))
+    (let* ((send-sid (lambda (arguments)
+                       (cons `(sid . ,(++ "'" (sid) "'")) arguments)))
+           (arguments (cond (use-session (send-sid arguments))
+                            ((or (not (enable-session-cookie))
+                                 (not (enable-session))
+                                 (not use-session)
+                                 no-session
+                                 (not (and (sid) (session-valid? (sid)))))
+                             arguments)
+                            (else (send-sid arguments))))
            (js-code
             (++ (page-javascript)
                 (if (and id event)
@@ -596,6 +604,16 @@
                     ""))))
       (unless no-page-javascript (page-javascript js-code))
       js-code)))
+
+;; Helpers to make `ajax' session-aware when called from `define-session-page'
+(define (ajax-session . args)
+  (apply jquery-ajax (append args (list use-session: #t))))
+
+(define (ajax-no-session . args)
+  (apply jquery-ajax (append args (list use-session: #f))))
+
+(define (ajax . args)
+  (apply (%ajax) args))
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live
