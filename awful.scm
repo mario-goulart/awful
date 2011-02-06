@@ -39,7 +39,7 @@
      http-session json spiffy-cookies regex)
 
 ;;; Version
-(define (awful-version) "0.28")
+(define (awful-version) "0.29")
 
 
 ;;; Parameters
