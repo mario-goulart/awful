@@ -1,3 +1,5 @@
+(use awful)
+
 ;; Steps:
 ;; 1. access http://localhost:8080/test => You should see "foo"
 ;; 2. edit this file so the test page shows "bar" instead of "foo"
