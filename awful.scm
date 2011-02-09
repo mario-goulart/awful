@@ -12,7 +12,7 @@
    enable-javascript-compression javascript-compressor debug-resources
    enable-session-cookie session-cookie-name awful-response-headers
    development-mode? enable-web-repl-fancy-editor web-repl-fancy-editor-base-uri
-   awful-listen awful-accept awful-backlog awful-listener
+   awful-listen awful-accept awful-backlog awful-listener javascript-position
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -82,6 +82,7 @@
 (define debug-resources (make-parameter #f)) ;; usually useful for awful development debugging
 (define enable-session-cookie (make-parameter #t))
 (define session-cookie-name (make-parameter "awful-cookie"))
+(define javascript-position (make-parameter 'bottom))
 
 ;; Parameters for internal use (but exported, since they are internally used by other eggs)
 (define http-request-variables (make-parameter #f))
@@ -210,6 +211,10 @@
       (print "WARNING: awful is running with administrator privileges (not recommended)"))
     ;; load apps
     (load-apps (awful-apps))
+    ;; Check for invalid javascript positioning
+    (unless (memq (javascript-position) '(top bottom))
+      (error 'awful-start
+             "Invalid value for `javascript-position'.  Valid ones are: `top' and `bottom'."))
     (register-root-dir-handler)
     (register-dispatcher)
     (accept-loop listener (awful-accept))))
@@ -425,6 +430,21 @@
 (define (undefine-page path #!optional vhost-root-path)
   (hash-table-delete! *resources* (cons path (or vhost-root-path (root-path)))))
 
+(define (include-page-javascript ajax? no-javascript-compression)
+  (++ (if ajax?
+          (++ (<script> type: "text/javascript" src: (ajax-library))
+              (<script> type: "text/javascript"
+                        (maybe-compress-javascript
+                         (++ "$(document).ready(function(){"
+                             (page-javascript) "});")
+                         no-javascript-compression)))
+          (if (string-null? (page-javascript))
+              ""
+              (<script> type: "text/javascript"
+                        (maybe-compress-javascript
+                         (page-javascript)
+                         no-javascript-compression))))))
+
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
                      use-ajax use-session) ;; for define-session-page
@@ -455,24 +475,27 @@
                               (begin
                                 (sid (session-create))
                                 (set-cookie! (session-cookie-name) (sid)))))
-                        (let ((contents
-                               (handle-exceptions
-                                exn
-                                (begin
-                                  (%error exn)
-                                  (debug (with-output-to-string
-                                           (lambda ()
-                                             (print-call-chain)
-                                             (print-error-message exn))))
-                                  ((page-exception-message) exn))
-                                (if (regexp? path)
-                                    (contents given-path)
-                                    (contents))))
-                              (ajax? (cond (no-ajax #f)
-                                           ((not (ajax-library)) #f)
-                                           ((and (ajax-library) use-ajax) #t)
-                                           ((enable-ajax) #t)
-                                           (else #f))))
+                        (let* ((ajax? (cond (no-ajax #f)
+                                            ((not (ajax-library)) #f)
+                                            ((and (ajax-library) use-ajax) #t)
+                                            ((enable-ajax) #t)
+                                            (else #f)))
+                               (contents
+                                (handle-exceptions
+                                    exn
+                                  (begin
+                                    (%error exn)
+                                    (debug (with-output-to-string
+                                             (lambda ()
+                                               (print-call-chain)
+                                               (print-error-message exn))))
+                                    ((page-exception-message) exn))
+                                  (++ (if (regexp? path)
+                                          (contents given-path)
+                                          (contents))
+                                      (if (eq? (javascript-position) 'bottom)
+                                          (include-page-javascript ajax? no-javascript-compression)
+                                          "")))))
                           (if (%redirect)
                               #f ;; no need to do anything.  Let `run-resource' perform the redirection
                               (if no-template
@@ -482,23 +505,10 @@
                                    css: (or css (page-css))
                                    title: title
                                    doctype: (or doctype (page-doctype))
-                                   headers: (++ (if ajax?
-                                                    (<script> type: "text/javascript"
-                                                              src: (ajax-library))
-                                                    "")
-                                                (or headers "")
-                                                (if ajax?
-                                                    (<script> type: "text/javascript"
-                                                              (maybe-compress-javascript
-                                                               (++ "$(document).ready(function(){"
-                                                                   (page-javascript) "});")
-                                                               no-javascript-compression))
-                                                    (if (string-null? (page-javascript))
-                                                        ""
-                                                        (<script> type: "text/javascript"
-                                                                  (maybe-compress-javascript
-                                                                   (page-javascript)
-                                                                   no-javascript-compression)))))
+                                   headers: (++ (or headers "")
+                                                (if (eq? (javascript-position) 'top)
+                                                    (include-page-javascript ajax? no-javascript-compression)
+                                                    ""))
                                charset: (or charset (page-charset)))))))
                       ((page-template) ((page-access-denied-message) (or given-path path))))
                   ((page-template)
