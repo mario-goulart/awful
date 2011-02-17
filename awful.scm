@@ -32,7 +32,7 @@
 (import scheme chicken data-structures utils extras ports srfi-69 files srfi-1)
 
 ;; Units
-(use posix srfi-13 tcp)
+(use posix srfi-13 tcp sxml-transforms)
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
@@ -41,6 +41,9 @@
 ;;; Version
 (define (awful-version) "0.29")
 
+
+;;; Make html-tags generate SXML
+(generate-sxml? #t)
 
 ;;; Parameters
 
@@ -121,7 +124,32 @@
 
 
 ;;; Misc
-(define ++ string-append)
+
+;; stolen from chickadee
+(define (sxml->html doc)
+  (let* ((rules `((literal *preorder* . ,(lambda (t b) b))
+                  . ,universal-conversion-rules*))
+         (reply (lambda () (SRV:send-reply (pre-post-order* doc rules)))))
+    (with-output-to-string reply)))
+
+(define (maybe-literal data)
+  (if (generate-sxml?)
+      `(literal ,data)
+      data))
+
+(define (render data)
+  (if (generate-sxml?)
+      (handle-exceptions exn
+        ((page-exception-message) exn)
+        (sxml->html data))
+      data))
+
+(define (++ . args)
+  (cond ((any pair? args)
+         args)
+        ((every string? args)
+         (string-intersperse args ""))
+        (else (append args))))
 
 (define (concat args #!optional (sep ""))
   (string-intersperse (map ->string args) sep))
@@ -233,10 +261,12 @@
 
 ;;; Javascript
 (define (include-javascript . files)
-  (string-intersperse
-   (map (lambda (file)
-          (<script> type: "text/javascript" src: file))
-        files)))
+  (let ((js (map (lambda (file)
+                   (<script> type: "text/javascript" src: file))
+                 files)))
+    (if (generate-sxml?)
+        js
+        (string-intersperse js))))
 
 (define (add-javascript . code)
   (page-javascript (++ (page-javascript) (concat code))))
@@ -367,7 +397,7 @@
 
 (define (run-resource proc path)
   (http-request-variables #f) ;; reset the http request variables
-  (let ((out (->string (proc path))))
+  (let ((out (render (proc path))))
     (if (%error)
         (send-response code: 500
                        reason: "Internal server error"
@@ -434,16 +464,18 @@
   (++ (if ajax?
           (++ (<script> type: "text/javascript" src: (ajax-library))
               (<script> type: "text/javascript"
-                        (maybe-compress-javascript
-                         (++ "$(document).ready(function(){"
-                             (page-javascript) "});")
-                         no-javascript-compression)))
+                        (maybe-literal
+                         (maybe-compress-javascript
+                          (++ "$(document).ready(function(){"
+                              (page-javascript) "});")
+                          no-javascript-compression))))
           (if (string-null? (page-javascript))
               ""
               (<script> type: "text/javascript"
-                        (maybe-compress-javascript
-                         (page-javascript)
-                         no-javascript-compression))))))
+                        (maybe-literal
+                         (maybe-compress-javascript
+                          (page-javascript)
+                          no-javascript-compression)))))))
 
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
@@ -552,11 +584,15 @@
                              (let ((out (if update-targets
                                             (with-output-to-string
                                               (lambda ()
-                                                (json-write (list->vector (proc)))))
+                                                (let ((result
+                                                       (map (lambda (res)
+                                                              (cons (car res) (render (cdr res))))
+                                                            (proc))))
+                                                  (json-write (list->vector result)))))
                                             (proc))))
                                (when (and (db-credentials) (db-enabled?) (not no-db))
                                  ((db-disconnect) (db-connection)))
-                               out)
+                               (maybe-literal out))
                              ((page-access-denied-message) path))
                          (ajax-invalid-session-message))))
     (let* ((send-sid (lambda (arguments)
@@ -715,17 +751,18 @@
         (when (enable-session-cookie)
           (set-cookie! (session-cookie-name) new-sid))
         (when hook (hook user))
-        (html-page
-         ""
-         headers: (<meta> http-equiv: "refresh"
-                          content: (++ "0;url="
-                                       (if new-sid
-                                           (++ (or attempted-path (main-page-path))
-                                               "?user=" user
-                                               (if (enable-session-cookie)
-                                                   ""
-                                                   (++ "&sid=" new-sid)))
-                                           (++ (login-page-path) "?reason=invalid-password&user=" user)))))))
+        (render
+         (html-page
+          ""
+          headers: (<meta> http-equiv: "refresh"
+                           content: (++ "0;url="
+                                        (if new-sid
+                                            (++ (or attempted-path (main-page-path))
+                                                "?user=" user
+                                                (if (enable-session-cookie)
+                                                    ""
+                                                    (++ "&sid=" new-sid)))
+                                            (++ (login-page-path) "?reason=invalid-password&user=" user))))))))
     vhost-root-path: vhost-root-path
     no-session: #t
     no-template: #t))
