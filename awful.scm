@@ -140,7 +140,7 @@
 (define (render data)
   (if (generate-sxml?)
       (handle-exceptions exn
-        ((page-exception-message) exn)
+        (%error exn)
         (sxml->html data))
       data))
 
@@ -152,7 +152,9 @@
         (else (append args))))
 
 (define (concat args #!optional (sep ""))
-  (string-intersperse (map ->string args) sep))
+  (if (generate-sxml?)
+      (intersperse args sep)
+      (string-intersperse (map ->string args) sep)))
 
 (define (string->symbol* str)
   (if (string? str)
