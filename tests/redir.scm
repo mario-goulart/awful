@@ -1,6 +1,6 @@
 #!/usr/bin/awful
 
-(use awful regex)
+(use awful)
 
 ;; / -> /foo
 (define-page (main-page-path) (cut redirect-to "/foo"))

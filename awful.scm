@@ -12,7 +12,7 @@
    enable-javascript-compression javascript-compressor debug-resources
    enable-session-cookie session-cookie-name awful-response-headers
    development-mode? enable-web-repl-fancy-editor web-repl-fancy-editor-base-uri
-   awful-listen awful-accept awful-backlog awful-listener javascript-position
+   awful-listen awful-accept awful-backlog awful-listener
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -32,18 +32,15 @@
 (import scheme chicken data-structures utils extras ports srfi-69 files srfi-1)
 
 ;; Units
-(use posix srfi-13 tcp sxml-transforms)
+(use posix srfi-13 tcp)
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
      http-session json spiffy-cookies regex)
 
 ;;; Version
-(define (awful-version) "0.29")
+(define (awful-version) "0.28")
 
-
-;;; Make html-tags generate SXML
-(generate-sxml? #t)
 
 ;;; Parameters
 
@@ -53,7 +50,7 @@
 (define debug-db-query? (make-parameter #t))
 (define debug-db-query-prefix (make-parameter ""))
 (define db-credentials (make-parameter #f))
-(define ajax-library (make-parameter "//ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js"))
+(define ajax-library (make-parameter "https://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js"))
 (define enable-ajax (make-parameter #f))
 (define ajax-namespace (make-parameter "ajax"))
 (define enable-session (make-parameter #f))
@@ -85,7 +82,6 @@
 (define debug-resources (make-parameter #f)) ;; usually useful for awful development debugging
 (define enable-session-cookie (make-parameter #t))
 (define session-cookie-name (make-parameter "awful-cookie"))
-(define javascript-position (make-parameter 'bottom))
 
 ;; Parameters for internal use (but exported, since they are internally used by other eggs)
 (define http-request-variables (make-parameter #f))
@@ -124,37 +120,10 @@
 
 
 ;;; Misc
-
-;; stolen from chickadee
-(define (sxml->html doc)
-  (let* ((rules `((literal *preorder* . ,(lambda (t b) b))
-                  . ,universal-conversion-rules*))
-         (reply (lambda () (SRV:send-reply (pre-post-order* doc rules)))))
-    (with-output-to-string reply)))
-
-(define (maybe-literal data)
-  (if (generate-sxml?)
-      `(literal ,data)
-      data))
-
-(define (render data)
-  (if (generate-sxml?)
-      (handle-exceptions exn
-        (%error exn)
-        (sxml->html data))
-      data))
-
-(define (++ . args)
-  (cond ((any pair? args)
-         args)
-        ((every string? args)
-         (string-intersperse args ""))
-        (else (append args))))
+(define ++ string-append)
 
 (define (concat args #!optional (sep ""))
-  (if (generate-sxml?)
-      (intersperse args sep)
-      (string-intersperse (map ->string args) sep)))
+  (string-intersperse (map ->string args) sep))
 
 (define (string->symbol* str)
   (if (string? str)
@@ -241,10 +210,6 @@
       (print "WARNING: awful is running with administrator privileges (not recommended)"))
     ;; load apps
     (load-apps (awful-apps))
-    ;; Check for invalid javascript positioning
-    (unless (memq (javascript-position) '(top bottom))
-      (error 'awful-start
-             "Invalid value for `javascript-position'.  Valid ones are: `top' and `bottom'."))
     (register-root-dir-handler)
     (register-dispatcher)
     (accept-loop listener (awful-accept))))
@@ -263,12 +228,10 @@
 
 ;;; Javascript
 (define (include-javascript . files)
-  (let ((js (map (lambda (file)
-                   (<script> type: "text/javascript" src: file))
-                 files)))
-    (if (generate-sxml?)
-        js
-        (string-intersperse js))))
+  (string-intersperse
+   (map (lambda (file)
+          (<script> type: "text/javascript" src: file))
+        files)))
 
 (define (add-javascript . code)
   (page-javascript (++ (page-javascript) (concat code))))
@@ -399,7 +362,7 @@
 
 (define (run-resource proc path)
   (http-request-variables #f) ;; reset the http request variables
-  (let ((out (render (proc path))))
+  (let ((out (->string (proc path))))
     (if (%error)
         (send-response code: 500
                        reason: "Internal server error"
@@ -462,23 +425,6 @@
 (define (undefine-page path #!optional vhost-root-path)
   (hash-table-delete! *resources* (cons path (or vhost-root-path (root-path)))))
 
-(define (include-page-javascript ajax? no-javascript-compression)
-  (++ (if ajax?
-          (++ (<script> type: "text/javascript" src: (ajax-library))
-              (<script> type: "text/javascript"
-                        (maybe-literal
-                         (maybe-compress-javascript
-                          (++ "$(document).ready(function(){"
-                              (page-javascript) "});")
-                          no-javascript-compression))))
-          (if (string-null? (page-javascript))
-              ""
-              (<script> type: "text/javascript"
-                        (maybe-literal
-                         (maybe-compress-javascript
-                          (page-javascript)
-                          no-javascript-compression)))))))
-
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
                      use-ajax use-session) ;; for define-session-page
@@ -509,27 +455,24 @@
                               (begin
                                 (sid (session-create))
                                 (set-cookie! (session-cookie-name) (sid)))))
-                        (let* ((ajax? (cond (no-ajax #f)
-                                            ((not (ajax-library)) #f)
-                                            ((and (ajax-library) use-ajax) #t)
-                                            ((enable-ajax) #t)
-                                            (else #f)))
-                               (contents
-                                (handle-exceptions
-                                    exn
-                                  (begin
-                                    (%error exn)
-                                    (debug (with-output-to-string
-                                             (lambda ()
-                                               (print-call-chain)
-                                               (print-error-message exn))))
-                                    ((page-exception-message) exn))
-                                  (++ (if (regexp? path)
-                                          (contents given-path)
-                                          (contents))
-                                      (if (eq? (javascript-position) 'bottom)
-                                          (include-page-javascript ajax? no-javascript-compression)
-                                          "")))))
+                        (let ((contents
+                               (handle-exceptions
+                                exn
+                                (begin
+                                  (%error exn)
+                                  (debug (with-output-to-string
+                                           (lambda ()
+                                             (print-call-chain)
+                                             (print-error-message exn))))
+                                  ((page-exception-message) exn))
+                                (if (regexp? path)
+                                    (contents given-path)
+                                    (contents))))
+                              (ajax? (cond (no-ajax #f)
+                                           ((not (ajax-library)) #f)
+                                           ((and (ajax-library) use-ajax) #t)
+                                           ((enable-ajax) #t)
+                                           (else #f))))
                           (if (%redirect)
                               #f ;; no need to do anything.  Let `run-resource' perform the redirection
                               (if no-template
@@ -539,10 +482,23 @@
                                    css: (or css (page-css))
                                    title: title
                                    doctype: (or doctype (page-doctype))
-                                   headers: (++ (or headers "")
-                                                (if (eq? (javascript-position) 'top)
-                                                    (include-page-javascript ajax? no-javascript-compression)
-                                                    ""))
+                                   headers: (++ (if ajax?
+                                                    (<script> type: "text/javascript"
+                                                              src: (ajax-library))
+                                                    "")
+                                                (or headers "")
+                                                (if ajax?
+                                                    (<script> type: "text/javascript"
+                                                              (maybe-compress-javascript
+                                                               (++ "$(document).ready(function(){"
+                                                                   (page-javascript) "});")
+                                                               no-javascript-compression))
+                                                    (if (string-null? (page-javascript))
+                                                        ""
+                                                        (<script> type: "text/javascript"
+                                                                  (maybe-compress-javascript
+                                                                   (page-javascript)
+                                                                   no-javascript-compression)))))
                                charset: (or charset (page-charset)))))))
                       ((page-template) ((page-access-denied-message) (or given-path path))))
                   ((page-template)
@@ -586,15 +542,11 @@
                              (let ((out (if update-targets
                                             (with-output-to-string
                                               (lambda ()
-                                                (let ((result
-                                                       (map (lambda (res)
-                                                              (cons (car res) (render (cdr res))))
-                                                            (proc))))
-                                                  (json-write (list->vector result)))))
+                                                (json-write (list->vector (proc)))))
                                             (proc))))
                                (when (and (db-credentials) (db-enabled?) (not no-db))
                                  ((db-disconnect) (db-connection)))
-                               (maybe-literal out))
+                               out)
                              ((page-access-denied-message) path))
                          (ajax-invalid-session-message))))
     (let* ((send-sid (lambda (arguments)
@@ -753,18 +705,17 @@
         (when (enable-session-cookie)
           (set-cookie! (session-cookie-name) new-sid))
         (when hook (hook user))
-        (render
-         (html-page
-          ""
-          headers: (<meta> http-equiv: "refresh"
-                           content: (++ "0;url="
-                                        (if new-sid
-                                            (++ (or attempted-path (main-page-path))
-                                                "?user=" user
-                                                (if (enable-session-cookie)
-                                                    ""
-                                                    (++ "&sid=" new-sid)))
-                                            (++ (login-page-path) "?reason=invalid-password&user=" user))))))))
+        (html-page
+         ""
+         headers: (<meta> http-equiv: "refresh"
+                          content: (++ "0;url="
+                                       (if new-sid
+                                           (++ (or attempted-path (main-page-path))
+                                               "?user=" user
+                                               (if (enable-session-cookie)
+                                                   ""
+                                                   (++ "&sid=" new-sid)))
+                                           (++ (login-page-path) "?reason=invalid-password&user=" user)))))))
     vhost-root-path: vhost-root-path
     no-session: #t
     no-template: #t))
