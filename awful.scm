@@ -82,7 +82,7 @@
 (define debug-resources (make-parameter #f)) ;; usually useful for awful development debugging
 (define enable-session-cookie (make-parameter #t))
 (define session-cookie-name (make-parameter "awful-cookie"))
-(define javascript-position (make-parameter 'bottom))
+(define javascript-position (make-parameter 'top))
 
 ;; Parameters for internal use (but exported, since they are internally used by other eggs)
 (define http-request-variables (make-parameter #f))
