@@ -570,8 +570,7 @@
                              arguments)
                             (else (send-sid arguments))))
            (js-code
-            (++ (page-javascript)
-                (if (and id event)
+            (++ (if (and id event)
                     (let ((events (concat (if (list? event) event (list event)) " "))
                           (binder (if live "live" "bind")))
                       (++ "$('" (if (symbol? id)
@@ -612,7 +611,7 @@
                 (if (and id event)
                     ");\n"
                     ""))))
-      (unless no-page-javascript (page-javascript js-code))
+      (unless no-page-javascript (add-javascript js-code))
       js-code)))
 
 ;; Helpers to make `ajax' session-aware when called from `define-session-page'
@@ -628,7 +627,7 @@
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live
                          content-type prelude update-targets cache)
-  (page-javascript
+  (add-javascript
    (++ "setInterval("
        (ajax path #f #f proc
              target: target
