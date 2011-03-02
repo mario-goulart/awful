@@ -505,10 +505,10 @@
                                    css: (or css (page-css))
                                    title: title
                                    doctype: (or doctype (page-doctype))
-                                   headers: (++ (if (eq? (javascript-position) 'top)
+                                   headers: (++ (or headers "")
+                                                (if (eq? (javascript-position) 'top)
                                                     (include-page-javascript ajax? no-javascript-compression)
-                                                    "")
-                                                (or headers ""))
+                                                    ""))
                                charset: (or charset (page-charset)))))))
                       ((page-template) ((page-access-denied-message) (or given-path path))))
                   ((page-template)
