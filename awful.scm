@@ -432,8 +432,7 @@
 
 (define (include-page-javascript ajax? no-javascript-compression)
   (++ (if ajax?
-          (++ (<script> type: "text/javascript" src: (ajax-library))
-              (<script> type: "text/javascript"
+          (++ (<script> type: "text/javascript"
                         (maybe-compress-javascript
                          (++ "$(document).ready(function(){"
                              (page-javascript) "});")
@@ -505,7 +504,10 @@
                                    css: (or css (page-css))
                                    title: title
                                    doctype: (or doctype (page-doctype))
-                                   headers: (++ (or headers "")
+                                   headers: (++ (if ajax?
+                                                    (<script> type: "text/javascript" src: (ajax-library))
+                                                    "")
+                                                (or headers "")
                                                 (if (eq? (javascript-position) 'top)
                                                     (include-page-javascript ajax? no-javascript-compression)
                                                     ""))
