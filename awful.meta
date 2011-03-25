@@ -7,4 +7,4 @@
  (category web)
  (depends spiffy miscmacros (spiffy-request-vars 0.7)
           html-tags html-utils (http-session 2.0) jsmin)
- (files "awful.scm" "awful.setup" "awful.html" "awful-server.scm"))
+ (files "awful.setup" "awful.meta" "awful-server.scm" "awful.scm" "tests/README" "tests/session-page.scm" "tests/arc-challenge.scm" "tests/db-sql-de-lite.scm" "tests/basic-login.scm" "tests/reload.scm" "tests/ajax.scm" "tests/db-sqlite.scm" "tests/conf.scm" "tests/access-control.scm" "tests/js-compression.scm" "tests/web-repl.scm"))
