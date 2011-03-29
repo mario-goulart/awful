@@ -521,7 +521,7 @@
                                                 (if (eq? (javascript-position) 'top)
                                                     (include-page-javascript ajax? no-javascript-compression)
                                                     ""))
-                               charset: (or charset (page-charset)))))))
+                                   charset: (or charset (page-charset)))))))
                       ((page-template) ((page-access-denied-message) (or given-path path))))
                   ((page-template)
                    ""
