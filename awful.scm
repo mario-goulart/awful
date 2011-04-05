@@ -20,6 +20,7 @@
    define-session-page ajax ajax-link periodical-ajax login-form
    define-login-trampoline enable-web-repl enable-session-inspector
    awful-version load-apps link form redirect-to
+   add-request-handler-hook! remove-request-handler-hook!
 
    ;; spiffy-request-vars wrapper
    with-request-variables true-boolean-values as-boolean as-list
@@ -352,6 +353,27 @@
   ((sql-quoter) data))
 
 
+;;; Parameters reseting
+(define (reset-per-request-parameters) ;; to cope with spiffy's thread reuse
+  (http-request-variables #f)
+  (awful-response-headers #f)
+  (db-connection #f)
+  (sid #f)
+  (%redirect #f)
+  (%error #f))
+
+
+;;; Request handling hooks
+(define *request-handler-hooks* '())
+
+(define (add-request-handler-hook! name proc)
+  (set! *request-handler-hooks*
+        (cons (cons name proc) *request-handler-hooks*)))
+
+(define (remove-request-handler-hook! name)
+  (set! *request-handler-hooks*
+        (alist-delete! name *request-handler-hooks*)))
+
 ;;; Resources
 (root-path (current-directory))
 
@@ -377,32 +399,41 @@
                  (old-handler _))))))))
 
 (define (run-resource proc path)
-  (http-request-variables #f) ;; reset the http request variables
-  (let ((out (->string (proc path))))
-    (if (%error)
-        (send-response code: 500
-                       reason: "Internal server error"
-                       body: ((page-template) ((page-exception-message) (%error)))
-                       headers: '((content-type text/html)))
-        (if (%redirect) ;; redirection
-            (let ((new-uri (if (string? (%redirect))
-                               (uri-reference (%redirect))
-                               (%redirect))))
-              (with-headers `((location ,new-uri))
-                            (lambda ()
-                              (%redirect #f)
-                              (send-status 302 "Found"))))
-            (with-headers (append
-                           (or (awful-response-headers)
-                               `((content-type text/html)))
-                           (or (and-let* ((headers (awful-response-headers))
-                                          (content-length (alist-ref 'content-length headers)))
-                                 (list (cons 'content-length content-length)))
-                               `((content-length ,(string-length out)))))
-                          (lambda ()
-                            (write-logged-response)
-                            (unless (eq? 'HEAD (request-method (current-request)))
-                              (display out (response-port (current-response))))))))))
+  (reset-per-request-parameters)
+  (let ((handler
+         (lambda (path proc)
+           (let ((out (->string (proc path))))
+             (if (%error)
+                 (send-response code: 500
+                                reason: "Internal server error"
+                                body: ((page-template) ((page-exception-message) (%error)))
+                                headers: '((content-type text/html)))
+                 (if (%redirect) ;; redirection
+                     (let ((new-uri (if (string? (%redirect))
+                                        (uri-reference (%redirect))
+                                        (%redirect))))
+                       (with-headers `((location ,new-uri))
+                                     (lambda ()
+                                       (%redirect #f)
+                                       (send-status 302 "Found"))))
+                     (with-headers (append
+                                    (or (awful-response-headers)
+                                        `((content-type text/html)))
+                                    (or (and-let* ((headers (awful-response-headers))
+                                                   (content-length (alist-ref 'content-length headers)))
+                                          (list (cons 'content-length content-length)))
+                                        `((content-length ,(string-length out)))))
+                                   (lambda ()
+                                     (write-logged-response)
+                                     (unless (eq? 'HEAD (request-method (current-request)))
+                                       (display out (response-port (current-response))))))))))))
+    (call/cc (lambda (continue)
+               (for-each (lambda (hook)
+                           ((cdr hook) path (lambda ()
+                                              (handler path proc)
+                                              (continue #f))))
+                         *request-handler-hooks*)
+               (handler path proc)))))
 
 (define (resource-ref path vhost-root-path)
   (when (debug-resources)
