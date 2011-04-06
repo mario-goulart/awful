@@ -429,9 +429,11 @@
                                        (display out (response-port (current-response))))))))))))
     (call/cc (lambda (continue)
                (for-each (lambda (hook)
-                           ((cdr hook) path (lambda ()
-                                              (handler path proc)
-                                              (continue #f))))
+                           ((cdr hook) (car hook)
+                                       path
+                                       (lambda ()
+                                         (handler path proc)
+                                         (continue #f))))
                          *request-handler-hooks*)
                (handler path proc)))))
 
@@ -486,13 +488,22 @@
                          (page-javascript)
                          no-javascript-compression))))))
 
+(define (page-path path #!optional namespace)
+  (if (regexp? path)
+      path
+      (string-chomp
+       (make-pathname (cons (app-root-path)
+                            (if namespace
+                                (list namespace)
+                                '()))
+                      path)
+       "/")))
+
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
                      use-ajax use-session) ;; for define-session-page
   (##sys#check-closure contents 'define-page)
-  (let ((path (if (regexp? path)
-                  path
-                  (make-pathname (app-root-path) path))))
+  (let ((path (page-path path)))
     (add-resource!
      path
      (or vhost-root-path (root-path))
@@ -576,9 +587,7 @@
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
               live content-type prelude update-targets (cache 'not-set))
-  (let ((path (if (regexp? path)
-                  path
-                  (make-pathname (list (app-root-path) (ajax-namespace)) path))))
+  (let ((path (page-path path (ajax-namespace))))
     (add-resource! path
                    (or vhost-root-path (root-path))
                    (lambda (#!optional given-path)
