@@ -24,9 +24,8 @@
 
    ;; spiffy-request-vars wrapper
    with-request-variables true-boolean-values as-boolean as-list
-   as-number as-alist as-vector as-hash-table
-   ;; TODO: add nonempty, as-string and as-symbol when srv 0.13 is
-   ;; released.  Also add 0.13 as a requirement in .meta
+   as-number as-alist as-vector as-hash-table as-string as-symbol
+   nonempty
 
    ;; Required by the awful server
    add-resource! register-dispatcher register-root-dir-handler awful-start
