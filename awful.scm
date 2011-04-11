@@ -428,8 +428,7 @@
                                        (display out (response-port (current-response))))))))))))
     (call/cc (lambda (continue)
                (for-each (lambda (hook)
-                           ((cdr hook) (car hook)
-                                       path
+                           ((cdr hook) path
                                        (lambda ()
                                          (handler path proc)
                                          (continue #f))))
