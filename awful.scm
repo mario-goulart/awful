@@ -487,7 +487,7 @@
                          no-javascript-compression))))))
 
 (define (page-path path #!optional namespace)
-  (cond ((regexp? path))
+  (cond ((regexp? path) path)
         ((equal? path "/") "/")
         (else
          (string-chomp
