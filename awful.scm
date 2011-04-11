@@ -487,15 +487,16 @@
                          no-javascript-compression))))))
 
 (define (page-path path #!optional namespace)
-  (if (regexp? path)
-      path
-      (string-chomp
-       (make-pathname (cons (app-root-path)
-                            (if namespace
-                                (list namespace)
-                                '()))
-                      path)
-       "/")))
+  (cond ((regexp? path))
+        ((equal? path "/") "/")
+        (else
+         (string-chomp
+          (make-pathname (cons (app-root-path)
+                               (if namespace
+                                   (list namespace)
+                                   '()))
+                         path)
+          "/"))))
 
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
