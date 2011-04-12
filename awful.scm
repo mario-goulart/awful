@@ -204,11 +204,6 @@
 (define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl? privileged-code)
   (enable-web-repl-fancy-editor use-fancy-web-repl?)
   (when dev-mode? (development-mode? #t))
-  ;; `load-apps' also calls `development-mode-actions', so only call
-  ;; `development-mode-actions' when `(awful-apps)' is null (in this
-  ;; case `load-apps' is not called).
-  (when (and dev-mode? (null? (awful-apps)))
-    (development-mode-actions))
   (when port (server-port port))
   (when ip-address (server-bind-address ip-address))
   ;; if privileged-code is provided, it is loaded before switching
