@@ -237,7 +237,8 @@
 (define (redirect-to new-uri)
   ;; Just set the `%redirect' internal parameter, so `run-resource' is
   ;; able to know where to redirect.
-  (%redirect new-uri))
+  (%redirect new-uri)
+  "")
 
 
 ;;; Javascript
@@ -413,7 +414,6 @@
                                         (%redirect))))
                        (with-headers `((location ,new-uri))
                                      (lambda ()
-                                       (%redirect #f)
                                        (send-status 302 "Found"))))
                      (with-headers (append
                                     (or (awful-response-headers)
@@ -473,18 +473,18 @@
   (hash-table-delete! *resources* (cons path (or vhost-root-path (root-path)))))
 
 (define (include-page-javascript ajax? no-javascript-compression)
-  (++ (if ajax?
-          (++ (<script> type: "text/javascript"
-                        (maybe-compress-javascript
-                         (++ "$(document).ready(function(){"
-                             (page-javascript) "});")
-                         no-javascript-compression)))
-          (if (string-null? (page-javascript))
-              ""
-              (<script> type: "text/javascript"
-                        (maybe-compress-javascript
-                         (page-javascript)
-                         no-javascript-compression))))))
+  (if ajax?
+      (<script> type: "text/javascript"
+                (maybe-compress-javascript
+                 (++ "$(document).ready(function(){"
+                     (page-javascript) "});")
+                 no-javascript-compression))
+      (if (string-null? (page-javascript))
+          ""
+          (<script> type: "text/javascript"
+                    (maybe-compress-javascript
+                     (page-javascript)
+                     no-javascript-compression)))))
 
 (define (page-path path #!optional namespace)
   (cond ((regexp? path) path)
@@ -531,8 +531,7 @@
                                             ((enable-ajax) #t)
                                             (else #f)))
                                (contents
-                                (handle-exceptions
-                                    exn
+                                (handle-exceptions exn
                                   (begin
                                     (%error exn)
                                     (debug (with-output-to-string
