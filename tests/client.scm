@@ -51,4 +51,10 @@
 (test "bar" (get "/foo"))
 (test "D" (get "/ra"))
 
+;; hooks
+(test "prefix1" (get "/prefix1"))
+(test "prefix2" (get "/prefix2"))
+(test "prefix3" (get "/prefix3"))
+(test "unset" (get "/param-unset"))
+
 (test-end "awful")

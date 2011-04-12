@@ -24,9 +24,8 @@
 
    ;; spiffy-request-vars wrapper
    with-request-variables true-boolean-values as-boolean as-list
-   as-number as-alist as-vector as-hash-table
-   ;; TODO: add nonempty, as-string and as-symbol when srv 0.13 is
-   ;; released.  Also add 0.13 as a requirement in .meta
+   as-number as-alist as-vector as-hash-table as-string as-symbol
+   nonempty
 
    ;; Required by the awful server
    add-resource! register-dispatcher register-root-dir-handler awful-start
@@ -57,7 +56,7 @@
 (define debug-db-query? (make-parameter #t))
 (define debug-db-query-prefix (make-parameter ""))
 (define db-credentials (make-parameter #f))
-(define ajax-library (make-parameter "//ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"))
+(define ajax-library (make-parameter "//ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"))
 (define enable-ajax (make-parameter #f))
 (define ajax-namespace (make-parameter "ajax"))
 (define enable-session (make-parameter #f))
@@ -205,11 +204,6 @@
 (define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl? privileged-code)
   (enable-web-repl-fancy-editor use-fancy-web-repl?)
   (when dev-mode? (development-mode? #t))
-  ;; `load-apps' also calls `development-mode-actions', so only call
-  ;; `development-mode-actions' when `(awful-apps)' is null (in this
-  ;; case `load-apps' is not called).
-  (when (and dev-mode? (null? (awful-apps)))
-    (development-mode-actions))
   (when port (server-port port))
   (when ip-address (server-bind-address ip-address))
   ;; if privileged-code is provided, it is loaded before switching
@@ -238,7 +232,8 @@
 (define (redirect-to new-uri)
   ;; Just set the `%redirect' internal parameter, so `run-resource' is
   ;; able to know where to redirect.
-  (%redirect new-uri))
+  (%redirect new-uri)
+  "")
 
 
 ;;; Javascript
@@ -414,7 +409,6 @@
                                         (%redirect))))
                        (with-headers `((location ,new-uri))
                                      (lambda ()
-                                       (%redirect #f)
                                        (send-status 302 "Found"))))
                      (with-headers (append
                                     (or (awful-response-headers)
@@ -429,8 +423,7 @@
                                        (display out (response-port (current-response))))))))))))
     (call/cc (lambda (continue)
                (for-each (lambda (hook)
-                           ((cdr hook) (car hook)
-                                       path
+                           ((cdr hook) path
                                        (lambda ()
                                          (handler path proc)
                                          (continue #f))))
@@ -475,29 +468,30 @@
   (hash-table-delete! *resources* (cons path (or vhost-root-path (root-path)))))
 
 (define (include-page-javascript ajax? no-javascript-compression)
-  (++ (if ajax?
-          (++ (<script> type: "text/javascript"
-                        (maybe-compress-javascript
-                         (++ "$(document).ready(function(){"
-                             (page-javascript) "});")
-                         no-javascript-compression)))
-          (if (string-null? (page-javascript))
-              ""
-              (<script> type: "text/javascript"
-                        (maybe-compress-javascript
-                         (page-javascript)
-                         no-javascript-compression))))))
+  (if ajax?
+      (<script> type: "text/javascript"
+                (maybe-compress-javascript
+                 (++ "$(document).ready(function(){"
+                     (page-javascript) "});")
+                 no-javascript-compression))
+      (if (string-null? (page-javascript))
+          ""
+          (<script> type: "text/javascript"
+                    (maybe-compress-javascript
+                     (page-javascript)
+                     no-javascript-compression)))))
 
 (define (page-path path #!optional namespace)
-  (if (regexp? path)
-      path
-      (string-chomp
-       (make-pathname (cons (app-root-path)
-                            (if namespace
-                                (list namespace)
-                                '()))
-                      path)
-       "/")))
+  (cond ((regexp? path) path)
+        ((equal? path "/") "/")
+        (else
+         (string-chomp
+          (make-pathname (cons (app-root-path)
+                               (if namespace
+                                   (list namespace)
+                                   '()))
+                         path)
+          "/"))))
 
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
@@ -532,8 +526,7 @@
                                             ((enable-ajax) #t)
                                             (else #f)))
                                (contents
-                                (handle-exceptions
-                                    exn
+                                (handle-exceptions exn
                                   (begin
                                     (%error exn)
                                     (debug (with-output-to-string
