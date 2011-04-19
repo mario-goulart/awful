@@ -2,8 +2,6 @@
 
 (awful-apps (list "server.scm"))
 
-(define awful-pid (start-test-server awful-start))
-
-(load "client.scm")
-
-(stop-test-server awful-pid)
+(with-test-server awful-start
+  (lambda ()
+    (load "client.scm")))
