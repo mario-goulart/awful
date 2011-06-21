@@ -1,7 +1,9 @@
 (use server-test test awful posix)
 
-(awful-apps (list "server.scm"))
-
-(with-test-server awful-start
+(with-test-server
+ (lambda ()
+   (awful-start
+    (lambda ()
+      (load-apps (list "server.scm")))))
   (lambda ()
     (load "client.scm")))
