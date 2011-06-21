@@ -19,7 +19,7 @@
    $session-set! $ $db $db-row-obj sql-quote define-page undefine-page
    define-session-page ajax ajax-link periodical-ajax login-form
    define-login-trampoline enable-web-repl enable-session-inspector
-   awful-version load-apps link form redirect-to
+   awful-version load-apps reload-apps link form redirect-to
    add-request-handler-hook! remove-request-handler-hook!
 
    ;; spiffy-request-vars wrapper
@@ -141,15 +141,18 @@
       str))
 
 (define (load-apps apps)
-  (set! *resources* (make-hash-table equal?))
   (for-each load apps)
   (when (development-mode?) (development-mode-actions)))
+
+(define (reload-apps apps)
+  (reset-resources!)
+  (load-apps apps))
 
 (define (define-reload-page)
   ;; Define a /reload page for reloading awful apps
   (define-page "/reload"
     (lambda ()
-      (load-apps (awful-apps))
+      (reload-apps (awful-apps))
       (++ (<p> "The following awful apps have been reloaded on "
                (seconds->string (current-seconds)))
           (itemize (map <code> (awful-apps)))))
@@ -201,7 +204,7 @@
   ;; The reload page
   (define-reload-page))
 
-(define (awful-start #!optional thunk #!key dev-mode? port ip-address use-fancy-web-repl? privileged-code)
+(define (awful-start thunk #!key dev-mode? port ip-address use-fancy-web-repl? privileged-code)
   (enable-web-repl-fancy-editor use-fancy-web-repl?)
   (when dev-mode? (development-mode? #t))
   (when port (server-port port))
@@ -214,8 +217,7 @@
     (when (zero? (current-effective-user-id))
       (print "WARNING: awful is running with administrator privileges (not recommended)"))
     ;; load apps
-    (load-apps (awful-apps))
-    (when thunk (thunk))
+    (thunk)
     ;; Check for invalid javascript positioning
     (unless (memq (javascript-position) '(top bottom))
       (error 'awful-start
@@ -454,6 +456,8 @@
 (define (add-resource! path vhost-root-path proc)
   (hash-table-set! *resources* (cons path vhost-root-path) proc))
 
+(define (reset-resources!)
+  (set! *resources* (make-hash-table equal?)))
 
 ;;; Root dir
 (define (register-root-dir-handler)

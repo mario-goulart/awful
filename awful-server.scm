@@ -43,8 +43,11 @@
                             (string-prefix? "--ip-address=" arg)))
                       args)))
     (awful-apps args)
-    (awful-start privileged-code: privileged-code
-                 dev-mode?: dev-mode?
-                 port: (and port (string->number port))
-                 bind-address: ip-address
-                 use-fancy-web-repl?: use-fancy-web-repl?)))
+    (awful-start
+     (lambda ()
+       (load-apps args))
+     privileged-code: privileged-code
+     dev-mode?: dev-mode?
+     port: (and port (string->number port))
+     bind-address: ip-address
+     use-fancy-web-repl?: use-fancy-web-repl?)))
