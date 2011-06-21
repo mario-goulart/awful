@@ -211,7 +211,7 @@
   (when ip-address (server-bind-address ip-address))
   ;; if privileged-code is provided, it is loaded before switching
   ;; user/group
-  (when privileged-code (load privileged-code))
+  (when privileged-code (privileged-code))
   (let ((listener ((awful-listener))))
     (switch-user/group (spiffy-user) (spiffy-group))
     (when (zero? (current-effective-user-id))
