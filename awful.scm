@@ -201,7 +201,7 @@
   ;; The reload page
   (define-reload-page))
 
-(define (awful-start #!key dev-mode? port ip-address use-fancy-web-repl? privileged-code)
+(define (awful-start #!optional thunk #!key dev-mode? port ip-address use-fancy-web-repl? privileged-code)
   (enable-web-repl-fancy-editor use-fancy-web-repl?)
   (when dev-mode? (development-mode? #t))
   (when port (server-port port))
@@ -215,6 +215,7 @@
       (print "WARNING: awful is running with administrator privileges (not recommended)"))
     ;; load apps
     (load-apps (awful-apps))
+    (when thunk (thunk))
     ;; Check for invalid javascript positioning
     (unless (memq (javascript-position) '(top bottom))
       (error 'awful-start
