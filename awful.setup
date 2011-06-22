@@ -1,11 +1,11 @@
 ;;; awful.setup -*- scheme -*-
 
 ;; Compile the extension
-(compile -s -O3 -d1 -j awful awful.scm)
-(compile -s -O3 -d1 awful.import.scm)
+(compile -S -s -O3 -d1 -j awful awful.scm)
+(compile -S -s -O3 -d1 awful.import.scm)
 
 ;; Compile the application (server)
-(compile -O3 -d1 awful-server.scm -o awful)
+(compile -S -O3 -d1 awful-server.scm -o awful)
 
 (install-extension 'awful
                    '("awful.so" "awful.import.so")
