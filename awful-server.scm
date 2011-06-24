@@ -46,7 +46,8 @@
     (awful-start
      (lambda ()
        (load-apps args))
-     privileged-code: (lambda () (load privileged-code))
+     privileged-code: (and privileged-code
+                           (lambda () (load privileged-code)))
      dev-mode?: dev-mode?
      port: (and port (string->number port))
      bind-address: ip-address
