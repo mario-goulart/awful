@@ -98,7 +98,7 @@
 (define db-enabled? (make-parameter #f))
 (define awful-listen (make-parameter tcp-listen))
 (define awful-accept (make-parameter tcp-accept))
-(define awful-backlog (make-parameter 10))
+(define awful-backlog (make-parameter 100))
 (define awful-listener (make-parameter
                         (let ((listener #f))
                           (lambda ()
