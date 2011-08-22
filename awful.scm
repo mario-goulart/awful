@@ -590,6 +590,8 @@
                    (or vhost-root-path (root-path))
                    (lambda (#!optional given-path)
                      (sid (get-sid 'force))
+                     (when update-targets
+                       (awful-response-headers '((content-type "application/json"))))
                      (if (or (not (enable-session))
                              no-session
                              (and (enable-session) (session-valid? (sid))))
