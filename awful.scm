@@ -590,21 +590,22 @@
                    (or vhost-root-path (root-path))
                    (lambda (#!optional given-path)
                      (sid (get-sid 'force))
-                     (when (and (db-credentials) (db-enabled?) (not no-db))
-                       (db-connection ((db-connect) (db-credentials))))
-                     (awful-refresh-session!)
                      (if (or (not (enable-session))
                              no-session
                              (and (enable-session) (session-valid? (sid))))
                          (if ((page-access-control) path)
-                             (let ((out (if update-targets
-                                            (with-output-to-string
-                                              (lambda ()
-                                                (json-write (list->vector (proc)))))
-                                            (proc))))
+                             (begin
                                (when (and (db-credentials) (db-enabled?) (not no-db))
-                                 ((db-disconnect) (db-connection)))
-                               out)
+                                 (db-connection ((db-connect) (db-credentials))))
+                               (awful-refresh-session!)
+                               (let ((out (if update-targets
+                                              (with-output-to-string
+                                                (lambda ()
+                                                  (json-write (list->vector (proc)))))
+                                              (proc))))
+                                 (when (and (db-credentials) (db-enabled?) (not no-db))
+                                   ((db-disconnect) (db-connection)))
+                                 out))
                              ((page-access-denied-message) path))
                          (ajax-invalid-session-message))))
     (let* ((arguments (if (and (sid) (session-valid? (sid)))
