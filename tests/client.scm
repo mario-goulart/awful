@@ -1,11 +1,22 @@
-#!/usr/bin/csi -script
+(use test http-client posix setup-api intarweb uri-common)
 
-(use test http-client posix setup-api)
+(define server-uri "http://localhost:8080")
 
 (define (get path/vars)
   (let ((val (with-input-from-request
-              (string-append "http://localhost:8080" path/vars)
-              #f read-string)))
+              (make-pathname server-uri path/vars)
+              #f
+              read-string)))
+    (close-all-connections!)
+    val))
+
+(define (post path)
+  (let ((val (with-input-from-request
+              (make-request
+               uri: (uri-reference (make-pathname server-uri path))
+               method: 'POST)
+              #f
+              read-string)))
     (close-all-connections!)
     val))
 
@@ -56,5 +67,12 @@
 (test "prefix2" (get "/prefix2"))
 (test "prefix3" (get "/prefix3"))
 (test "unset" (get "/param-unset"))
+
+;;; restful
+(test "post" (post "/post"))
+(test "get" (get "/get"))
+(test "get" (get "/get2"))
+(test "get" (get "/same-path"))
+(test "post" (post "/same-path"))
 
 (test-end "awful")

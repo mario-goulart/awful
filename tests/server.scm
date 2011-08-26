@@ -1,5 +1,3 @@
-#!/usr/bin/awful
-
 (use awful)
 
 (page-template (lambda (contents . rest) contents))
@@ -42,3 +40,10 @@
 (define-page "/prefix3" (lambda () (param)))
 (define-page "/param-unset" (lambda () (param)))
 
+
+;;; restful
+(define-page "/post" (lambda () "post") method: 'POST)
+(define-page "/get" (lambda () "get") method: 'GET)
+(define-page "/get2" (lambda () "get"))
+(define-page "/same-path" (lambda () "get") method: 'GET)
+(define-page "/same-path" (lambda () "post") method: 'POST)
