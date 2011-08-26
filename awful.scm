@@ -765,6 +765,7 @@
                                                    ""
                                                    (++ "&sid=" new-sid)))
                                            (++ (login-page-path) "?reason=invalid-password&user=" user)))))))
+    method: 'POST
     vhost-root-path: vhost-root-path
     no-session: #t
     no-template: #t))
