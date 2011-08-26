@@ -382,15 +382,16 @@
    (let ((old-handler (handle-not-found)))
      (lambda (_)
        (let* ((path-list (uri-path (request-uri (current-request))))
+              (method (request-method (current-request)))
               (dir? (equal? (last path-list) ""))
               (path (if (null? (cdr path-list))
                         (car path-list)
                         (++ "/" (concat (cdr path-list) "/"))))
-              (proc (resource-ref path (root-path))))
+              (proc (resource-ref path (root-path) method)))
          (if proc
              (run-resource proc path)
              (if dir? ;; try to find a procedure with the trailing slash removed
-                 (let ((proc (resource-ref (string-chomp path "/") (root-path))))
+                 (let ((proc (resource-ref (string-chomp path "/") (root-path) method)))
                    (if proc
                        (run-resource proc path)
                        (old-handler _)))
@@ -433,28 +434,30 @@
                          *request-handler-hooks*)
                (handler path proc)))))
 
-(define (resource-ref path vhost-root-path)
+(define (resource-ref path vhost-root-path method)
   (when (debug-resources)
     (debug-pp (hash-table->alist *resources*)))
-  (or (hash-table-ref/default *resources* (cons path vhost-root-path) #f)
-      (resource-match path vhost-root-path)))
+  (or (hash-table-ref/default *resources* (list path vhost-root-path method) #f)
+      (resource-match path vhost-root-path method)))
 
-(define (resource-match path vhost-root-path)
+(define (resource-match path vhost-root-path method)
   (let loop ((resources (hash-table->alist *resources*)))
     (if (null? resources)
         #f
         (let* ((current-resource (car resources))
                (current-path (caar current-resource))
-               (current-vhost (cdar current-resource))
+               (current-vhost (cadar current-resource))
+               (current-method (caddar current-resource))
                (current-proc (cdr current-resource)))
           (if (and (regexp? current-path)
                    (equal? current-vhost vhost-root-path)
+                   (eq? current-method method)
                    (string-match current-path path))
               current-proc
               (loop (cdr resources)))))))
 
-(define (add-resource! path vhost-root-path proc)
-  (hash-table-set! *resources* (cons path vhost-root-path) proc))
+(define (add-resource! path vhost-root-path proc method)
+  (hash-table-set! *resources* (list path vhost-root-path method) proc))
 
 (define (reset-resources!)
   (set! *resources* (make-hash-table equal?)))
@@ -464,13 +467,13 @@
   (handle-directory
    (let ((old-handler (handle-directory)))
      (lambda (path)
-       (cond ((resource-ref path (root-path))
+       (cond ((resource-ref path (root-path) (request-method (current-request)))
               => (cut run-resource <> path))
              (else (old-handler path)))))))
 
 ;;; Pages
-(define (undefine-page path #!optional vhost-root-path)
-  (hash-table-delete! *resources* (cons path (or vhost-root-path (root-path)))))
+(define (undefine-page path #!key vhost-root-path (method 'GET))
+  (hash-table-delete! *resources* (list path (or vhost-root-path (root-path)) method)))
 
 (define (include-page-javascript ajax? no-javascript-compression)
   (if ajax?
@@ -500,7 +503,8 @@
 
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
-                     use-ajax use-session) ;; for define-session-page
+                     use-ajax (method 'GET)
+                     use-session) ;; for define-session-page
   (##sys#check-closure contents 'define-page)
   (let ((path (page-path path)))
     (add-resource!
@@ -573,7 +577,8 @@
                                                      (++ "&sid=" ($ 'sid))
                                                      "")))))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
-         out))))
+         out))
+     method))
   path)
 
 (define (define-session-page path contents . rest)
@@ -609,7 +614,8 @@
                                    ((db-disconnect) (db-connection)))
                                  out))
                              ((page-access-denied-message) path))
-                         (ajax-invalid-session-message))))
+                         (ajax-invalid-session-message)))
+                   method)
     (let* ((arguments (if (and (sid) (session-valid? (sid)))
                           (cons `(sid . ,(++ "'" (sid) "'")) arguments)
                           arguments))
