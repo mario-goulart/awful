@@ -589,7 +589,7 @@
 ;;; Ajax
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
-              live content-type prelude update-targets (cache 'not-set))
+              live content-type prelude update-targets (cache 'not-set) error-handler)
   (let ((path (page-path path (ajax-namespace))))
     (add-resource! path
                    (or vhost-root-path (root-path))
@@ -651,6 +651,9 @@
                         (if cache
                             "cache:true,"
                             "cache:false,"))
+                    (if error-handler
+                        (++ "error:" error-handler ",")
+                        "")
                     (++ "data:{"
                         (string-intersperse
                          (map (lambda (var/val)
@@ -666,7 +669,7 @@
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live
-                         content-type prelude update-targets cache)
+                         content-type prelude update-targets cache error-handler)
   (add-javascript
    (++ "setInterval("
        (ajax path #f #f proc
@@ -682,6 +685,7 @@
              content-type: content-type
              prelude: prelude
              update-targets: update-targets
+             error-handler: error-handler
              cache: cache
              no-page-javascript: #t)
        ", " (->string interval) ");\n")))
@@ -689,7 +693,7 @@
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    success no-session no-db (event 'click) vhost-root-path live class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
-                   content-type prelude update-targets cache)
+                   content-type prelude update-targets error-handler cache)
   (ajax path id event proc
         target: target
         action: action
@@ -702,6 +706,7 @@
         content-type: content-type
         prelude: prelude
         update-targets: update-targets
+        error-handler: error-handler
         cache: cache
         no-db: no-db)
   (<a> href: "#"
