@@ -88,6 +88,9 @@
 (define debug-resources (make-parameter #f)) ;; usually useful for awful development debugging
 (define enable-session-cookie (make-parameter #t))
 (define session-cookie-name (make-parameter "awful-cookie"))
+(define session-cookie-setter (make-parameter
+                               (lambda (sid)
+                                 (set-cookie! (session-cookie-name) sid))))
 (define javascript-position (make-parameter 'top))
 
 ;; Parameters for internal use (but exported, since they are internally used by other eggs)
@@ -528,7 +531,7 @@
                               (awful-refresh-session!)
                               (begin
                                 (sid (session-create))
-                                (set-cookie! (session-cookie-name) (sid)))))
+                                ((session-cookie-setter) (sid)))))
                         (let* ((ajax? (cond (no-ajax #f)
                                             ((not (ajax-library)) #f)
                                             ((and (ajax-library) use-ajax) #t)
@@ -757,7 +760,7 @@
              (new-sid (and password-valid? (session-create))))
         (sid new-sid)
         (when (enable-session-cookie)
-          (set-cookie! (session-cookie-name) new-sid))
+          ((session-cookie-setter) new-sid))
         (when hook (hook user))
         (html-page
          ""
