@@ -631,7 +631,7 @@
                                     id)
                           "')." binder "('" events "',"))
                     "")
-                (++ "function(){"
+                (++ "function(event){"
                     (or prelude "")
                     "$.ajax({type:'" (->string method) "',"
                     "url:'" path "',"
