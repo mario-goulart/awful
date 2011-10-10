@@ -10,9 +10,10 @@
    session-inspector-access-denied-message page-exception-message
    http-request-variables db-connection page-javascript sid
    enable-javascript-compression javascript-compressor debug-resources
-   enable-session-cookie session-cookie-name awful-response-headers
-   development-mode? enable-web-repl-fancy-editor web-repl-fancy-editor-base-uri
-   awful-listen awful-accept awful-backlog awful-listener javascript-position
+   enable-session-cookie session-cookie-name session-cookie-setter
+   awful-response-headers development-mode? enable-web-repl-fancy-editor
+   web-repl-fancy-editor-base-uri awful-listen awful-accept awful-backlog
+   awful-listener javascript-position
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
