@@ -441,8 +441,18 @@
 (define (resource-ref path vhost-root-path method)
   (when (debug-resources)
     (debug-pp (hash-table->alist *resources*)))
-  (or (hash-table-ref/default *resources* (list path vhost-root-path method) #f)
-      (resource-match path vhost-root-path method)))
+  (if (list? method)
+      (let loop ((methods '(POST GET PUT DELETE HEAD)))
+        (if (null? methods)
+            #f
+            (let ((method (car methods)))
+              (or (hash-table-ref/default *resources*
+                                          (list path vhost-root-path method)
+                                          #f)
+                  (resource-match path vhost-root-path method)
+                  (loop (cdr methods))))))
+      (or (hash-table-ref/default *resources* (list path vhost-root-path method) #f)
+          (resource-match path vhost-root-path method))))
 
 (define (resource-match path vhost-root-path method)
   (let loop ((resources (hash-table->alist *resources*)))
@@ -461,7 +471,13 @@
               (loop (cdr resources)))))))
 
 (define (add-resource! path vhost-root-path proc method)
-  (hash-table-set! *resources* (list path vhost-root-path method) proc))
+  (let ((methods (if (list? method) method (list method))))
+    (for-each
+     (lambda (method)
+       (let ((upcase-method
+              (string->symbol (string-upcase (symbol->string method)))))
+         (hash-table-set! *resources* (list path vhost-root-path upcase-method) proc)))
+     methods)))
 
 (define (reset-resources!)
   (set! *resources* (make-hash-table equal?)))
