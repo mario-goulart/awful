@@ -758,10 +758,10 @@
                 (hidden-input 'attempted-path attempted-path)
                 "")
             (<span> id: "user-container"
-                    (<span> id: "user-label" user-label)
+                    (<label> id: "user-label" for: "user" user-label)
                     (<input> type: "text" id: "user" name: "user" value: (and refill-user user)))
             (<span> id: "password-container"
-                    (<span> id: "password-label" password-label)
+                    (<label> id: "password-label" for: "password" password-label)
                     (<input> type: "password" id: "password" name: "password"))
             (<input> type: "submit" id: "login-submit" value: submit-label))))
 
