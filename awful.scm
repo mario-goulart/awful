@@ -218,7 +218,8 @@
   (when privileged-code (privileged-code))
   (let ((listener ((awful-listener))))
     (switch-user/group (spiffy-user) (spiffy-group))
-    (when (zero? (current-effective-user-id))
+    (when (and (not (eq? (software-type) 'windows))
+               (zero? (current-effective-user-id)))
       (print "WARNING: awful is running with administrator privileges (not recommended)"))
     ;; load apps
     (thunk)
