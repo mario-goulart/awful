@@ -550,11 +550,13 @@
                               (begin
                                 (sid (session-create))
                                 ((session-cookie-setter) (sid)))))
-                        (let* ((ajax? (cond (no-ajax #f)
-                                            ((not (ajax-library)) #f)
-                                            ((and (ajax-library) use-ajax) #t)
-                                            ((enable-ajax) #t)
-                                            (else #f)))
+                        (let* ((ajax?
+                                (or (string? use-ajax)
+                                    (cond (no-ajax #f)
+                                          ((not (ajax-library)) #f)
+                                          ((and (ajax-library) use-ajax) #t)
+                                          ((enable-ajax) #t)
+                                          (else #f))))
                                (contents
                                 (handle-exceptions exn
                                   (begin
@@ -580,7 +582,10 @@
                                    title: title
                                    doctype: (or doctype (page-doctype))
                                    headers: (++ (if ajax?
-                                                    (<script> type: "text/javascript" src: (ajax-library))
+                                                    (<script> type: "text/javascript"
+                                                              src: (if (string? use-ajax)
+                                                                       use-ajax
+                                                                       (ajax-library)))
                                                     "")
                                                 (or headers "")
                                                 (if (eq? (javascript-position) 'top)
