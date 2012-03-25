@@ -371,7 +371,7 @@
 
 (define (add-request-handler-hook! name proc)
   (set! *request-handler-hooks*
-        (cons (cons name proc) *request-handler-hooks*)))
+        (alist-update! name proc *request-handler-hooks*)))
 
 (define (remove-request-handler-hook! name)
   (set! *request-handler-hooks*
