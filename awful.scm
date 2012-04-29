@@ -574,7 +574,9 @@
                                              (contents given-path)
                                              (contents))))
                                     (if (procedure? resp)
-                                        resp
+                                        (let ((out (resp)))
+                                          (lambda ()
+                                            out))
                                         (++ resp
                                             (if (eq? (javascript-position) 'bottom)
                                                 (include-page-javascript ajax? no-javascript-compression)
