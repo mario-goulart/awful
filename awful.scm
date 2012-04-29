@@ -406,30 +406,32 @@
   (reset-per-request-parameters)
   (let ((handler
          (lambda (path proc)
-           (let ((out (->string (proc path))))
-             (if (%error)
-                 (send-response code: 500
-                                reason: "Internal server error"
-                                body: ((page-template) ((page-exception-message) (%error)))
-                                headers: '((content-type text/html)))
-                 (if (%redirect) ;; redirection
-                     (let ((new-uri (if (string? (%redirect))
-                                        (uri-reference (%redirect))
-                                        (%redirect))))
-                       (with-headers `((location ,new-uri))
-                                     (lambda ()
-                                       (send-status 302 "Found"))))
-                     (with-headers (append
-                                    (or (awful-response-headers)
-                                        `((content-type text/html)))
-                                    (or (and-let* ((headers (awful-response-headers))
-                                                   (content-length (alist-ref 'content-length headers)))
-                                          (list (cons 'content-length content-length)))
-                                        `((content-length ,(string-length out)))))
-                                   (lambda ()
-                                     (write-logged-response)
-                                     (unless (eq? 'HEAD (request-method (current-request)))
-                                       (display out (response-port (current-response))))))))))))
+           (let ((resp (proc path)))
+             (if (procedure? resp)
+                 (let ((out (->string resp)))
+                   (if (%error)
+                       (send-response code: 500
+                                      reason: "Internal server error"
+                                      body: ((page-template) ((page-exception-message) (%error)))
+                                      headers: '((content-type text/html)))
+                       (if (%redirect) ;; redirection
+                           (let ((new-uri (if (string? (%redirect))
+                                              (uri-reference (%redirect))
+                                              (%redirect))))
+                             (with-headers `((location ,new-uri))
+                                           (lambda ()
+                                             (send-status 302 "Found"))))
+                           (with-headers (append
+                                          (or (awful-response-headers)
+                                              `((content-type text/html)))
+                                          (or (and-let* ((headers (awful-response-headers))
+                                                         (content-length (alist-ref 'content-length headers)))
+                                                (list (cons 'content-length content-length)))
+                                              `((content-length ,(string-length out)))))
+                                         (lambda ()
+                                           (write-logged-response)
+                                           (unless (eq? 'HEAD (request-method (current-request)))
+                                             (display out (response-port (current-response))))))))))))))
     (call/cc (lambda (continue)
                (for-each (lambda (hook)
                            ((cdr hook) path
@@ -566,12 +568,16 @@
                                                (print-call-chain)
                                                (print-error-message exn))))
                                     ((page-exception-message) exn))
-                                  (++ (if (regexp? path)
-                                          (contents given-path)
-                                          (contents))
-                                      (if (eq? (javascript-position) 'bottom)
-                                          (include-page-javascript ajax? no-javascript-compression)
-                                          "")))))
+                                  (let ((resp
+                                         (if (regexp? path)
+                                             (contents given-path)
+                                             (contents))))
+                                    (if (procedure? resp)
+                                        resp
+                                        (++ resp
+                                            (if (eq? (javascript-position) 'bottom)
+                                                (include-page-javascript ajax? no-javascript-compression)
+                                                "")))))))
                           (if (%redirect)
                               #f ;; no need to do anything.  Let `run-resource' perform the redirection
                               (if no-template
