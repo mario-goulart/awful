@@ -408,6 +408,7 @@
          (lambda (path proc)
            (let ((resp (proc path)))
              (if (procedure? resp)
+                 (resp)
                  (let ((out (->string resp)))
                    (if (%error)
                        (send-response code: 500
