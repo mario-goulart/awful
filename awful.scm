@@ -574,6 +574,8 @@
                                              (contents given-path)
                                              (contents))))
                                     (if (procedure? resp)
+                                        ;; eval resp here, where all
+                                        ;; parameters' values are set
                                         (let ((out (resp)))
                                           (lambda ()
                                             out))
