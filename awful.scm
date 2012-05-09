@@ -21,7 +21,7 @@
    define-session-page ajax ajax-link periodical-ajax login-form
    define-login-trampoline enable-web-repl enable-session-inspector
    awful-version load-apps reload-apps link form redirect-to
-   add-request-handler-hook! remove-request-handler-hook!
+   add-request-handler-hook! remove-request-handler-hook! set-page-title!
 
    ;; spiffy-request-vars wrapper
    with-request-variables true-boolean-values as-boolean as-list
@@ -119,6 +119,7 @@
 (define %web-repl-path (make-parameter #f))
 (define %session-inspector-path (make-parameter #f))
 (define %error (make-parameter #f))
+(define %page-title (make-parameter #f))
 
 ;; db-support parameters (set by awful-<db> eggs)
 (define missing-db-msg "Database access is not enabled (see `enable-db').")
@@ -363,7 +364,8 @@
   (db-connection #f)
   (sid #f)
   (%redirect #f)
-  (%error #f))
+  (%error #f)
+  (%page-title #f))
 
 
 ;;; Request handling hooks
@@ -525,6 +527,9 @@
                          path)
           "/"))))
 
+(define (set-page-title! title)
+  (%page-title title))
+
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
                      use-ajax (method 'GET)
@@ -590,7 +595,7 @@
                                   ((page-template)
                                    contents
                                    css: (or css (page-css))
-                                   title: title
+                                   title: (or (%page-title) title)
                                    doctype: (or doctype (page-doctype))
                                    headers: (++ (if ajax?
                                                     (<script> type: "text/javascript"
