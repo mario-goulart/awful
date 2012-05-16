@@ -444,6 +444,10 @@
                          *request-handler-hooks*)
                (handler path proc)))))
 
+(define (resource-find path vhost-root-path method)
+  (or (hash-table-ref/default *resources* (list path vhost-root-path method) #f)
+      (resource-match/regex path vhost-root-path method)))
+
 (define (resource-ref path vhost-root-path method)
   (when (debug-resources)
     (debug-pp (hash-table->alist *resources*)))
@@ -452,15 +456,11 @@
         (if (null? methods)
             #f
             (let ((method (car methods)))
-              (or (hash-table-ref/default *resources*
-                                          (list path vhost-root-path method)
-                                          #f)
-                  (resource-match path vhost-root-path method)
+              (or (resource-find path vhost-root-path method)
                   (loop (cdr methods))))))
-      (or (hash-table-ref/default *resources* (list path vhost-root-path method) #f)
-          (resource-match path vhost-root-path method))))
+      (resource-find path vhost-root-path method)))
 
-(define (resource-match path vhost-root-path method)
+(define (resource-match/regex path vhost-root-path method)
   (let loop ((resources (hash-table->alist *resources*)))
     (if (null? resources)
         #f
