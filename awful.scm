@@ -493,7 +493,7 @@
           (if (and (procedure? current-path/proc)
                    (equal? current-vhost vhost-root-path)
                    (eq? current-method method))
-              ;; the arg to be give to the page handler
+              ;; the arg to be given to the page handler
               (let ((result (current-path/proc path)))
                 (if (list? result)
                     (begin
