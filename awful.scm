@@ -121,6 +121,10 @@
 (define %error (make-parameter #f))
 (define %page-title (make-parameter #f))
 
+(define-record not-set)
+(define not-set (make-not-set))
+(define %path-procedure-result (make-parameter not-set))
+
 ;; db-support parameters (set by awful-<db> eggs)
 (define missing-db-msg "Database access is not enabled (see `enable-db').")
 (define db-inquirer (make-parameter (lambda (query) (error '$db missing-db-msg))))
@@ -446,7 +450,8 @@
 
 (define (resource-find path vhost-root-path method)
   (or (hash-table-ref/default *resources* (list path vhost-root-path method) #f)
-      (resource-match/regex path vhost-root-path method)))
+      (resource-match/regex path vhost-root-path method)
+      (resource-match/procedure path vhost-root-path method)))
 
 (define (resource-ref path vhost-root-path method)
   (when (debug-resources)
@@ -475,6 +480,28 @@
                    (string-match current-path path))
               current-proc
               (loop (cdr resources)))))))
+
+(define (resource-match/procedure path vhost-root-path method)
+  (let loop ((resources (hash-table->alist *resources*)))
+    (if (null? resources)
+        #f
+        (let* ((current-resource (car resources))
+               (current-path/proc (caar current-resource))
+               (current-vhost (cadar current-resource))
+               (current-method (caddar current-resource))
+               (current-proc (cdr current-resource)))
+          (if (and (procedure? current-path/proc)
+                   (equal? current-vhost vhost-root-path)
+                   (eq? current-method method))
+              ;; the arg to be give to the page handler
+              (let ((result (current-path/proc path)))
+                (if (list? result)
+                    (begin
+                      (%path-procedure-result result)
+                      current-proc)
+                    (loop (cdr resources))))
+              (loop (cdr resources)))))))
+
 
 (define (add-resource! path vhost-root-path proc method)
   (let ((methods (if (list? method) method (list method))))
@@ -517,6 +544,7 @@
 
 (define (page-path path #!optional namespace)
   (cond ((regexp? path) path)
+        ((procedure? path) path)
         ((equal? path "/") "/")
         (else
          (string-chomp
@@ -575,9 +603,13 @@
                                                (print-error-message exn))))
                                     ((page-exception-message) exn))
                                   (let ((resp
-                                         (if (regexp? path)
-                                             (contents given-path)
-                                             (contents))))
+                                         (cond ((regexp? path)
+                                                (contents given-path))
+                                               ((not (not-set? (%path-procedure-result)))
+                                                (let ((result (%path-procedure-result)))
+                                                  (%path-procedure-result not-set)
+                                                  (apply contents result)))
+                                               (else (contents)))))
                                     (if (procedure? resp)
                                         ;; eval resp here, where all
                                         ;; parameters' values are set
