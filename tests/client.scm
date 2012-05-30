@@ -20,8 +20,8 @@
     (close-all-connections!)
     val))
 
-(define (expect text)
-  ((page-template) text))
+(define (expect text #!key title)
+  ((page-template) text title: title))
 
 ;;; cleanup
 (if (and (file-exists? "a") (not (directory? "a")))
@@ -76,5 +76,16 @@
 (test (expect "get") (get "/get2"))
 (test (expect "get") (get "/same-path"))
 (test (expect "post") (post "/same-path"))
+
+
+;;; set-page-title!
+(test (expect "" title: "a nice title") (get "/a-nice-title"))
+(test (expect "" title: "another nice title") (get "/another-nice-title"))
+(test (expect "" title: "set-by-set") (get "/confusing-titles"))
+
+
+;;; define-page returning procedure
+(test "foo" (get "/return-procedure"))
+(delete-file "ret-proc")
 
 (test-end "awful")

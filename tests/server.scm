@@ -1,4 +1,4 @@
-(use awful)
+(use awful spiffy)
 
 (define-page "a" (lambda () "a"))
 
@@ -45,3 +45,31 @@
 (define-page "/get2" (lambda () "get"))
 (define-page "/same-path" (lambda () "get") method: 'GET)
 (define-page "/same-path" (lambda () "post") method: 'POST)
+
+
+;;; set-page-title!
+(define-page "/a-nice-title"
+  (lambda ()
+    (set-page-title! "a nice title")
+    ""))
+
+(define-page "/another-nice-title"
+  (lambda ()
+    "")
+  title: "another nice title")
+
+(define-page "/confusing-titles"
+  (lambda ()
+    (set-page-title! "set-by-set")
+    "")
+  title: "set-by-keyword-param")
+
+
+;;; define-page returning procedure
+(with-output-to-file "ret-proc" (cut display "foo"))
+
+(define-page "/return-procedure"
+  (lambda ()
+    (lambda ()
+      (send-static-file "ret-proc")))
+  no-template: #t)
