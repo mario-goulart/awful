@@ -1,7 +1,5 @@
 (use awful)
 
-(page-template (lambda (contents . rest) contents))
-
 (define-page "a" (lambda () "a"))
 
 ;;; Redirections
@@ -41,7 +39,7 @@
 (define-page "/param-unset" (lambda () (param)))
 
 
-;;; restful
+;;; RESTful
 (define-page "/post" (lambda () "post") method: 'POST)
 (define-page "/get" (lambda () "get") method: 'GET)
 (define-page "/get2" (lambda () "get"))
