@@ -13,7 +13,7 @@
    enable-session-cookie session-cookie-name session-cookie-setter
    awful-response-headers development-mode? enable-web-repl-fancy-editor
    web-repl-fancy-editor-base-uri awful-listen awful-accept awful-backlog
-   awful-listener javascript-position
+   awful-listener javascript-position awful-resources-table
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -383,6 +383,9 @@
 (root-path (current-directory))
 
 (define *resources* (make-hash-table equal?))
+
+(define (awful-resources-table)
+  *resources*)
 
 (define (register-dispatcher)
   (handle-not-found
