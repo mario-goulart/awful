@@ -88,4 +88,9 @@
 (test "foo" (get "/return-procedure"))
 (delete-file "ret-proc")
 
+
+;;; awful-resources-table
+(test (expect "ok") (get "/resources-table-is-hash-table"))
+(test (expect "ok") (get "/resources-table-contains-return-procedure"))
+
 (test-end "awful")

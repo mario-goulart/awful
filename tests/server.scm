@@ -73,3 +73,30 @@
     (lambda ()
       (send-static-file "ret-proc")))
   no-template: #t)
+
+
+;;; awful-resources-table
+(define-page "/resources-table-is-hash-table"
+  (lambda ()
+    (let ((resources (awful-resources-table)))
+      (if (hash-table? resources)
+          "ok"
+          "fail"))))
+
+(define-page "/resources-table-contains-return-procedure"
+  (lambda ()
+    (let loop ((resources (hash-table->alist (awful-resources-table))))
+      (if (null? resources)
+          "fail"
+          (let* ((res (car resources))
+                 (path (caar res))
+                 (vhost-path (cadar res))
+                 (method (caddar res))
+                 (handler (cdr res)))
+            ;; checking /return-procedure
+            (or (and (equal? path "/return-procedure")
+                     (equal? vhost-path (current-directory))
+                     (eq? method 'GET)
+                     (procedure? handler)
+                     "ok")
+                (loop (cdr resources))))))))
