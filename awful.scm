@@ -453,8 +453,8 @@
 
 (define (resource-find path vhost-root-path method)
   (or (hash-table-ref/default *resources* (list path vhost-root-path method) #f)
-      (resource-match/regex path vhost-root-path method)
-      (resource-match/procedure path vhost-root-path method)))
+      (resource-match/procedure path vhost-root-path method)
+      (resource-match/regex path vhost-root-path method)))
 
 (define (resource-ref path vhost-root-path method)
   (when (debug-resources)
