@@ -93,4 +93,15 @@
 (test (expect "ok") (get "/resources-table-is-hash-table"))
 (test (expect "ok") (get "/resources-table-contains-return-procedure"))
 
+
+;;; path matcher as procedure
+(test (expect "foo") (get "/path-procedure/foo"))
+(test (expect "bar") (get "/path-procedure/bar/baz"))
+(test 'ok (handle-exceptions exn
+            (if ((condition-predicate 'client-error) exn) ;; 404
+                'ok
+                'fail)
+            (get "/path-procedure")))
+
+
 (test-end "awful")

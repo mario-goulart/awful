@@ -100,3 +100,15 @@
                      (procedure? handler)
                      "ok")
                 (loop (cdr resources))))))))
+
+
+;;; path matcher as procedure
+(define (match-path path)
+  (and (string-prefix? "/path-procedure" path)
+       (let ((tokens (string-split path "/")))
+         (and (not (null? (cdr tokens)))
+              (list (cadr tokens))))))
+
+(define-page match-path
+  (lambda (id)
+    id))
