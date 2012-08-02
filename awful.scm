@@ -527,7 +527,9 @@
               => (cut run-resource <> path))
              (else (old-handler path)))))))
 
+;;;
 ;;; Pages
+;;;
 (define (undefine-page path #!key vhost-root-path (method 'GET))
   (hash-table-delete! *resources* (list path (or vhost-root-path (root-path)) method)))
 
@@ -561,6 +563,85 @@
 (define (set-page-title! title)
   (%page-title title))
 
+;;; Helper procedures for define-page
+(define-inline (use-ajax? use-ajax no-ajax)
+  (or (string? use-ajax)
+      (cond (no-ajax #f)
+            ((not (ajax-library)) #f)
+            ((and (ajax-library) use-ajax) #t)
+            ((enable-ajax) #t)
+            (else #f))))
+
+(define-inline (use-session? use-session no-session)
+  (or (not (enable-session))
+      no-session
+      use-session
+      (and (enable-session) (session-valid? (sid)))))
+
+(define-inline (apply-page-template contents css title doctype ajax? use-ajax headers charset no-javascript-compression)
+  ((page-template)
+   contents
+   css: (or css (page-css))
+   title: (or (%page-title) title)
+   doctype: (or doctype (page-doctype))
+   headers: (++ (if ajax?
+                    (<script> type: "text/javascript"
+                              src: (if (string? use-ajax)
+                                       use-ajax
+                                       (ajax-library)))
+                    "")
+                (or headers "")
+                (if (eq? (javascript-position) 'top)
+                    (include-page-javascript ajax? no-javascript-compression)
+                    ""))
+   charset: (or charset (page-charset))))
+
+(define-inline (maybe-create/refresh-session! use-session)
+  (when use-session
+    (if (session-valid? (sid))
+        (awful-refresh-session!)
+        (begin
+          (sid (session-create))
+          ((session-cookie-setter) (sid))))))
+
+(define-inline (render-exception exn)
+  (%error exn)
+  (debug (with-output-to-string
+           (lambda ()
+             (print-call-chain)
+             (print-error-message exn))))
+  ((page-exception-message) exn))
+
+(define-inline (redirect-to-login-page path)
+  ((page-template)
+   ""
+   headers: (<meta> http-equiv: "refresh"
+                    content: (++ "0;url=" (login-page-path)
+                                 "?reason=invalid-session&attempted-path=" path
+                                 "&user=" ($ 'user "")
+                                 (if (and (not (enable-session-cookie)) ($ 'sid))
+                                     (++ "&sid=" ($ 'sid))
+                                     "")))))
+
+(define-inline (render-page contents path given-path no-javascript-compression ajax?)
+  (let ((resp
+         (cond ((regexp? path)
+                (contents given-path))
+               ((not (not-set? (%path-procedure-result)))
+                (let ((result (%path-procedure-result)))
+                  (%path-procedure-result not-set)
+                  (apply contents result)))
+               (else (contents)))))
+    (if (procedure? resp)
+        ;; eval resp here, where all
+        ;; parameters' values are set
+        (let ((out (resp))) (lambda () out))
+        (++ resp
+            (if (eq? (javascript-position) 'bottom)
+                (include-page-javascript ajax? no-javascript-compression)
+                "")))))
+
+
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
                      use-ajax (method 'GET)
@@ -577,86 +658,27 @@
        (page-javascript "")
        (awful-refresh-session!)
        (let ((out
-              (if (or (not (enable-session))
-                      no-session
-                      use-session
-                      (and (enable-session) (session-valid? (sid))))
+              (if (use-session? use-session no-session)
                   (if ((page-access-control) (or given-path path))
                       (begin
-                        (when use-session
-                          (if (session-valid? (sid))
-                              (awful-refresh-session!)
-                              (begin
-                                (sid (session-create))
-                                ((session-cookie-setter) (sid)))))
-                        (let* ((ajax?
-                                (or (string? use-ajax)
-                                    (cond (no-ajax #f)
-                                          ((not (ajax-library)) #f)
-                                          ((and (ajax-library) use-ajax) #t)
-                                          ((enable-ajax) #t)
-                                          (else #f))))
+                        (maybe-create/refresh-session! use-session)
+                        (let* ((ajax? (use-ajax? use-ajax no-ajax))
                                (contents
                                 (handle-exceptions exn
-                                  (begin
-                                    (%error exn)
-                                    (debug (with-output-to-string
-                                             (lambda ()
-                                               (print-call-chain)
-                                               (print-error-message exn))))
-                                    ((page-exception-message) exn))
-                                  (let ((resp
-                                         (cond ((regexp? path)
-                                                (contents given-path))
-                                               ((not (not-set? (%path-procedure-result)))
-                                                (let ((result (%path-procedure-result)))
-                                                  (%path-procedure-result not-set)
-                                                  (apply contents result)))
-                                               (else (contents)))))
-                                    (if (procedure? resp)
-                                        ;; eval resp here, where all
-                                        ;; parameters' values are set
-                                        (let ((out (resp)))
-                                          (lambda ()
-                                            out))
-                                        (++ resp
-                                            (if (eq? (javascript-position) 'bottom)
-                                                (include-page-javascript ajax? no-javascript-compression)
-                                                "")))))))
+                                  (render-exception exn)
+                                  (render-page contents path given-path no-javascript-compression ajax?))))
                           (if (%redirect)
                               #f ;; no need to do anything.  Let `run-resource' perform the redirection
                               (if no-template
                                   contents
-                                  ((page-template)
-                                   contents
-                                   css: (or css (page-css))
-                                   title: (or (%page-title) title)
-                                   doctype: (or doctype (page-doctype))
-                                   headers: (++ (if ajax?
-                                                    (<script> type: "text/javascript"
-                                                              src: (if (string? use-ajax)
-                                                                       use-ajax
-                                                                       (ajax-library)))
-                                                    "")
-                                                (or headers "")
-                                                (if (eq? (javascript-position) 'top)
-                                                    (include-page-javascript ajax? no-javascript-compression)
-                                                    ""))
-                                   charset: (or charset (page-charset)))))))
+                                  (apply-page-template contents css title doctype ajax? use-ajax headers charset no-javascript-compression)))))
                       ((page-template) ((page-access-denied-message) (or given-path path))))
-                  ((page-template)
-                   ""
-                   headers: (<meta> http-equiv: "refresh"
-                                    content: (++ "0;url=" (login-page-path)
-                                                 "?reason=invalid-session&attempted-path=" (or given-path path)
-                                                 "&user=" ($ 'user "")
-                                                 (if (and (not (enable-session-cookie)) ($ 'sid))
-                                                     (++ "&sid=" ($ 'sid))
-                                                     "")))))))
+                  (redirect-to-login-page (or given-path path)))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
          out))
      method))
   path)
+
 
 (define (define-session-page path contents . rest)
   ;; `rest' are same keyword params as for `define-page' (except `no-session', obviously)
