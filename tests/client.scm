@@ -1,4 +1,4 @@
-(use test http-client posix setup-api intarweb uri-common awful)
+(use test http-client posix setup-api intarweb uri-common awful html-tags)
 
 (define server-uri "http://localhost:8080")
 
@@ -22,6 +22,17 @@
 
 (define (expect text #!key title)
   ((page-template) text title: title))
+
+(define (expect/sxml text #!key title no-template)
+  (let ((no-template-page
+         (lambda (contents . kw-args)
+           contents)))
+    (parameterize ((generate-sxml? #t))
+      ((sxml->html) ((if no-template
+                         no-template-page
+                         (page-template))
+                     `(,(text)) title: title)))))
+
 
 ;;; cleanup
 (if (and (file-exists? "a") (not (directory? "a")))
@@ -103,5 +114,13 @@
                 'fail)
             (get "/path-procedure")))
 
+
+;;; SXML
+(test-begin "SXML")
+(test (expect/sxml (lambda () '(span "foo"))) (get "/sxml-foo"))
+(test (expect/sxml (lambda () (link "foo" '(i "bar")))) (get "/sxml-link"))
+(test (expect/sxml (lambda () (link "foo" '(i "bar"))) no-template: #t)
+      (get "/sxml-link-no-template"))
+(test-end "SXML")
 
 (test-end "awful")

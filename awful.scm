@@ -13,7 +13,8 @@
    enable-session-cookie session-cookie-name session-cookie-setter
    awful-response-headers development-mode? enable-web-repl-fancy-editor
    web-repl-fancy-editor-base-uri awful-listen awful-accept awful-backlog
-   awful-listener javascript-position awful-resources-table
+   awful-listener javascript-position awful-resources-table sxml->html
+   enable-sxml
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -43,7 +44,7 @@
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
-     http-session json spiffy-cookies regex)
+     http-session json spiffy-cookies regex sxml-transforms)
 
 ;;; Version
 (define (awful-version) "0.36")
@@ -93,6 +94,15 @@
                                (lambda (sid)
                                  (set-cookie! (session-cookie-name) sid))))
 (define javascript-position (make-parameter 'top))
+(define enable-sxml (make-parameter #f))
+(define sxml->html
+  (make-parameter
+   (let ((rules `((literal *preorder* . ,(lambda (t b) b))
+                  . ,universal-conversion-rules*)))
+     (lambda (sxml)
+       (with-output-to-string
+         (lambda ()
+           (SRV:send-reply (pre-post-order* sxml rules))))))))
 
 ;; Parameters for internal use (but exported, since they are internally used by other eggs)
 (define http-request-variables (make-parameter #f))
@@ -578,23 +588,35 @@
       use-session
       (and (enable-session) (session-valid? (sid)))))
 
-(define-inline (apply-page-template contents css title doctype ajax? use-ajax headers charset no-javascript-compression)
-  ((page-template)
-   contents
-   css: (or css (page-css))
-   title: (or (%page-title) title)
-   doctype: (or doctype (page-doctype))
-   headers: (++ (if ajax?
-                    (<script> type: "text/javascript"
-                              src: (if (string? use-ajax)
-                                       use-ajax
-                                       (ajax-library)))
-                    "")
-                (or headers "")
-                (if (eq? (javascript-position) 'top)
-                    (include-page-javascript ajax? no-javascript-compression)
-                    ""))
-   charset: (or charset (page-charset))))
+(define-inline (apply-page-template contents css title doctype ajax? use-ajax headers
+                                    charset no-javascript-compression sxml?)
+  (let* ((++* (if sxml? (lambda args (apply append (map list args))) ++))
+         (null (if sxml? '() ""))
+         (out
+          (parameterize ((generate-sxml? sxml?))
+            ((page-template)
+             contents
+             css: (or css (page-css))
+             title: (or (%page-title) title)
+             doctype: (or doctype (page-doctype))
+             headers: (++ (if ajax?
+                              (<script> type: "text/javascript"
+                                        src: (if (string? use-ajax)
+                                                 use-ajax
+                                                 (ajax-library)))
+                              "")
+                          (if headers
+                              (if sxml?
+                                  ((sxml->html) headers)
+                                  headers)
+                              "")
+                          (if (eq? (javascript-position) 'top)
+                              (include-page-javascript ajax? no-javascript-compression)
+                              ""))
+             charset: (or charset (page-charset))))))
+    (if sxml?
+        ((sxml->html) out)
+        out)))
 
 (define-inline (maybe-create/refresh-session! use-session)
   (when use-session
@@ -623,31 +645,35 @@
                                      (++ "&sid=" ($ 'sid))
                                      "")))))
 
-(define-inline (render-page contents path given-path no-javascript-compression ajax?)
-  (let ((resp
-         (cond ((regexp? path)
-                (contents given-path))
-               ((not (not-set? (%path-procedure-result)))
-                (let ((result (%path-procedure-result)))
-                  (%path-procedure-result not-set)
-                  (apply contents result)))
-               (else (contents)))))
-    (if (procedure? resp)
-        ;; eval resp here, where all
-        ;; parameters' values are set
-        (let ((out (resp))) (lambda () out))
-        (++ resp
-            (if (eq? (javascript-position) 'bottom)
-                (include-page-javascript ajax? no-javascript-compression)
-                "")))))
+(define-inline (render-page contents path given-path no-javascript-compression ajax? sxml?)
+  (let ((++* (if sxml? (lambda args (apply append (map list args))) ++))
+        (null (if sxml? '() "")))
+    (parameterize ((generate-sxml? sxml?))
+      (let ((resp
+             (cond ((regexp? path)
+                    (contents given-path))
+                   ((not (not-set? (%path-procedure-result)))
+                    (let ((result (%path-procedure-result)))
+                      (%path-procedure-result not-set)
+                      (apply contents result)))
+                   (else (contents)))))
+        (if (procedure? resp)
+            ;; eval resp here, where all
+            ;; parameters' values are set
+            (let ((out (resp))) (lambda () out))
+            (++* resp
+                 (if (eq? (javascript-position) 'bottom)
+                     (include-page-javascript ajax? no-javascript-compression)
+                     null)))))))
 
 
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
-                     use-ajax (method 'GET)
+                     use-ajax (method 'GET) use-sxml
                      use-session) ;; for define-session-page
   (##sys#check-closure contents 'define-page)
-  (let ((path (page-path path)))
+  (let ((path (page-path path))
+        (sxml? (or (enable-sxml) use-sxml)))
     (add-resource!
      path
      (or vhost-root-path (root-path))
@@ -666,12 +692,13 @@
                                (contents
                                 (handle-exceptions exn
                                   (render-exception exn)
-                                  (render-page contents path given-path no-javascript-compression ajax?))))
+                                  (render-page contents path given-path no-javascript-compression ajax? sxml?))))
                           (if (%redirect)
                               #f ;; no need to do anything.  Let `run-resource' perform the redirection
                               (if no-template
-                                  contents
-                                  (apply-page-template contents css title doctype ajax? use-ajax headers charset no-javascript-compression)))))
+                                  (if sxml? ((sxml->html) contents) contents)
+                                  (apply-page-template contents css title doctype ajax? use-ajax headers charset
+                                                       no-javascript-compression sxml?)))))
                       ((page-template) ((page-access-denied-message) (or given-path path))))
                   (redirect-to-login-page (or given-path path)))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))

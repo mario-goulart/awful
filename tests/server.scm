@@ -112,3 +112,21 @@
 (define-page match-path
   (lambda (id)
     id))
+
+
+;;; SXML
+(define-page "/sxml-foo"
+  (lambda ()
+    '(span "foo"))
+  use-sxml: #t)
+
+(define-page "/sxml-link"
+  (lambda ()
+    (link "foo" '(i "bar")))
+  use-sxml: #t)
+
+(define-page "/sxml-link-no-template"
+  (lambda ()
+    (link "foo" '(i "bar")))
+  no-template: #t
+  use-sxml: #t)
