@@ -261,10 +261,13 @@
 
 ;;; Javascript
 (define (include-javascript . files)
-  (string-intersperse
-   (map (lambda (file)
-          (<script> type: "text/javascript" src: file))
-        files)))
+  (let ((js (parameterize ((generate-sxml? (enable-sxml)))
+              (map (lambda (file)
+                     (<script> type: "text/javascript" src: file))
+                   files))))
+    (if (or (generate-sxml?) (enable-sxml))
+        js
+        (string-intersperse js ""))))
 
 (define (add-javascript . code)
   (page-javascript (++ (page-javascript) (concat code))))
