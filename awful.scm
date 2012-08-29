@@ -599,20 +599,16 @@
              css: (or css (page-css))
              title: (or (%page-title) title)
              doctype: (or doctype (page-doctype))
-             headers: (++ (if ajax?
-                              (<script> type: "text/javascript"
-                                        src: (if (string? use-ajax)
-                                                 use-ajax
-                                                 (ajax-library)))
-                              "")
-                          (if headers
-                              (if sxml?
-                                  ((sxml->html) headers)
-                                  headers)
-                              "")
-                          (if (eq? (javascript-position) 'top)
-                              (include-page-javascript ajax? no-javascript-compression)
-                              ""))
+             headers: (++* (if ajax?
+                               (<script> type: "text/javascript"
+                                         src: (if (string? use-ajax)
+                                                  use-ajax
+                                                  (ajax-library)))
+                               "")
+                           (or headers null)
+                           (if (eq? (javascript-position) 'top)
+                               (include-page-javascript ajax? no-javascript-compression)
+                               null))
              charset: (or charset (page-charset))))))
     (if sxml?
         ((sxml->html) out)
