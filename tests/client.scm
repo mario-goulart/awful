@@ -121,6 +121,7 @@
 (test (expect/sxml (lambda () (link "foo" '(i "bar")))) (get "/sxml-link"))
 (test (expect/sxml (lambda () (link "foo" '(i "bar"))) no-template: #t)
       (get "/sxml-link-no-template"))
+(test #f (string-contains (get "/sxml/headers") "&lt"))
 (test-end "SXML")
 
 (test-end "awful")

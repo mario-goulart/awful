@@ -130,3 +130,9 @@
     (link "foo" '(i "bar")))
   no-template: #t
   use-sxml: #t)
+
+(parameterize ((enable-sxml #t))
+  (define-page "/sxml/headers"
+    (lambda ()
+      '("foo"))
+    headers: (include-javascript "some-js.js")))
