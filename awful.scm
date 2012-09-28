@@ -714,8 +714,10 @@
 ;;; Ajax
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
-              live content-type prelude update-targets (cache 'not-set) error-handler)
-  (let ((path (page-path path (ajax-namespace))))
+              live content-type prelude update-targets (cache 'not-set) error-handler
+              use-sxml)
+  (let ((path (page-path path (ajax-namespace)))
+        (sxml? (or (enable-sxml) use-sxml)))
     (add-resource! path
                    (or vhost-root-path (root-path))
                    (lambda (#!optional given-path)
@@ -730,16 +732,26 @@
                                (when (and (db-credentials) (db-enabled?) (not no-db))
                                  (db-connection ((db-connect) (db-credentials))))
                                (awful-refresh-session!)
-                               (let ((out (if update-targets
+                               (let* ((out (if update-targets
                                               (with-output-to-string
                                                 (lambda ()
-                                                  (json-write (list->vector (proc)))))
-                                              (proc))))
+                                                  (json-write
+                                                   (list->vector
+                                                    (if sxml?
+                                                        (map (lambda (id/content)
+                                                               (cons (car id/content) ((sxml->html) (cdr id/content))))
+                                                             (proc))
+                                                        (proc))))))
+                                              (if sxml?
+                                                  ((sxml->html) (proc))
+                                                  (proc)))))
                                  (when (and (db-credentials) (db-enabled?) (not no-db))
                                    ((db-disconnect) (db-connection)))
                                  out))
-                             ((page-access-denied-message) path))
-                         (ajax-invalid-session-message)))
+                             (parameterize ((generate-sxml? sxml?))
+                               ((page-access-denied-message) path)))
+                         (parameterize ((generate-sxml? sxml?))
+                           (ajax-invalid-session-message))))
                    method)
     (let* ((arguments (if (and (sid) (session-valid? (sid)))
                           (cons `(sid . ,(++ "'" (sid) "'")) arguments)
@@ -794,7 +806,7 @@
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live
-                         content-type prelude update-targets cache error-handler)
+                         content-type prelude update-targets cache error-handler use-sxml)
   (add-javascript
    (++ "setInterval("
        (ajax path #f #f proc
@@ -812,13 +824,14 @@
              update-targets: update-targets
              error-handler: error-handler
              cache: cache
+             use-sxml: use-sxml
              no-page-javascript: #t)
        ", " (->string interval) ");\n")))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    success no-session no-db (event 'click) vhost-root-path live class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
-                   content-type prelude update-targets error-handler cache)
+                   content-type prelude update-targets error-handler cache use-sxml)
   (ajax path id event proc
         target: target
         action: action
@@ -833,6 +846,7 @@
         update-targets: update-targets
         error-handler: error-handler
         cache: cache
+        use-sxml: use-sxml
         no-db: no-db)
   (<a> href: "#"
        id: id
