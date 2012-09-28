@@ -1037,40 +1037,44 @@ ul#button-bar { margin-left: 0; padding-left: 0; }
 ;;; Session inspector
 (define (enable-session-inspector path #!key css (title "Awful session inspector") headers)
   (unless (development-mode?) (%session-inspector-path path))
+  (define ++* (if (enable-sxml) (lambda args (apply append (map list args))) ++))
+  (define null (if (enable-sxml) '() ""))
   (define-page path
     (lambda ()
-      (parameterize ((enable-session #t))
+      (parameterize ((enable-session #t)
+                     (generate-sxml? (enable-sxml)))
         (if ((session-inspector-access-control))
             (let ((bindings (session-bindings (sid))))
-              (++ (<h1> title)
-                  (if (null? bindings)
-                      (<p> "Session for sid " (sid) " is empty")
-                      (++ (<p> "Session for " (sid))
-                          (tabularize
-                           (map (lambda (binding)
-                                  (let ((var (car binding))
-                                        (val (with-output-to-string
-                                               (lambda ()
-                                                 (pp (cdr binding))))))
-                                    (list (<span> class: "session-inspector-var" var)
-                                          (<pre> convert-to-entities?: #t
-                                                 class: "session-inspector-value"
-                                                 val))))
-                                bindings)
-                           header: '("Variables" "Values")
-                           table-id: "session-inspector-table")))))
+              (++* (<h1> title)
+                   (if (null? bindings)
+                       (<p> "Session for sid " (sid) " is empty")
+                       (++* (<p> "Session for " (sid))
+                            (tabularize
+                             (map (lambda (binding)
+                                    (let ((var (car binding))
+                                          (val (with-output-to-string
+                                                 (lambda ()
+                                                   (pp (cdr binding))))))
+                                      (list (<span> class: "session-inspector-var" var)
+                                            (<pre> convert-to-entities?: #t
+                                                   class: "session-inspector-value"
+                                                   val))))
+                                  bindings)
+                             header: '("Variables" "Values")
+                             table-id: "session-inspector-table")))))
             (session-inspector-access-denied-message))))
-    headers: (let ((builtin-css (if css
-                                    #f
-                                    (<style> type: "text/css"
+    headers: (parameterize ((generate-sxml? (enable-sxml)))
+               (let ((builtin-css (if css
+                                      #f
+                                      (<style> type: "text/css"
 "h1 { font-size: 16pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
 .session-inspector-value { margin: 2px;}
 .session-inspector-var { margin: 0px; }
 #session-inspector-table { margin: 0px; width: 600px;}
 #session-inspector-table tr td, th { padding-left: 10px; border: 1px solid #333; vertical-align: middle; }"))))
                (if headers
-                   (++ (or builtin-css "") headers)
-                   builtin-css))
+                   (++* (or builtin-css null) headers)
+                   builtin-css)))
     title: title
     css: css))
 
