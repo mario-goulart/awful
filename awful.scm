@@ -437,7 +437,11 @@
                    (if (%error)
                        (send-response code: 500
                                       reason: "Internal server error"
-                                      body: ((page-template) ((page-exception-message) (%error)))
+                                      body: (parameterize ((generate-sxml? (enable-sxml)))
+                                              (let ((content ((page-exception-message) (%error))))
+                                                (if (enable-sxml)
+                                                    ((sxml->html) content)
+                                                    content)))
                                       headers: '((content-type text/html)))
                        (if (%redirect) ;; redirection
                            (let ((new-uri (if (string? (%redirect))
@@ -627,13 +631,14 @@
           (sid (session-create))
           ((session-cookie-setter) (sid))))))
 
-(define-inline (render-exception exn)
+(define-inline (render-exception exn sxml?)
   (%error exn)
   (debug (with-output-to-string
            (lambda ()
              (print-call-chain)
              (print-error-message exn))))
-  ((page-exception-message) exn))
+  (parameterize ((generate-sxml? sxml?))
+    ((page-exception-message) exn)))
 
 (define-inline (redirect-to-login-page path)
   ((page-template)
@@ -692,7 +697,7 @@
                         (let* ((ajax? (use-ajax? use-ajax no-ajax))
                                (contents
                                 (handle-exceptions exn
-                                  (render-exception exn)
+                                  (render-exception exn sxml?)
                                   (render-page contents path given-path no-javascript-compression ajax? sxml?))))
                           (if (%redirect)
                               #f ;; no need to do anything.  Let `run-resource' perform the redirection
