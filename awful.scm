@@ -338,13 +338,15 @@
   (let ((pass-sid? (and (not (enable-session-cookie))
                         (sid)
                         (session-valid? (sid))
-                        (not (get-keyword no-session: rest)))))
+                        (not (get-keyword no-session: rest))))
+        (++* (if (generate-sxml?) (lambda args (apply append (map list args))) ++))
+        (null (if (generate-sxml?) '() "")))
     (apply <form>
            (append rest
                    (list
-                    (++ (if pass-sid?
-                            (hidden-input 'sid (sid))
-                            "")
+                    (++* (if pass-sid?
+                             (hidden-input 'sid (sid))
+                             null)
                         contents))))))
 
 
