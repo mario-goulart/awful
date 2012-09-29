@@ -5,6 +5,6 @@
  (author "<a href=\"http://wiki.call-cc.org/users/mario-domenech-goulart\">Mario Domenech Goulart</a>")
  (license "BSD")
  (category web)
- (depends (spiffy 4.11) (spiffy-request-vars 0.13) html-tags (html-utils 0.8) (http-session 2.4) json spiffy-cookies regex)
+ (depends (spiffy 4.11) (spiffy-request-vars 0.13) html-tags (html-utils 0.8) (http-session 2.4) json spiffy-cookies regex sxml-transforms)
  (test-depends http-client test server-test)
  (files "awful.setup" "awful.meta" "awful-server.scm" "awful.release-info" "awful.scm" "tests/README" "tests/session-page.scm" "tests/update-targets.scm" "tests/arc-challenge.scm" "tests/server.scm" "tests/ajax-increment.scm" "tests/client.scm" "tests/session-inspector.scm" "tests/db-sql-de-lite.scm" "tests/redir.scm" "tests/basic-login.scm" "tests/reload.scm" "tests/ajax.scm" "tests/db-sqlite.scm" "tests/conf.scm" "tests/access-control.scm" "tests/js-compression.scm" "tests/web-repl.scm"))
