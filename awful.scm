@@ -745,9 +745,10 @@
                                                   (json-write
                                                    (list->vector
                                                     (if sxml?
-                                                        (map (lambda (id/content)
-                                                               (cons (car id/content) ((sxml->html) (cdr id/content))))
-                                                             (proc))
+                                                        (parameterize ((generate-sxml? #t)) ;; code in ajax can use html-tags
+                                                          (map (lambda (id/content)
+                                                                 (cons (car id/content) ((sxml->html) (cdr id/content))))
+                                                               (proc)))
                                                         (proc))))))
                                               (if sxml?
                                                   ((sxml->html) (proc))
