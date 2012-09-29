@@ -335,12 +335,13 @@
             (list text)))))
 
 (define (form contents . rest)
-  (let ((pass-sid? (and (not (enable-session-cookie))
-                        (sid)
-                        (session-valid? (sid))
-                        (not (get-keyword no-session: rest))))
-        (++* (if (generate-sxml?) (lambda args (apply append (map list args))) ++))
-        (null (if (generate-sxml?) '() "")))
+  (let* ((pass-sid? (and (not (enable-session-cookie))
+                         (sid)
+                         (session-valid? (sid))
+                         (not (get-keyword no-session: rest))))
+         (sxml? (or (generate-sxml?) (enable-sxml)))
+         (++* (if sxml? (lambda args (apply append (map list args))) ++))
+         (null (if sxml? '() "")))
     (apply <form>
            (append rest
                    (list
