@@ -114,6 +114,13 @@
     id))
 
 
+;;; Multiple methods
+(define-page "/multiple-methods"
+  (lambda ()
+    "foo")
+  method: '(GET POST))
+
+
 ;;; SXML
 (define-page "/sxml-foo"
   (lambda ()

@@ -114,6 +114,9 @@
                 'fail)
             (get "/path-procedure")))
 
+;;; Multiple methods
+(test (expect "foo") (get "/multiple-methods"))
+(test (expect "foo") (post "/multiple-methods"))
 
 ;;; SXML
 (test-begin "SXML")
