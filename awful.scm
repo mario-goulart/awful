@@ -186,16 +186,19 @@
   ;; web-repl and session-inspector (if enabled)
   (page-exception-message
    (lambda (exn)
-     (++ (<pre> convert-to-entities?: #t
-                (with-output-to-string
-                  (lambda ()
-                    (print-call-chain)
-                    (print-error-message exn))))
-         (<p> "[" (<a> href: (or (%web-repl-path) "/web-repl") "Web REPL") "]"
-              (if (enable-session)
-                  (++ " [" (<a> href: (or (%session-inspector-path) "/session-inspector")
-                                "Session inspector") "]")
-                  "")))))
+     (let* ((sxml? (or (generate-sxml?) (enable-sxml)))
+            (++* (if sxml? (lambda args (apply append (map list args))) ++))
+            (null (if sxml? '() "")))
+       (++* (<pre> convert-to-entities?: #t
+                   (with-output-to-string
+                     (lambda ()
+                       (print-call-chain)
+                       (print-error-message exn))))
+            (<p> "[" (<a> href: (or (%web-repl-path) "/web-repl") "Web REPL") "]"
+                 (if (enable-session)
+                     (++* " [" (<a> href: (or (%session-inspector-path) "/session-inspector")
+                                    "Session inspector") "]")
+                     ""))))))
 
   ;; If web-repl has not been activated, activate it allowing access
   ;; to the localhost at least (`web-repl-access-control' can be
