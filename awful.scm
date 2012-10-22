@@ -24,6 +24,9 @@
    awful-version load-apps reload-apps link form redirect-to
    add-request-handler-hook! remove-request-handler-hook! set-page-title!
 
+   ;; Macros
+   define-app
+
    ;; spiffy-request-vars wrapper
    with-request-variables true-boolean-values as-boolean as-list
    as-number as-alist as-vector as-hash-table as-string as-symbol
@@ -35,7 +38,7 @@
    ;; Required by db-support eggs
    db-enabled? db-inquirer db-connect db-disconnect sql-quoter db-make-row-obj
 
-  ) ; end export list
+   ) ; end export list
 
 (import scheme chicken data-structures utils extras ports srfi-69 files srfi-1)
 
@@ -263,6 +266,36 @@
   ;; able to know where to redirect.
   (%redirect new-uri)
   "")
+
+
+;;;
+(define-syntax define-app
+  (syntax-rules (matcher: handler-hook: parameters:)
+    ((_ id matcher: matcher handler-hook: proc body ...)
+     (let ((proc* proc)
+           (matcher* matcher))
+       (add-request-handler-hook! 'id
+         (lambda (path handler)
+           (when (matcher* path)
+             (proc* handler))))
+       (proc* (lambda ()
+                body ...))))
+    ((_ id matcher: matcher parameters: params body ...)
+     (let ((matcher* matcher))
+       (add-request-handler-hook! 'id
+         (lambda (path handler)
+           (when (matcher* path)
+             (parameterize params
+               (handler)))))
+       (parameterize params
+         body ...)))
+    ((_ id matcher: matcher body ...)
+     (let ((matcher* matcher))
+       (add-request-handler-hook! 'id
+         (lambda (path handler)
+           (when (matcher* path)
+             (handler))))
+       body ...))))
 
 
 ;;; Javascript
