@@ -118,6 +118,11 @@
 (test (expect "foo") (get "/multiple-methods"))
 (test (expect "foo") (post "/multiple-methods"))
 
+
+;;; Handler returning procedure
+(test "foo" (get "/handler-returning-procedure"))
+
+
 ;;; SXML
 (test-begin "SXML")
 (test (expect/sxml (lambda () '(span "foo"))) (get "/sxml-foo"))

@@ -121,6 +121,17 @@
   method: '(GET POST))
 
 
+;;; Handler returning procedure
+(let ((file "handler-returning-procedure"))
+  (delete-file* file)
+  (with-output-to-file file (cut display "foo"))
+
+  (define-page (string-append "/" file)
+    (lambda ()
+      (lambda ()
+        (send-static-file file)))))
+
+
 ;;; SXML
 (define-page "/sxml-foo"
   (lambda ()
