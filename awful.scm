@@ -695,10 +695,12 @@
                                   (render-page contents path given-path no-javascript-compression ajax? sxml?))))
                           (if (%redirect)
                               #f ;; no need to do anything.  Let `run-resource' perform the redirection
-                              (if no-template
-                                  (if sxml? ((sxml->html) contents) contents)
-                                  (apply-page-template contents css title doctype ajax? use-ajax headers charset
-                                                       no-javascript-compression sxml?)))))
+                              (if (procedure? contents)
+                                  contents
+                                  (if no-template
+                                      (if sxml? ((sxml->html) contents) contents)
+                                      (apply-page-template contents css title doctype ajax? use-ajax headers charset
+                                                           no-javascript-compression sxml?))))))
                       ((page-template) ((page-access-denied-message) (or given-path path))))
                   (redirect-to-login-page (or given-path path)))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
