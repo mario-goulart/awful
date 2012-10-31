@@ -168,7 +168,8 @@
   matcher: (lambda (path) (string-prefix? "/app1" path))
   parameters: ((define-app-param 1))
 
-  (define-page "/app1" define-app-test-handler))
+  (define-page "/app1" define-app-test-handler)
+  (define-page "/app1/another-page" define-app-test-handler))
 
 ;; Matcher as list
 (define-app app2
@@ -176,13 +177,22 @@
   parameters: ((define-app-param 2))
 
   (define-page "/app2" define-app-test-handler)
-  (define-page "/app2/another-page"
-    (lambda ()
-      "another-page")))
+  (define-page "/app2/another-page" define-app-test-handler))
 
 ;; Matcher as regex
 (define-app app3
   matcher: (regexp "(/app3|/app3/.*)")
   parameters: ((define-app-param 3))
 
-  (define-page "/app3" define-app-test-handler))
+  (define-page "/app3" define-app-test-handler)
+  (define-page "/app3/another-page" define-app-test-handler))
+
+;; Using handler-hook
+(define-app app4
+  matcher: '("/" "app4")
+  handler-hook: (lambda (handler)
+                  (parameterize ((define-app-param 4))
+                    (handler)))
+
+  (define-page "/app4" define-app-test-handler)
+  (define-page "/app4/another-page" define-app-test-handler))
