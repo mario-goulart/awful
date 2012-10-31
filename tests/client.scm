@@ -140,5 +140,6 @@
 (test (expect "app1") (get "/app1"))
 (test (expect "app2") (get "/app2"))
 (test (expect "app2") (get "/app2/"))
+(test (expect "another-page") (get "/app2/another-page"))
 (test (expect "app3") (get "/app3"))
 (test-end "define-app")

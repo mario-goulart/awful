@@ -49,6 +49,9 @@
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
      http-session json spiffy-cookies regex sxml-transforms)
 
+;; For match-matcher
+(import-for-syntax regex)
+
 ;;; Version
 (define (awful-version) "0.38.2")
 
@@ -272,19 +275,22 @@
 (define-for-syntax (path-split path)
   (cons "/" (string-split path "/")))
 
-(define-syntax match-matcher
-  (syntax-rules ()
-    ((_ matcher-obj path body ...)
-     (cond ((procedure? matcher-obj)
-            (when (matcher-obj path)
-              body ...))
-           ((list? matcher-obj)
-            (when (equal? matcher-obj (path-split path))
-              body ...))
-           ((regexp? matcher-obj)
-            (when (string-match matcher-obj path)
-              body ...))
-           (else (error 'define-app "Unknown matcher object" matcher-obj))))))
+(define-for-syntax (path-prefix? prefix path)
+  (let ((len-prefix (length prefix)))
+    (and (<= len-prefix (length path))
+         (equal? prefix (take path len-prefix)))))
+
+(define-for-syntax (match-matcher matcher-obj path thunk)
+  (cond ((procedure? matcher-obj)
+         (when (matcher-obj path)
+           (thunk)))
+        ((list? matcher-obj)
+         (when (path-prefix? matcher-obj (path-split path))
+           (thunk)))
+        ((regexp? matcher-obj)
+         (when (string-match matcher-obj path)
+           (thunk)))
+        (else (error 'define-app "Unknown matcher object" matcher-obj))))
 
 (define-syntax define-app
   (syntax-rules (matcher: handler-hook: parameters:)
@@ -293,7 +299,7 @@
            (matcher* matcher))
        (add-request-handler-hook! 'id
          (lambda (path handler)
-           (match-matcher matcher* path (proc* handler))))
+           (match-matcher matcher* path (lambda () (proc* handler)))))
        (proc* (lambda ()
                 body ...))))
     ((_ id matcher: matcher parameters: params body ...)
@@ -301,15 +307,16 @@
        (add-request-handler-hook! 'id
          (lambda (path handler)
            (match-matcher matcher* path
-             (parameterize params
-               (handler)))))
+             (lambda ()
+               (parameterize params
+                 (handler))))))
        (parameterize params
          body ...)))
     ((_ id matcher: matcher body ...)
      (let ((matcher* matcher))
        (add-request-handler-hook! 'id
          (lambda (path handler)
-           (match-matcher matcher* path (handler))))
+           (match-matcher matcher* path handler)))
        body ...))))
 
 

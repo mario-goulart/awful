@@ -175,7 +175,10 @@
   matcher: '("/" "app2")
   parameters: ((define-app-param 2))
 
-  (define-page "/app2" define-app-test-handler))
+  (define-page "/app2" define-app-test-handler)
+  (define-page "/app2/another-page"
+    (lambda ()
+      "another-page")))
 
 ;; Matcher as regex
 (define-app app3
