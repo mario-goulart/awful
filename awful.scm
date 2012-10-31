@@ -268,7 +268,24 @@
   "")
 
 
-;;;
+;;; Application definition
+(define-for-syntax (path-split path)
+  (cons "/" (string-split path "/")))
+
+(define-syntax match-matcher
+  (syntax-rules ()
+    ((_ matcher-obj path body ...)
+     (cond ((procedure? matcher-obj)
+            (when (matcher-obj path)
+              body ...))
+           ((list? matcher-obj)
+            (when (equal? matcher-obj (path-split path))
+              body ...))
+           ((regexp? matcher-obj)
+            (when (string-match matcher-obj path)
+              body ...))
+           (else (error 'define-app "Unknown matcher object" matcher-obj))))))
+
 (define-syntax define-app
   (syntax-rules (matcher: handler-hook: parameters:)
     ((_ id matcher: matcher handler-hook: proc body ...)
@@ -276,15 +293,14 @@
            (matcher* matcher))
        (add-request-handler-hook! 'id
          (lambda (path handler)
-           (when (matcher* path)
-             (proc* handler))))
+           (match-matcher matcher* path (proc* handler))))
        (proc* (lambda ()
                 body ...))))
     ((_ id matcher: matcher parameters: params body ...)
      (let ((matcher* matcher))
        (add-request-handler-hook! 'id
          (lambda (path handler)
-           (when (matcher* path)
+           (match-matcher matcher* path
              (parameterize params
                (handler)))))
        (parameterize params
@@ -293,8 +309,7 @@
      (let ((matcher* matcher))
        (add-request-handler-hook! 'id
          (lambda (path handler)
-           (when (matcher* path)
-             (handler))))
+           (match-matcher matcher* path (handler))))
        body ...))))
 
 

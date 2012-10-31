@@ -1,4 +1,4 @@
-(use awful spiffy)
+(use awful spiffy regex)
 
 (define-page "a" (lambda () "a"))
 
@@ -154,3 +154,32 @@
     (lambda ()
       '("foo"))
     headers: (include-javascript "some-js.js")))
+
+
+;;; define-app
+
+(define define-app-param (make-parameter #f))
+
+(define (define-app-test-handler)
+  (conc "app" (define-app-param)))
+
+;; Matcher as procedure
+(define-app app1
+  matcher: (lambda (path) (string-prefix? "/app1" path))
+  parameters: ((define-app-param 1))
+
+  (define-page "/app1" define-app-test-handler))
+
+;; Matcher as list
+(define-app app2
+  matcher: '("/" "app2")
+  parameters: ((define-app-param 2))
+
+  (define-page "/app2" define-app-test-handler))
+
+;; Matcher as regex
+(define-app app3
+  matcher: (regexp "(/app3|/app3/.*)")
+  parameters: ((define-app-param 3))
+
+  (define-page "/app3" define-app-test-handler))

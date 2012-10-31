@@ -133,3 +133,12 @@
 (test-end "SXML")
 
 (test-end "awful")
+
+
+;;; define-app
+(test-begin "define-app")
+(test (expect "app1") (get "/app1"))
+(test (expect "app2") (get "/app2"))
+(test (expect "app2") (get "/app2/"))
+(test (expect "app3") (get "/app3"))
+(test-end "define-app")
