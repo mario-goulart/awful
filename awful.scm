@@ -172,9 +172,12 @@
   (define-page "/reload"
     (lambda ()
       (reload-apps (awful-apps))
-      (++ (<p> "The following awful apps have been reloaded on "
-               (seconds->string (current-seconds)))
-          (itemize (map <code> (awful-apps)))))
+      `((p "The following awful apps have been reloaded on "
+           ,(seconds->string (current-seconds)))
+        (ul ,@(map (lambda (app)
+                     `(li (code ,app)))
+                   (awful-apps)))))
+    use-sxml: #t
     no-ajax: #t
     title: "Awful reloaded applications"))
 
