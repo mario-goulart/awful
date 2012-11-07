@@ -20,10 +20,12 @@
     (close-all-connections!)
     val))
 
-(define (expect text #!key title)
-  ((page-template) text title: title))
+(define (expect text #!key title headers)
+  ((page-template) text
+   title: title
+   headers: headers))
 
-(define (expect/sxml text #!key title no-template)
+(define (expect/sxml text #!key title no-template headers)
   (let ((no-template-page
          (lambda (contents . kw-args)
            contents)))
@@ -31,7 +33,9 @@
       ((sxml->html) ((if no-template
                          no-template-page
                          (page-template))
-                     `(,(text)) title: title)))))
+                     `(,(text))
+                     title: title
+                     headers: headers)))))
 
 
 ;;; cleanup
@@ -122,6 +126,35 @@
 ;;; Handler returning procedure
 (test "foo" (get "/handler-returning-procedure"))
 
+
+;;; literal-script/style?
+(test-begin "literal-script/style?")
+(test (expect/sxml (lambda ()
+                     "<b>")
+                   headers: '(script (@ (type "text/javascript")) (literal "<b>")))
+      (get "/literal-js/use-sxml"))
+
+(test (expect/sxml (lambda ()
+                     "<b>")
+                   headers: '(script (@ (type "text/javascript")) "<b>"))
+      (get "/no-literal-js/use-sxml"))
+
+(test (expect/sxml (lambda ()
+                     "<b>")
+                   headers: '(script (@ (type "text/javascript")) (literal "<b>")))
+      (get "/literal-js/enable-sxml"))
+
+(test (expect/sxml (lambda ()
+                     "<b>")
+                   headers: '(script (@ (type "text/javascript")) (literal "&lt;b&gt;")))
+      (get "/no-literal-js/enable-sxml"))
+
+(test (expect "<b>" headers: "<script type='text/javascript'><b></script>")
+      (get "/literal-js/strings"))
+
+(test (expect "<b>" headers: "<script type='text/javascript'><b></script>")
+      (get "/no-literal-js/strings"))
+(test-end "literal-script/style?")
 
 ;;; SXML
 (test-begin "SXML")

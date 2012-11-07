@@ -14,7 +14,7 @@
    awful-response-headers development-mode? enable-web-repl-fancy-editor
    web-repl-fancy-editor-base-uri awful-listen awful-accept awful-backlog
    awful-listener javascript-position awful-resources-table sxml->html
-   enable-sxml
+   enable-sxml literal-script/style?
 
    ;; Procedures
    ++ concat include-javascript add-javascript debug debug-pp $session
@@ -101,6 +101,7 @@
                                  (set-cookie! (session-cookie-name) sid))))
 (define javascript-position (make-parameter 'top))
 (define enable-sxml (make-parameter #f))
+(define literal-script/style? (make-parameter #f))
 (define sxml->html
   (make-parameter
    (let ((rules `((literal *preorder* . ,(lambda (t b) b))
@@ -614,19 +615,28 @@
 (define (undefine-page path #!key vhost-root-path (method 'GET))
   (hash-table-delete! *resources* (list path (or vhost-root-path (root-path)) method)))
 
-(define (include-page-javascript ajax? no-javascript-compression)
+(define (maybe-literal-javascript js sxml?)
+  (if (and sxml? (literal-script/style?))
+      `(literal ,js)
+      js))
+
+(define (include-page-javascript ajax? no-javascript-compression sxml?)
   (if ajax?
       (<script> type: "text/javascript"
-                (maybe-compress-javascript
-                 (++ "$(document).ready(function(){"
-                     (page-javascript) "});")
-                 no-javascript-compression))
+                (maybe-literal-javascript
+                 (maybe-compress-javascript
+                  (++ "$(document).ready(function(){"
+                      (page-javascript) "});")
+                  no-javascript-compression)
+                 sxml?))
       (if (string-null? (page-javascript))
           ""
           (<script> type: "text/javascript"
-                    (maybe-compress-javascript
-                     (page-javascript)
-                     no-javascript-compression)))))
+                    (maybe-literal-javascript
+                     (maybe-compress-javascript
+                      (page-javascript)
+                      no-javascript-compression)
+                     sxml?)))))
 
 (define (page-path path #!optional namespace)
   (cond ((regexp? path) path)
@@ -678,7 +688,7 @@
                                "")
                            (or headers null)
                            (if (eq? (javascript-position) 'top)
-                               (include-page-javascript ajax? no-javascript-compression)
+                               (include-page-javascript ajax? no-javascript-compression sxml?)
                                null))
              charset: (or charset (page-charset))))))
     (if sxml?
@@ -730,7 +740,7 @@
             (let ((out (resp))) (lambda () out))
             (++* resp
                  (if (eq? (javascript-position) 'bottom)
-                     (include-page-javascript ajax? no-javascript-compression)
+                     (include-page-javascript ajax? no-javascript-compression sxml?)
                      null)))))))
 
 

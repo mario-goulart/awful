@@ -132,6 +132,47 @@
         (send-static-file file)))))
 
 
+;;; literal-script/style?
+(add-request-handler-hook!
+ 'literal-js
+ (lambda (path handler)
+   (cond ((string-prefix? "/literal-js/enable-sxml" path)
+          (parameterize ((literal-script/style? #t)
+                         (enable-sxml #t))
+            (handler)))
+         ((string-prefix? "/literal-js" path)
+          (parameterize ((literal-script/style? #t))
+            (handler))))))
+
+(define-page "/literal-js/use-sxml"
+  (lambda ()
+    (add-javascript "<b>"))
+  use-sxml: #t)
+
+(define-page "/no-literal-js/use-sxml"
+  (lambda ()
+    (add-javascript "<b>"))
+  use-sxml: #t)
+
+(parameterize ((enable-sxml #t))
+  (define-page "/literal-js/enable-sxml"
+    (lambda ()
+      (add-javascript "<b>"))))
+
+(parameterize ((enable-sxml #t))
+  (define-page "/no-literal-js/enable-sxml"
+    (lambda ()
+      (add-javascript "<b>"))))
+
+(define-page "/literal-js/strings"
+  (lambda ()
+    (add-javascript "<b>")))
+
+(define-page "/no-literal-js/strings"
+  (lambda ()
+    (add-javascript "<b>")))
+
+
 ;;; SXML
 (define-page "/sxml-foo"
   (lambda ()
