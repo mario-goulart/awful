@@ -690,7 +690,8 @@
                            (if (eq? (javascript-position) 'top)
                                (include-page-javascript ajax? no-javascript-compression sxml?)
                                null))
-             charset: (or charset (page-charset))))))
+             charset: (or charset (page-charset))
+             literal-style?: (literal-script/style?)))))
     (if sxml?
         ((sxml->html) out)
         out)))
