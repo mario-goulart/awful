@@ -156,6 +156,26 @@
       (get "/no-literal-js/strings"))
 (test-end "literal-script/style?")
 
+
+;;; add-css
+(test-begin "add-css")
+(test (expect "foo" headers: (<style> ".foo { font-size: 12pt; }"))
+      (get "/add-literal-css"))
+
+(test (expect/sxml (lambda () "foo") headers: '(style (literal ".foo { font-size: \"12pt\"; }")))
+      (get "/add-literal-css/enable-sxml"))
+
+(test (expect "foo" headers: (<style> ".foo { font-size: &quot;12pt&quot;; }"))
+      (get "/add-css"))
+
+(test (expect/sxml (lambda () "foo") headers: '(style (literal ".foo { font-size: &quot;12pt&quot;; }")))
+      (get "/add-css/enable-sxml"))
+
+(test (expect "foo" headers: (<style> ".foo { font-size: 12pt; }.bar { font-size: 12pt; }"))
+      (get "/add-2-css"))
+(test-end "add-css")
+
+
 ;;; SXML
 (test-begin "SXML")
 (test (expect/sxml (lambda () '(span "foo"))) (get "/sxml-foo"))

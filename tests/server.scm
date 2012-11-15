@@ -173,6 +173,46 @@
     (add-javascript "<b>")))
 
 
+;;; add-css
+(add-request-handler-hook!
+ 'literal-css
+ (lambda (path handler)
+   (cond ((string-prefix? "/add-literal-css/enable-sxml" path)
+          (parameterize ((literal-script/style? #t)
+                         (enable-sxml #t))
+            (handler)))
+         ((string-prefix? "/add-literal-css" path)
+          (parameterize ((literal-script/style? #t))
+            (handler))))))
+
+(define-page "/add-literal-css"
+  (lambda ()
+    (add-css ".foo { font-size: 12pt; }")
+    "foo"))
+
+(parameterize ((enable-sxml #t))
+  (define-page "/add-literal-css/enable-sxml"
+    (lambda ()
+      (add-css ".foo { font-size: \"12pt\"; }")
+      "foo")))
+
+(define-page "/add-css"
+  (lambda ()
+    (add-css ".foo { font-size: \"12pt\"; }")
+    "foo"))
+
+(parameterize ((enable-sxml #t))
+  (define-page "/add-css/enable-sxml"
+    (lambda ()
+      (add-css ".foo { font-size: \"12pt\"; }")
+      "foo")))
+
+(define-page "/add-2-css"
+  (lambda ()
+    (add-css ".foo { font-size: 12pt; }")
+    (add-css ".bar { font-size: 12pt; }")
+    "foo"))
+
 ;;; SXML
 (define-page "/sxml-foo"
   (lambda ()

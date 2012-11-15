@@ -17,7 +17,7 @@
    enable-sxml literal-script/style?
 
    ;; Procedures
-   ++ concat include-javascript add-javascript debug debug-pp $session
+   ++ concat include-javascript add-javascript add-css debug debug-pp $session
    $session-set! $ $db $db-row-obj sql-quote define-page undefine-page
    define-session-page ajax ajax-link periodical-ajax login-form
    define-login-trampoline enable-web-repl enable-session-inspector
@@ -137,6 +137,7 @@
 (define %session-inspector-path (make-parameter #f))
 (define %error (make-parameter #f))
 (define %page-title (make-parameter #f))
+(define %page-css (make-parameter #f))
 
 (define-record not-set)
 (define not-set (make-not-set))
@@ -340,6 +341,12 @@
            (not no-javascript-compression))
       (string-trim-both ((javascript-compressor) js))
       js))
+
+
+;;; CSS
+(define (add-css . css)
+  (%page-css (string-append (or (%page-css) "")
+                            (string-intersperse css ""))))
 
 
 ;;; Debugging
@@ -638,6 +645,16 @@
                       no-javascript-compression)
                      sxml?)))))
 
+(define (include-page-css sxml?)
+  (if (%page-css)
+      (if sxml?
+          `(style ,(if (literal-script/style?)
+                       `(literal ,(%page-css))
+                       (%page-css)))
+          (<style> convert-to-entities?: (not (literal-script/style?))
+                   (%page-css)))
+      ""))
+
 (define (page-path path #!optional namespace)
   (cond ((regexp? path) path)
         ((procedure? path) path)
@@ -680,7 +697,8 @@
              css: (or css (page-css))
              title: (or (%page-title) title)
              doctype: (or doctype (page-doctype))
-             headers: (++* (if ajax?
+             headers: (++* (include-page-css sxml?)
+                           (if ajax?
                                (<script> type: "text/javascript"
                                          src: (if (string? use-ajax)
                                                   use-ajax
@@ -760,6 +778,7 @@
        (when (and (db-credentials) (db-enabled?) (not no-db))
          (db-connection ((db-connect) (db-credentials))))
        (page-javascript "")
+       (%page-css #f)
        (awful-refresh-session!)
        (let ((out
               (if (use-session? use-session no-session)
