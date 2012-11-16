@@ -25,7 +25,7 @@
    add-request-handler-hook! remove-request-handler-hook! set-page-title!
 
    ;; Macros
-   define-app
+   (define-app path-split path-prefix? match-matcher)
 
    ;; spiffy-request-vars wrapper
    with-request-variables true-boolean-values as-boolean as-list
@@ -272,15 +272,15 @@
 
 
 ;;; Application definition
-(define-for-syntax (path-split path)
+(define (path-split path)
   (cons "/" (string-split path "/")))
 
-(define-for-syntax (path-prefix? prefix path)
+(define (path-prefix? prefix path)
   (let ((len-prefix (length prefix)))
     (and (<= len-prefix (length path))
          (equal? prefix (take path len-prefix)))))
 
-(define-for-syntax (match-matcher matcher-obj path thunk)
+(define (match-matcher matcher-obj path thunk)
   (cond ((procedure? matcher-obj)
          (when (matcher-obj path)
            (thunk)))
