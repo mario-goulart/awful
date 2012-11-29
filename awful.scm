@@ -323,22 +323,25 @@
                         (not (get-keyword no-session: rest))))
         (arguments (or (get-keyword arguments: rest) '()))
         (separator (or (get-keyword separator: rest) ";&")))
-    (apply <a>
-           (append
-            (list href: (if url
-                            (++ url
-                                (if (or pass-sid? (not (null? arguments)))
-                                    (++ "?"
-                                        (form-urlencode
-                                         (append arguments
-                                                 (if pass-sid?
-                                                     `((sid . ,(sid)))
-                                                     '()))
-                                         separator: separator))
-                                    ""))
-                            "#"))
-            rest
-            (list text)))))
+    (parameterize ((generate-sxml? (or (enable-sxml) (generate-sxml?))))
+      (apply <a>
+             (append
+              (list href: (if url
+                              (string-append
+                               url
+                               (if (or pass-sid? (not (null? arguments)))
+                                   (string-append
+                                    "?"
+                                    (form-urlencode
+                                     (append arguments
+                                             (if pass-sid?
+                                                 `((sid . ,(sid)))
+                                                 '()))
+                                     separator: separator))
+                                   ""))
+                              "#"))
+              rest
+              (list text))))))
 
 (define (form contents . rest)
   (let* ((pass-sid? (and (not (enable-session-cookie))
