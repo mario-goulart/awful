@@ -475,7 +475,14 @@
                                          (handler path proc)
                                          (continue #f))))
                          *request-handler-hooks*)
-               (handler path proc)))))
+               (handler path proc)))
+    ;; The value for %path-procedure-result is determined at path
+    ;; matching time, before run-resource is called.  If it was reset
+    ;; by reset-per-request-parameters (which is called right at the
+    ;; beginning of run-resource), its value would be reset.  So we
+    ;; reset it here, after the page handler used its value and
+    ;; has finished.
+    (%path-procedure-result not-set)))
 
 (define (resource-ref path vhost-root-path method)
   (when (debug-resources)
@@ -657,7 +664,6 @@
                     (contents given-path))
                    ((not (not-set? (%path-procedure-result)))
                     (let ((result (%path-procedure-result)))
-                      (%path-procedure-result not-set)
                       (apply contents result)))
                    (else (contents)))))
         (if (procedure? resp)
