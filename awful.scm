@@ -681,7 +681,7 @@
 
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
-                     use-ajax (method 'GET) use-sxml
+                     use-ajax (method '(GET HEAD)) use-sxml
                      use-session) ;; for define-session-page
   (##sys#check-closure contents 'define-page)
   (let ((path (page-path path))
