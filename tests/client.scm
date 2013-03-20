@@ -185,9 +185,6 @@
 (test #f (string-contains (get "/sxml/headers") "&lt"))
 (test-end "SXML")
 
-(test-end "awful")
-
-
 ;;; define-app
 (test-begin "define-app")
 (test (expect "app1") (get "/app1"))
@@ -201,3 +198,5 @@
 (test (expect "app4") (get "/app4"))
 (test (expect "app4") (get "/app4/another-page"))
 (test-end "define-app")
+
+(test-end "awful")
