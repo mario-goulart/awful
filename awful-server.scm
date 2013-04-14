@@ -1,6 +1,3 @@
-#!/usr/bin/csi -script
-;; -*- scheme -*-
-
 ;; Copyright (c) 2010-2013, Mario Domenech Goulart
 ;; All rights reserved.
 ;;
