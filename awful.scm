@@ -79,7 +79,7 @@
 (import-for-syntax regex)
 
 ;;; Version
-(define (awful-version) "0.38.2")
+(define (awful-version) "0.39")
 
 
 ;;; Parameters
