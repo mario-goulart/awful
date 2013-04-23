@@ -24,7 +24,7 @@
 ;; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 ;; IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(use awful spiffy regex)
+(use awful spiffy regex srfi-1)
 
 (define-page "a" (lambda () "a"))
 
@@ -138,6 +138,20 @@
 (define-page match-path
   (lambda (id)
     id))
+
+
+;;; path matcher as regular expressions
+;; Using regex egg
+(define-page (regexp "/add/.*")
+  (lambda (path)
+    (let ((numbers (filter-map string->number (string-split path "/"))))
+      (->string (apply + numbers)))))
+
+;; Using irregex unit
+(define-page (irregex "/mult/.*")
+  (lambda (path)
+    (let ((numbers (filter-map string->number (string-split path "/"))))
+      (->string (apply * numbers)))))
 
 
 ;;; Multiple methods
@@ -288,7 +302,7 @@
 
 ;; Matcher as regex
 (define-app app3
-  matcher: (regexp "(/app3|/app3/.*)")
+  matcher: (irregex "(/app3|/app3/.*)")
   parameters: ((define-app-param 3))
 
   (define-page "/app3" define-app-test-handler)

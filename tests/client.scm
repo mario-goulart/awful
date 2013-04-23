@@ -144,6 +144,12 @@
                 'fail)
             (get "/path-procedure")))
 
+
+;;; path matcher as regular expressions
+(test (expect "11") (get "/add/1/3/7")) ;; Using regex egg
+(test (expect "21") (get "/mult/1/3/7")) ;; Using irregex unit
+
+
 ;;; Multiple methods
 (test (expect "foo") (get "/multiple-methods"))
 (test (expect "foo") (post "/multiple-methods"))

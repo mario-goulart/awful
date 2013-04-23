@@ -1,12 +1,12 @@
 #!/usr/bin/awful
 
-(use awful regex)
+(use awful)
 
 ;; / -> /foo
 (define-page (main-page-path) (cut redirect-to "/foo"))
 
 ;; /bar.* -> /foo
-(define-page (regexp "/bar.*")
+(define-page (irregex "/bar.*")
   (lambda (_)
     (redirect-to "/foo")))
 

@@ -69,14 +69,11 @@
 (import scheme chicken data-structures utils extras ports srfi-69 files srfi-1)
 
 ;; Units
-(use posix srfi-13 tcp)
+(use posix srfi-13 tcp irregex)
 
 ;; Eggs
 (use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
-     http-session json spiffy-cookies regex sxml-transforms)
-
-;; For match-matcher
-(import-for-syntax regex)
+     http-session json spiffy-cookies sxml-transforms)
 
 ;;; Version
 (define (awful-version) "0.39")
@@ -315,8 +312,8 @@
         ((list? matcher-obj)
          (when (path-prefix? matcher-obj (path-split path))
            (thunk)))
-        ((regexp? matcher-obj)
-         (when (string-match matcher-obj path)
+        ((irregex? matcher-obj)
+         (when (irregex-match matcher-obj path)
            (thunk)))
         (else (error 'define-app "Unknown matcher object" matcher-obj))))
 
@@ -592,10 +589,10 @@
                (current-vhost (cadar current-resource))
                (current-method (caddar current-resource))
                (current-proc (cdr current-resource)))
-          (if (and (regexp? current-path)
+          (if (and (irregex? current-path)
                    (equal? current-vhost vhost-root-path)
                    (eq? current-method method)
-                   (string-match current-path path))
+                   (irregex-match current-path path))
               current-proc
               (loop (cdr resources)))))))
 
@@ -682,7 +679,7 @@
       ""))
 
 (define (page-path path #!optional namespace)
-  (cond ((regexp? path) path)
+  (cond ((irregex? path) path)
         ((procedure? path) path)
         ((equal? path "/") "/")
         (else
@@ -773,7 +770,7 @@
         (null (if sxml? '() "")))
     (parameterize ((generate-sxml? sxml?))
       (let ((resp
-             (cond ((regexp? path)
+             (cond ((irregex? path)
                     (contents given-path))
                    ((not (not-set? (%path-procedure-result)))
                     (let ((result (%path-procedure-result)))
