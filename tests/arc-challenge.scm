@@ -1,15 +1,19 @@
-(use awful html-utils spiffy-request-vars)
+(use awful)
+
+(enable-sxml #t)
 
 (define-session-page "said"
   (lambda ()
-    (with-request-vars* $ (said)
+    (with-request-variables (said)
       (cond (said
              ($session-set! 'said said)
-             (link "said" "click here"))
+             `(a (@ (href "said")) "click here"))
             (($session 'said)
              => (lambda (said)
-                  (++ "You said: " said)))
-            (else (form (++ (text-input 'said)
-                            (submit-input))
-                        action: "said"
-                        method: 'post))))))
+                  `("You said: " ,said)))
+            (else
+             `(form (@ (action "said")
+                       (method "post"))
+                    `((input (@ (type "text") (name "said")))
+                      (input (@ (type "submit")))))))))
+  method: '(get post))
