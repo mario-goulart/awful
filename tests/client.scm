@@ -211,6 +211,14 @@
 (test #f (string-contains (get "/sxml/headers") "&lt"))
 (test-end "SXML")
 
+;;; undefine-page
+(test-begin "undefine-page")
+(test (expect "undefined") (get "/undefine/page"))
+(test-error (get "/undefine/page"))
+(test (expect "undefined") (get "/undefine/page/get-only"))
+(test-error (get "/undefine/page/get-only"))
+(test-end "undefine-page")
+
 ;;; define-app
 (test-begin "define-app")
 (test (expect "app1") (get "/app1"))

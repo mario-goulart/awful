@@ -645,8 +645,14 @@
 ;;;
 ;;; Pages
 ;;;
-(define (undefine-page path #!key vhost-root-path (method 'GET))
-  (hash-table-delete! *resources* (list path (or vhost-root-path (root-path)) method)))
+(define (undefine-page path #!key vhost-root-path (method '(GET HEAD)))
+  (for-each (lambda (method)
+              (hash-table-delete! *resources*
+                                  (list path (or vhost-root-path (root-path))
+                                        method)))
+            (if (list? method)
+                method
+                (list method))))
 
 (define (maybe-literal-javascript js sxml?)
   (if (and sxml? (literal-script/style?))

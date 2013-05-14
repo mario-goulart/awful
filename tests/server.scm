@@ -263,6 +263,23 @@
     headers: (include-javascript "some-js.js")))
 
 
+;;; undefine-page
+(define-app undefine-page
+  matcher: '("/" "undefine")
+
+  (define-page "/undefine/page/get-only"
+    (lambda ()
+      (undefine-page "/undefine/page/get-only")
+      "undefined")
+    method: 'get)
+
+  (define-page "/undefine/page"
+    (lambda ()
+      (undefine-page "/undefine/page")
+      "undefined"))
+
+) ;; end undefine-page app
+
 ;;; define-app
 
 (define define-app-param (make-parameter #f))
