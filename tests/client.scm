@@ -233,4 +233,17 @@
 (test (expect "app4") (get "/app4/another-page"))
 (test-end "define-app")
 
+;;; define-resource
+(test-begin "define-resource")
+(test "1" (get "/resource/1"))
+(test "3" (get "/resource/2"))
+(test "3" (get "/resource/3"))
+(test "\n<html>4</html>" (get "/resource/4"))
+(test "/resource/5" (get "/resource/5"))
+(test "/resource/6" (get "/resource/6"))
+(test "undefined" (get "/resource/7"))
+(test-error (get "/resource/7"))
+(test "res8" (get "/resource/8"))
+(test-end "define-resource")
+
 (test-end "awful")

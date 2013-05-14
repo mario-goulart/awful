@@ -320,3 +320,50 @@
 
   (define-page "/app4" define-app-test-handler)
   (define-page "/app4/another-page" define-app-test-handler))
+
+
+;;; define-resource
+
+(define-app resources
+  matcher: '("/" "resource")
+
+  (define-resource "/resource/1"
+    (lambda ()
+      1))
+
+  (define-resource "/resource/2"
+    (lambda ()
+      (redirect-to "/resource/3")))
+
+  (define-resource "/resource/3"
+    (lambda ()
+      3))
+
+  (define-resource "/resource/4"
+    (lambda ()
+      ((sxml->html) `(html 4))))
+
+  (define-resource (irregex "/resource/5")
+    (lambda (path)
+      path))
+
+  (define-resource (lambda (req-path)
+                     (and (equal? req-path "/resource/6")
+                          (list req-path)))
+    (lambda (path)
+      path))
+
+  (define-resource "/resource/7"
+    (lambda ()
+      (undefine-resource "/resource/7")
+      "undefined"))
+
+  (define-resource "/resource/8"
+    (lambda ()
+      (with-output-to-file "res8"
+        (cut display "res8"))
+      (lambda ()
+        (send-static-file "res8")
+        (delete-file "res8"))))
+
+) ;; end resources app

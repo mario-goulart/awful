@@ -49,6 +49,7 @@
    define-login-trampoline enable-web-repl enable-session-inspector
    awful-version load-apps reload-apps link form redirect-to
    add-request-handler-hook! remove-request-handler-hook! set-page-title!
+   define-resource undefine-resource
 
    ;; Macros
    (define-app path-split path-prefix? match-matcher)
@@ -633,6 +634,30 @@
 (define (reset-resources!)
   (set! *resources* (make-hash-table equal?)))
 
+(define (apply-handler proc matcher given-path)
+  (cond ((regexp? matcher)
+         (proc given-path))
+        ((not (not-set? (%path-procedure-result)))
+         (let ((result (%path-procedure-result)))
+           (apply proc result)))
+        (else (proc))))
+
+(define (define-resource matcher proc #!key (method '(GET HEAD)) vhost-root-path)
+  (add-resource! (page-path matcher)
+                 (or vhost-root-path (root-path))
+                 (lambda (#!optional given-path)
+                   (apply-handler proc matcher given-path))
+                 method))
+
+(define (undefine-resource path #!key vhost-root-path (method '(GET HEAD)))
+  (for-each (lambda (method)
+              (hash-table-delete! *resources*
+                                  (list path (or vhost-root-path (root-path))
+                                        method)))
+            (if (list? method)
+                method
+                (list method))))
+
 ;;; Root dir
 (define (register-root-dir-handler)
   (handle-directory
@@ -645,14 +670,7 @@
 ;;;
 ;;; Pages
 ;;;
-(define (undefine-page path #!key vhost-root-path (method '(GET HEAD)))
-  (for-each (lambda (method)
-              (hash-table-delete! *resources*
-                                  (list path (or vhost-root-path (root-path))
-                                        method)))
-            (if (list? method)
-                method
-                (list method))))
+(define undefine-page undefine-resource)
 
 (define (maybe-literal-javascript js sxml?)
   (if (and sxml? (literal-script/style?))
@@ -778,13 +796,7 @@
   (let ((++* (if sxml? (lambda args (apply append (map list args))) ++))
         (null (if sxml? '() "")))
     (parameterize ((generate-sxml? sxml?))
-      (let ((resp
-             (cond ((regexp? path)
-                    (contents given-path))
-                   ((not (not-set? (%path-procedure-result)))
-                    (let ((result (%path-procedure-result)))
-                      (apply contents result)))
-                   (else (contents)))))
+      (let ((resp (apply-handler contents path given-path)))
         (if (procedure? resp)
             ;; eval resp here, where all
             ;; parameters' values are set
