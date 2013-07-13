@@ -758,15 +758,16 @@
     ((page-exception-message) exn)))
 
 (define-inline (redirect-to-login-page path)
-  ((page-template)
-   ""
-   headers: (<meta> http-equiv: "refresh"
-                    content: (++ "0;url=" (login-page-path)
-                                 "?reason=invalid-session&attempted-path=" path
-                                 "&user=" ($ 'user "")
-                                 (if (and (not (enable-session-cookie)) ($ 'sid))
-                                     (++ "&sid=" ($ 'sid))
-                                     "")))))
+  (let ((content ((page-template)
+                    ""
+                    headers: (<meta> http-equiv: "refresh"
+                                     content: (++ "0;url=" (login-page-path)
+                                                  "?reason=invalid-session&attempted-path=" path
+                                                  "&user=" ($ 'user "")
+                                                  (if (and (not (enable-session-cookie)) ($ 'sid))
+                                                    (++ "&sid=" ($ 'sid))
+                                                    ""))))))
+    (if sxml? ((sxml->html) content) content)))
 
 (define-inline (render-page contents path given-path no-javascript-compression ajax? sxml?)
   (let ((++* (if sxml? (lambda args (apply append (map list args))) ++))
