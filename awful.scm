@@ -690,7 +690,7 @@
 (define (page-path path #!optional namespace)
   (cond ((regexp? path) path)
         ((procedure? path) path)
-        ((equal? path "/") "/")
+        ((equal? path "/") (app-root-path))
         (else
          (string-chomp
           (make-pathname (cons (app-root-path)

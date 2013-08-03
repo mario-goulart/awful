@@ -320,3 +320,15 @@
 
   (define-page "/app4" define-app-test-handler)
   (define-page "/app4/another-page" define-app-test-handler))
+
+;; app-root-path
+(parameterize ((app-root-path "/app-root-path"))
+
+  (define-page (main-page-path)
+    (lambda ()
+      "app-root-path"))
+
+  (define-page "foo"
+    (lambda ()
+      "app-root-path/foo"))
+  )

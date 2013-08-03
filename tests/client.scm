@@ -233,4 +233,10 @@
 (test (expect "app4") (get "/app4/another-page"))
 (test-end "define-app")
 
+;;; app-root-path
+(test-begin "app-root-path")
+(test (expect "app-root-path") (get "/app-root-path"))
+(test (expect "app-root-path/foo") (get "/app-root-path/foo"))
+(test-end "app-root-path")
+
 (test-end "awful")
