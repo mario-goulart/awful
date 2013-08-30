@@ -801,11 +801,13 @@
 
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
-                     use-ajax (method '(GET HEAD)) use-sxml
+                     use-ajax (method '(GET HEAD)) (use-sxml not-set)
                      use-session) ;; for define-session-page
   (##sys#check-closure contents 'define-page)
   (let ((path (page-path path))
-        (sxml? (or (enable-sxml) use-sxml)))
+        (sxml? (if (not-set? use-sxml)
+                   (enable-sxml)
+                   use-sxml)))
     (add-resource!
      path
      (or vhost-root-path (root-path))
@@ -851,9 +853,11 @@
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
               live content-type prelude update-targets (cache 'not-set) error-handler
-              use-sxml)
+              (use-sxml not-set))
   (let ((path (page-path path (ajax-namespace)))
-        (sxml? (or (enable-sxml) use-sxml)))
+        (sxml? (if (not-set? use-sxml)
+                   (enable-sxml)
+                   use-sxml)))
     (add-resource! path
                    (or vhost-root-path (root-path))
                    (lambda (#!optional given-path)
@@ -943,7 +947,7 @@
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live
-                         content-type prelude update-targets cache error-handler use-sxml)
+                         content-type prelude update-targets cache error-handler (use-sxml not-set))
   (add-javascript
    (++ "setInterval("
        (ajax path #f #f proc
@@ -968,7 +972,7 @@
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    success no-session no-db (event 'click) vhost-root-path live class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
-                   content-type prelude update-targets error-handler cache use-sxml)
+                   content-type prelude update-targets error-handler cache (use-sxml not-set))
   (ajax path id event proc
         target: target
         action: action
