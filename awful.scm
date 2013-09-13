@@ -850,10 +850,17 @@
 
 
 ;;; Ajax
+(define (->jquery-selector s)
+  (if (symbol? s)
+      (conc "#" s)
+      s))
+
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
-              live content-type prelude update-targets (cache 'not-set) error-handler
+              live on content-type prelude update-targets (cache 'not-set) error-handler
               (use-sxml not-set))
+  (when (and on live)
+    (error 'ajax "`live' and `on' cannot be used together."))
   (let ((path (page-path path (ajax-namespace)))
         (sxml? (if (not-set? use-sxml)
                    (enable-sxml)
@@ -900,11 +907,16 @@
            (js-code
             (++ (if (and id event)
                     (let ((events (concat (if (list? event) event (list event)) " "))
-                          (binder (if live "live" "bind")))
-                      (++ "$('" (if (symbol? id)
-                                    (conc "#" id)
-                                    id)
-                          "')." binder "('" events "',"))
+                          (binder (if live "live" (if on "on" "bind"))))
+                      (++ (if on
+                              (if (string? on)
+                                  (sprintf "$('~a')." on) ;; start delegation from `on'
+                                  "$(document).")
+                              (sprintf "$('~a')." (->jquery-selector id)))
+                          binder "('" events "',"))
+                    "")
+                (if (and on (not (boolean? on)))
+                    (sprintf "'~a'," (->jquery-selector on))
                     "")
                 (++ "function(event){"
                     (or prelude "")
@@ -946,7 +958,7 @@
       js-code)))
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
-                         (arguments '()) success no-session no-db vhost-root-path live
+                         (arguments '()) success no-session no-db vhost-root-path live on
                          content-type prelude update-targets cache error-handler (use-sxml not-set))
   (add-javascript
    (++ "setInterval("
@@ -960,6 +972,7 @@
              no-db: no-db
              vhost-root-path: vhost-root-path
              live: live
+             on: on
              content-type: content-type
              prelude: prelude
              update-targets: update-targets
@@ -970,7 +983,7 @@
        ", " (->string interval) ");\n")))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
-                   success no-session no-db (event 'click) vhost-root-path live class
+                   success no-session no-db (event 'click) vhost-root-path live on class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
                    content-type prelude update-targets error-handler cache (use-sxml not-set))
   (ajax path id event proc
@@ -982,6 +995,7 @@
         no-session: no-session
         vhost-root-path: vhost-root-path
         live: live
+        on: on
         content-type: content-type
         prelude: prelude
         update-targets: update-targets
