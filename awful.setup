@@ -9,8 +9,8 @@
 
 (install-extension 'awful
                    '("awful.so" "awful.import.so")
-                   '((version "0.39.1")))
+                   '((version "0.39.2")))
 
 (install-program 'awful-server
                  '("awful")
-                 `((version "0.39.1")))
+                 `((version "0.39.2")))
