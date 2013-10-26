@@ -500,7 +500,7 @@
 ;;; Resources
 (root-path (current-directory))
 
-(define *resources* (make-hash-table equal?))
+(define *resources* '())
 
 (define (awful-resources-table)
   *resources*)
@@ -578,13 +578,13 @@
 
 (define (resource-ref path vhost-root-path method)
   (when (debug-resources)
-    (debug-pp (hash-table->alist *resources*)))
-  (or (hash-table-ref/default *resources* (list path vhost-root-path method) #f)
+    (debug-pp *resources*))
+  (or (alist-ref (list path vhost-root-path method) *resources* equal?)
       (resource-match/procedure path vhost-root-path method)
       (resource-match/regex path vhost-root-path method)))
 
 (define (resource-match/regex path vhost-root-path method)
-  (let loop ((resources (hash-table->alist *resources*)))
+  (let loop ((resources *resources*))
     (if (null? resources)
         #f
         (let* ((current-resource (car resources))
@@ -600,7 +600,7 @@
               (loop (cdr resources)))))))
 
 (define (resource-match/procedure path vhost-root-path method)
-  (let loop ((resources (hash-table->alist *resources*)))
+  (let loop ((resources *resources*))
     (if (null? resources)
         #f
         (let* ((current-resource (car resources))
@@ -627,11 +627,13 @@
      (lambda (method)
        (let ((upcase-method
               (string->symbol (string-upcase (symbol->string method)))))
-         (hash-table-set! *resources* (list path vhost-root-path upcase-method) proc)))
+         (set! *resources*
+               (cons (cons (list path vhost-root-path upcase-method) proc)
+                     *resources*))))
      methods)))
 
 (define (reset-resources!)
-  (set! *resources* (make-hash-table equal?)))
+  (set! *resources* '()))
 
 ;;; Root dir
 (define (register-root-dir-handler)
@@ -647,9 +649,10 @@
 ;;;
 (define (undefine-page path #!key vhost-root-path (method '(GET HEAD)))
   (for-each (lambda (method)
-              (hash-table-delete! *resources*
-                                  (list path (or vhost-root-path (root-path))
-                                        method)))
+              (set! *resources*
+                    (alist-delete! (list path (or vhost-root-path (root-path))
+                                         method)
+                                   *resources*)))
             (if (list? method)
                 method
                 (list method))))

@@ -131,7 +131,6 @@
 
 
 ;;; awful-resources-table
-(test (expect "ok") (get "/resources-table-is-hash-table"))
 (test (expect "ok") (get "/resources-table-contains-return-procedure"))
 
 
