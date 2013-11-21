@@ -9,7 +9,7 @@
 
 (define-page (main-page-path)
   (lambda ()
-    (add-javascript "/* Here's some javascript comment that should "
+    (add-javascript "/* Here's some JavaScript comment that should "
                     "be stripped from the page. */")
     (ajax "/click" 'clickme '(click dblclick)
           (lambda () (->string (current-seconds)))

@@ -278,7 +278,7 @@
       (print "WARNING: awful is running with administrator privileges (not recommended)"))
     ;; load apps
     (thunk)
-    ;; Check for invalid javascript positioning
+    ;; Check for invalid JavaScript positioning
     (unless (memq (javascript-position) '(top bottom))
       (error 'awful-start
              "Invalid value for `javascript-position'.  Valid ones are: `top' and `bottom'."))
@@ -348,7 +348,7 @@
        body ...))))
 
 
-;;; Javascript
+;;; JavaScript
 (define (include-javascript . files)
   (let ((js (parameterize ((generate-sxml? (enable-sxml)))
               (map (lambda (file)
@@ -475,7 +475,7 @@
   ((sql-quoter) data))
 
 
-;;; Parameters reseting
+;;; Parameters resetting
 (define (reset-per-request-parameters) ;; to cope with spiffy's thread reuse
   (http-request-variables #f)
   (awful-response-headers #f)
