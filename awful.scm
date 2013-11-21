@@ -118,7 +118,7 @@
 (define page-exception-message
   (make-parameter
    (lambda (exn)
-     (<h3> "An error has accurred while processing your request."))))
+     (<h3> "An error has occurred while processing your request."))))
 (define debug-resources (make-parameter #f)) ;; usually useful for awful development debugging
 (define enable-session-cookie (make-parameter #t))
 (define session-cookie-name (make-parameter "awful-cookie"))
