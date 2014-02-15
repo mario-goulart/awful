@@ -1096,8 +1096,7 @@
                        (<pre> convert-to-entities?: #t
                               (with-output-to-string
                                 (lambda ()
-                                  (pp (handle-exceptions
-                                          exn
+                                  (pp (handle-exceptions exn
                                         (begin
                                           (print-error-message exn)
                                           (print-call-chain))
