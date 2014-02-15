@@ -1080,67 +1080,15 @@
 ;;; Web repl
 (define (enable-web-repl path #!key css (title "Awful Web REPL") headers)
   (unless (development-mode?) (%web-repl-path path))
-  (define ++* (if (enable-sxml) (lambda args (apply append (map list args))) ++))
-  (define null (if (enable-sxml) '() ""))
   (define (maybe-literal . content)
     (if (enable-sxml)
         `(literal ,@content)
         (string-intersperse content "")))
-  (define-page path
-    (lambda ()
-      (parameterize ((generate-sxml? (enable-sxml)))
-        (if ((web-repl-access-control))
-            (let ((web-eval
-                   (lambda ()
-                     (parameterize ((generate-sxml? (enable-sxml)))
-                       (<pre> convert-to-entities?: #t
-                              (with-output-to-string
-                                (lambda ()
-                                  (pp (handle-exceptions exn
-                                        (begin
-                                          (print-error-message exn)
-                                          (print-call-chain))
-                                        (eval `(begin
-                                                 ,@(with-input-from-string ($ 'code "")
-                                                     read-file))))))))))))
-              (page-javascript
-               (string-append "$('#clear').click(function(){"
-                              (if (enable-web-repl-fancy-editor)
-                                  "editor.setCode('');"
-                                  "$('#prompt').val('');")
-                              "});"))
 
-              (ajax (string-append path "-eval") 'eval 'click web-eval
-                    target: "result"
-                    arguments: `((code . ,(if (enable-web-repl-fancy-editor)
-                                              "editor.getCode()"
-                                              "$('#prompt').val()"))))
-
-              (when (enable-web-repl-fancy-editor)
-                (ajax (string-append path "-eval") 'eval-region 'click web-eval
-                      target: "result"
-                      arguments: `((code . "editor.selection()"))))
-
-              (++* (<h1> title)
-                   (<h2> "Input area")
-                   (let ((prompt (<textarea> id: "prompt" name: "prompt" rows: "10" cols: "90")))
-                     (if (enable-web-repl-fancy-editor)
-                         (<div> class: "border" prompt)
-                         prompt))
-                   (itemize
-                    (map (lambda (item)
-                           (<button> id: (car item) (cdr item)))
-                         (append '(("eval"  . "Eval"))
-                                 (if (enable-web-repl-fancy-editor)
-                                     '(("eval-region" . "Eval region"))
-                                     '())
-                                 '(("clear" . "Clear"))))
-                    list-id: "button-bar")
-                   (<h2> "Output area")
-                   (<div> id: "result")
-                   (if (enable-web-repl-fancy-editor)
-                       (<script> type: "text/javascript"
-                                 (maybe-literal "
+  (define (fancy-editor-js)
+    (if (enable-web-repl-fancy-editor)
+        `(script (@ (type: "text/javascript"))
+                 (literal ,(string-append "
   function addClass(element, className) {
     if (!editor.win.hasClass(element, className)) {
       element.className = ((element.className.split(' ')).concat([className])).join(' ');}}
@@ -1166,30 +1114,89 @@
     disableSpellcheck: true,
     markParen: function(span, good) {addClass(span, good ? 'good-matching-paren' : 'bad-matching-paren');},
     unmarkParen: function(span) {removeClass(span, 'good-matching-paren'); removeClass(span, 'bad-matching-paren');}
-  });")
-                       null))))
+  });")))
+        '()))
+
+  (define (web-repl-css)
+    (let ((builtin-css
+           `(style (@ (type "text/css"))
+              ,(string-append
+                "h1 { font-size: 18pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}"
+                "h2 { font-size: 14pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}"
+                "ul#button-bar { margin-left: 0; padding-left: 0; }"
+                "#button-bar li {display: inline; list-style-type: none; padding-right: 10px; }"
+                (if (enable-web-repl-fancy-editor)
+                    "div.border { border: 1px solid black; width: 600px;}"
+                    "#prompt { width: 600px; }")
+                "#result { border: 1px solid #333; padding: 5px; width: 590px; }"))))
+      (if headers
+          (append (or css builtin-css) headers)
+          (or css builtin-css))))
+
+  (define (web-eval)
+    `(pre ,(with-output-to-string
+             (lambda ()
+               (pp (handle-exceptions exn
+                     (begin
+                       (print-error-message exn)
+                       (print-call-chain))
+                     (eval `(begin
+                              ,@(with-input-from-string ($ 'code "")
+                                  read-file)))))))))
+
+  (define-page path
+    (lambda ()
+      (if ((web-repl-access-control))
+          (begin
+            (page-javascript
+             (string-append "$('#clear').click(function(){"
+                            (if (enable-web-repl-fancy-editor)
+                                "editor.setCode('');"
+                                "$('#prompt').val('');")
+                            "});"))
+
+            (ajax (string-append path "-eval") 'eval 'click web-eval
+                  use-sxml: #t
+                  target: "result"
+                  arguments: `((code . ,(if (enable-web-repl-fancy-editor)
+                                            "editor.getCode()"
+                                            "$('#prompt').val()"))))
+
+            (when (enable-web-repl-fancy-editor)
+              (ajax (string-append path "-eval") 'eval-region 'click web-eval
+                    target: "result"
+                    use-sxml: #t
+                    arguments: `((code . "editor.selection()"))))
+
+            `((h1 ,title)
+              (h2 "Input area")
+              ,(let ((prompt `(textarea (@ (id "prompt") (name "prompt") (rows "10") (cols "90")))))
+                 (if (enable-web-repl-fancy-editor)
+                     `(div (@ (class "border")) ,prompt)
+                     prompt))
+              (ul (@ (id "button-bar"))
+                  ,(map (lambda (item)
+                          `(li (button (@ (id ,(car item))) ,(cdr item))))
+                        (append '(("eval"  . "Eval"))
+                                (if (enable-web-repl-fancy-editor)
+                                    '(("eval-region" . "Eval region"))
+                                    '())
+                                '(("clear" . "Clear")))))
+              (h2 "Output area")
+              (div (@ (id "result")))
+              ,(fancy-editor-js)))
+          (parameterize ((generate-sxml? #t))
             (web-repl-access-denied-message))))
-    headers: (parameterize ((generate-sxml? (enable-sxml)))
-               (++* (if (enable-web-repl-fancy-editor)
-                        (include-javascript (make-pathname (web-repl-fancy-editor-base-uri) "codemirror.js")
-                                            (make-pathname (web-repl-fancy-editor-base-uri) "mirrorframe.js"))
-                        null)
-                    (let ((builtin-css (if css
-                                           #f
-                                           (<style> type: "text/css"
-"h1 { font-size: 18pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
-h2 { font-size: 14pt; background-color: #898E79; width: 590px; color: white; padding: 5px;}
-ul#button-bar { margin-left: 0; padding-left: 0; }
-#button-bar li {display: inline; list-style-type: none; padding-right: 10px; }"
-(if (enable-web-repl-fancy-editor)
-    "div.border { border: 1px solid black; width: 600px;}"
-    "#prompt { width: 600px; }")
-"#result { border: 1px solid #333; padding: 5px; width: 590px; }"))))
-                   (if headers
-                       (++ (or builtin-css null) headers)
-                       builtin-css))))
+    headers: (parameterize ((enable-sxml #t))
+               (append
+                (if (enable-web-repl-fancy-editor)
+                    (include-javascript (make-pathname (web-repl-fancy-editor-base-uri) "codemirror.js")
+                                        (make-pathname (web-repl-fancy-editor-base-uri) "mirrorframe.js"))
+                    '())
+                (list (web-repl-css))))
     use-ajax: #t
     title: title
+    use-sxml: #t
     css: css))
 
 
