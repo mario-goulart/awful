@@ -270,7 +270,7 @@
   ;; The reload page
   (define-reload-page))
 
-(define (awful-start thunk #!key dev-mode? port ip-address use-fancy-web-repl? privileged-code)
+(define (awful-start thunk #!key dev-mode? port ip-address (use-fancy-web-repl? #t) privileged-code)
   (enable-web-repl-fancy-editor use-fancy-web-repl?)
   (when dev-mode? (development-mode? #t))
   (when port (server-port port))
