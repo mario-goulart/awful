@@ -63,6 +63,7 @@
 
    ;; Required by db-support eggs
    db-enabled? db-inquirer db-connect db-disconnect sql-quoter db-make-row-obj
+   db-query-transformer
 
    ;; Required by awful-static-pages
    %path-procedure-result
@@ -182,7 +183,7 @@
 (define db-disconnect (make-parameter (lambda (connection) (error 'db-disconnect missing-db-msg))))
 (define sql-quoter (make-parameter (lambda args (error 'sql-quote missing-db-msg))))
 (define db-make-row-obj (make-parameter (lambda (q) (error '$db-row-obj missing-db-msg))))
-
+(define db-query-transformer (make-parameter (lambda (q) q)))
 
 ;;; Misc
 (define ++ string-append)
