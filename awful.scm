@@ -64,6 +64,9 @@
    ;; Required by db-support eggs
    db-enabled? db-inquirer db-connect db-disconnect sql-quoter db-make-row-obj
 
+   ;; Required by awful-static-pages
+   %path-procedure-result
+
    ) ; end export list
 
 (import scheme chicken data-structures utils extras ports srfi-69 files srfi-1)
@@ -167,6 +170,9 @@
 
 (define-record not-set)
 (define not-set (make-not-set))
+
+;; %path-procedure-result is actually exported, because
+;; awful-static-pages needs it
 (define %path-procedure-result (make-parameter not-set))
 
 ;; db-support parameters (set by awful-<db> eggs)
