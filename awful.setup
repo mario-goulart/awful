@@ -1,5 +1,7 @@
 ;;; awful.setup -*- scheme -*-
 
+(include "version.scm")
+
 ;; Compile the extension
 (compile -s -O3 -d1 -j awful awful.scm)
 (compile -s -O3 -d1 awful.import.scm)
@@ -9,8 +11,8 @@
 
 (install-extension 'awful
                    '("awful.so" "awful.import.so")
-                   '((version "0.39.2")))
+                   `((version ,(awful-version))))
 
 (install-program 'awful-server
                  '("awful")
-                 `((version "0.39.2")))
+                 `((version ,(awful-version))))

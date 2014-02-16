@@ -82,9 +82,7 @@
 ;; For match-matcher
 (import-for-syntax regex)
 
-;;; Version
-(define (awful-version) "0.39")
-
+(include "version.scm")
 
 ;;; Parameters
 
