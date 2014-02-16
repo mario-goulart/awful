@@ -1,1 +1,1 @@
-(define (awful-version) "0.39")
+(define (awful-version) "0.40.0")
