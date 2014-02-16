@@ -50,8 +50,8 @@ Usage:
   chains are printed to the client.  Running awful with --development-mode
   is not recommended for applications in production.
 
---privileged-code=<file with code to be run with admin privileges>
-  File with code to be run with administrator privileges (e.g., setting
+--privileged-code=<file1>[,<file2> ...]
+  Files with code to be run with administrator privileges (e.g., setting
   port < 1024).
 
 --disable-web-repl-fancy-editor
@@ -105,7 +105,10 @@ EOF
      (lambda ()
        (load-apps args))
      privileged-code: (and privileged-code
-                           (lambda () (load privileged-code)))
+                           (lambda ()
+                             (for-each (lambda (file)
+                                         (load file))
+                                       (string-split privileged-code ","))))
      dev-mode?: dev-mode?
      port: (and port (string->number port))
      bind-address: ip-address
