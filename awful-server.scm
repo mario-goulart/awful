@@ -25,7 +25,8 @@
 ;; IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (declare (uses chicken-syntax))
-(use regex posix awful srfi-1 srfi-13)
+(use irregex posix srfi-1 srfi-13)
+(use awful)
 
 (define (usage #!optional exit-code)
   (let ((awful (pathname-strip-directory (program-name)))
@@ -73,8 +74,12 @@ EOF
   ;; Returns the argument associated to the command line option OPTION
   ;; in ARGS or #f if OPTION is not found in ARGS or doesn't have any
   ;; argument.
-  (let ((val (any (cut string-match (conc option "=(.*)") <>) args)))
-    (and val (cadr val))))
+  (let ((val (any (lambda (arg)
+                    (irregex-match
+                     `(seq ,(->string option) "=" (submatch (* any)))
+                     arg))
+                  args)))
+    (and val (irregex-match-substring val 1))))
 
 (let ((args (command-line-arguments)))
   (when (or (member "-h" args)
