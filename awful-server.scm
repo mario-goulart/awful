@@ -28,16 +28,46 @@
 (use regex posix awful srfi-1 srfi-13)
 
 (define (usage #!optional exit-code)
-  (let ((awful (pathname-strip-directory (program-name))))
-    (print awful " [ -h | --help ]")
-    (print awful " [ -v | --version ]")
-    (print awful " [ --development-mode ] "
-           "[ --privileged-code=<code to be run with admin privileges> ]"
-           "[ --disable-web-repl-fancy-editor ] "
-           "[ --ip-address=<ip address> ] "
-           "[ --port=<port number> ] "
-           "[ <app1> <app2> ... ]")
-  (when exit-code (exit exit-code))))
+  (let ((awful (pathname-strip-directory (program-name)))
+        (port (if (and exit-code (not (zero? exit-code)))
+                  (current-error-port)
+                  (current-output-port))))
+    (display #<#EOF
+Usage:
+  #awful [ -h | --help ]
+  #awful [ -v | --version ]
+  #awful [ <options> ] [ <app1> [ <app2> ... ] ]
+
+<options>:
+
+--development-mode
+  Run awful in development mode.  When in development mode, the
+  web-repl, the session inspector and a special path for reload
+  applications are automatically activated.  They get bound to /web-repl,
+  /session-inspector and /reload, respectively, and access to them is only
+  permited from the local host.  In this mode, error messages and call
+  chains are printed to the client.  Running awful with --development-mode
+  is not recommended for applications in production.
+
+--privileged-code=<file with code to be run with admin privileges>
+  File with code to be run with administrator privileges (e.g., setting
+  port < 1024).
+
+--disable-web-repl-fancy-editor
+  By default, the web-repl uses the "fancy" editor (Codemirror), with
+  JavaScript to perform code highlight and other useful editor features.
+  This option disables the "fancy" editor -- the web-repl will then
+  provide a simple textarea for editing code.
+
+--ip-address=<ip address>
+  Bind the web server to the given IP address.
+
+--port=<port number>
+  Make the web server listen to the given port number.
+
+EOF
+    port)
+    (when exit-code (exit exit-code))))
 
 (define (cmd-line-arg option args)
   ;; Returns the argument associated to the command line option OPTION
