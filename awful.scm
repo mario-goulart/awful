@@ -462,7 +462,7 @@
 
 
 ;;; DB access
-(define ($db q #!key default values)
+(define ($db q #!key (default '()) values)
   (unless (db-enabled?)
     (error '$db "Database access doesn't seem to be enabled. Did you call `(enable-db)'?"))
   (debug-query q)
