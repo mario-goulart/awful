@@ -44,7 +44,7 @@
 
    ;; Procedures
    ++ concat include-javascript add-javascript add-css debug debug-pp $session
-   $session-set! $ $db $db-row-obj sql-quote define-page undefine-page
+   $session-set! $ $db $db-row-obj define-page undefine-page
    define-session-page ajax ajax-link periodical-ajax login-form
    define-login-trampoline enable-web-repl enable-session-inspector
    awful-version load-apps reload-apps link form redirect-to
@@ -475,9 +475,6 @@
 (define ($db-row-obj q)
   (debug-query q)
   ((db-make-row-obj) q))
-
-(define (sql-quote . data)
-  ((sql-quoter) data))
 
 
 ;;; Parameters resetting
