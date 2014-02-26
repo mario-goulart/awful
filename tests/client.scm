@@ -239,4 +239,17 @@
 (test (expect "app-root-path/foo") (get "/app-root-path/foo"))
 (test-end "app-root-path")
 
+;;; DB mock
+(test-begin "db-mock")
+(test "a-connection" (get "/db/connection"))
+(test "()" (get "/db/get?key=foo"))
+(test "a-default" (get "/db/get?key=foo&default=a-default"))
+(get "/db/set?key=foo&value=a-foo")
+(get "/db/set?key=bar&value=a-bar")
+(get "/db/set?key=baz&value=a-baz")
+(test "a-foo" (get "/db/get?key=foo"))
+(test "a-bar" (get "/db/get?key=bar"))
+(test "a-baz" (get "/db/get?key=baz"))
+(test-end "db-mock")
+
 (test-end "awful")

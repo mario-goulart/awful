@@ -332,3 +332,64 @@
     (lambda ()
       "app-root-path/foo"))
   )
+
+;;; DB mock
+(let ()
+
+  (define *the-db* '())
+
+  (define (enable-db . ignore) ;; backward compatibility: `enable-db' was a parameter
+    (switch-to-mock-db))
+
+  (define (switch-to-mock-db)
+    (db-enabled? #t)
+    (db-connect (lambda (credentials) credentials))
+    (db-disconnect void)
+    (db-inquirer
+     ;; Query lang:
+     ;; * get <key>
+     ;; * set <key> <value>
+     (lambda (q #!key (default '()) values)
+       (when (or (not (list q))
+                 (null? (cdr q)))
+         (error '$db "Invalid query syntax"))
+       (case (car q)
+         ((get) (let* ((not-set (list 'not-set))
+                       (val (alist-ref (cadr q) *the-db* equal? not-set)))
+                  (if (eq? val not-set)
+                      default
+                      val)))
+         ((set) (if (null? (cddr q))
+                    (error '$db "Invalid query syntax")
+                    (set! *the-db* (alist-update (cadr q) (caddr q) *the-db*))))
+         (else (error '$db "Unknown query statement" (car q))))))
+    )
+
+  (define-app db-mock
+    matcher: (lambda (path) (string-prefix? "/db" path))
+    handler-hook: (lambda (handler)
+                    (switch-to-mock-db)
+                    (parameterize ((page-template
+                                    (lambda (content . args)
+                                      content))
+                                   (db-credentials 'a-connection))
+                      (handler)))
+
+    (define *the-db* '())
+
+    (define-page "/db/get"
+      (lambda ()
+        (with-request-variables ((key as-symbol) default)
+          (->string ($db `(get ,key) default: (or default '()))))))
+
+    (define-page "/db/set"
+      (lambda ()
+        (with-request-variables ((key as-symbol) value)
+          ($db `(set ,key ,value))
+          value)))
+
+    (define-page "/db/connection"
+      (lambda ()
+        (->string (db-connection))))
+
+    )) ;; end db-mock app
