@@ -26,7 +26,7 @@
 
 (use test http-client posix setup-api intarweb uri-common awful html-tags)
 
-(define server-uri "http://localhost:8080")
+(define server-uri (sprintf "http://localhost:~a" (server-port)))
 
 (define (get path/vars)
   (let ((val (with-input-from-request
