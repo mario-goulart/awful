@@ -199,8 +199,7 @@
       str))
 
 (define (load-apps apps)
-  (for-each load apps)
-  (when (development-mode?) (development-mode-actions)))
+  (for-each load apps))
 
 (define (reload-apps apps)
   (reset-resources!)
@@ -270,7 +269,9 @@
 
 (define (awful-start thunk #!key dev-mode? port ip-address (use-fancy-web-repl? #t) privileged-code)
   (enable-web-repl-fancy-editor use-fancy-web-repl?)
-  (when dev-mode? (development-mode? #t))
+  (when dev-mode?
+    (development-mode? #t)
+    (development-mode-actions))
   (when port (server-port port))
   (when ip-address (server-bind-address ip-address))
   ;; if privileged-code is provided, it is loaded before switching
