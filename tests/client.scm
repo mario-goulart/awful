@@ -69,8 +69,6 @@
     (delete-file* "a")
     (remove-directory "a" #f))
 
-(test-begin "awful")
-
 ;; When a procedure is bound to a path and the path does not exist,
 ;; just execute the procedure
 (test (expect "a") (get "/a"))
@@ -251,5 +249,3 @@
 (test "a-bar" (get "/db/get?key=bar"))
 (test "a-baz" (get "/db/get?key=baz"))
 (test-end "db-mock")
-
-(test-end "awful")

@@ -448,13 +448,14 @@
          (sxml? (or (generate-sxml?) (enable-sxml)))
          (++* (if sxml? (lambda args (apply append (map list args))) ++))
          (null (if sxml? '() "")))
-    (apply <form>
-           (append rest
-                   (list
-                    (++* (if pass-sid?
-                             (hidden-input 'sid (sid))
-                             null)
-                        contents))))))
+    (parameterize ((generate-sxml? sxml?))
+      (apply <form>
+             (append rest
+                     (list
+                      (++* (if pass-sid?
+                               (hidden-input 'sid (sid))
+                               null)
+                           contents)))))))
 
 
 ;;; HTTP request variables access
