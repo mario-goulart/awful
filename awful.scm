@@ -203,6 +203,8 @@
 
 (define (reload-apps apps)
   (reset-resources!)
+  (when (development-mode?)
+    (development-mode-actions))
   (load-apps apps))
 
 (define (define-reload-page)
