@@ -230,7 +230,9 @@
   (page-exception-message
    (lambda (exn)
      (let* ((sxml? (or (generate-sxml?) (enable-sxml)))
-            (++* (if sxml? (lambda args (apply append (map list args))) ++))
+            (++* (if sxml?
+                     (lambda args (apply append (map list args)))
+                     string-append))
             (null (if sxml? '() "")))
        (++* (<pre> convert-to-entities?: #t
                    (with-output-to-string
@@ -367,7 +369,7 @@
         (string-intersperse js ""))))
 
 (define (add-javascript . code)
-  (page-javascript (++ (page-javascript) (concat code))))
+  (page-javascript (string-append (page-javascript) (concat code))))
 
 (define (maybe-compress-javascript js no-javascript-compression)
   (if (and (enable-javascript-compression)
@@ -446,7 +448,9 @@
                          (session-valid? (sid))
                          (not (get-keyword no-session: rest))))
          (sxml? (or (generate-sxml?) (enable-sxml)))
-         (++* (if sxml? (lambda args (apply append (map list args))) ++))
+         (++* (if sxml?
+                  (lambda args (apply append (map list args)))
+                  string-append))
          (null (if sxml? '() "")))
     (parameterize ((generate-sxml? sxml?))
       (apply <form>
@@ -474,7 +478,7 @@
 
 (define (debug-query q)
   (when (and (debug-file) (debug-db-query?))
-    (debug (++ (debug-db-query-prefix) q))))
+    (debug (string-append (debug-db-query-prefix) q))))
 
 (define ($db-row-obj q)
   (debug-query q)
@@ -519,7 +523,7 @@
               (method (request-method (current-request)))
               (path (if (null? (cdr path-list))
                         (car path-list)
-                        (++ "/" (concat (cdr path-list) "/"))))
+                        (string-append "/" (concat (cdr path-list) "/"))))
               (proc (resource-ref path (root-path) method)))
          (if proc
              (run-resource proc path)
@@ -670,8 +674,9 @@
       (<script> type: "text/javascript"
                 (maybe-literal-javascript
                  (maybe-compress-javascript
-                  (++ "$(document).ready(function(){"
-                      (page-javascript) "});")
+                  (string-append
+                   "$(document).ready(function(){"
+                   (page-javascript) "});")
                   no-javascript-compression)
                  sxml?))
       (if (string-null? (page-javascript))
@@ -726,7 +731,9 @@
 
 (define-inline (apply-page-template contents css title doctype ajax? use-ajax headers
                                     charset no-javascript-compression sxml?)
-  (let* ((++* (if sxml? (lambda args (apply append (map list args))) ++))
+  (let* ((++* (if sxml?
+                  (lambda args (apply append (map list args)))
+                  string-append))
          (null (if sxml? '() ""))
          (out
           (parameterize ((generate-sxml? sxml?))
@@ -785,7 +792,9 @@
                       "")))))))))
 
 (define-inline (render-page contents path given-path no-javascript-compression ajax? sxml?)
-  (let ((++* (if sxml? (lambda args (apply append (map list args))) ++))
+  (let ((++* (if sxml?
+                 (lambda args (apply append (map list args)))
+                 string-append))
         (null (if sxml? '() "")))
     (parameterize ((generate-sxml? sxml?))
       (let ((resp
@@ -908,55 +917,59 @@
                            (ajax-invalid-session-message))))
                    method)
     (let* ((arguments (if (and (sid) (session-valid? (sid)))
-                          (cons `(sid . ,(++ "'" (sid) "'")) arguments)
+                          (cons `(sid . ,(string-append "'" (sid) "'")) arguments)
                           arguments))
            (js-code
-            (++ (if (and id event)
-                    (let ((events (concat (if (list? event) event (list event)) " "))
-                          (binder (if live "live" (if on "on" "bind"))))
-                      (++ (if on
-                              (if (string? on)
-                                  (sprintf "$('~a')." on) ;; start delegation from `on'
-                                  "$(document).")
-                              (sprintf "$('~a')." (->jquery-selector id)))
-                          binder "('" events "',"))
-                    "")
+            (string-append
+             (if (and id event)
+                 (let ((events (concat (if (list? event) event (list event)) " "))
+                       (binder (if live "live" (if on "on" "bind"))))
+                   (string-append
+                    (if on
+                        (if (string? on)
+                            (sprintf "$('~a')." on) ;; start delegation from `on'
+                            "$(document).")
+                        (sprintf "$('~a')." (->jquery-selector id)))
+                       binder "('" events "',"))
+                 "")
                 (if (and on (not (boolean? on)))
                     (sprintf "'~a'," (->jquery-selector on))
                     "")
-                (++ "function(event){"
-                    (or prelude "")
-                    "$.ajax({type:'" (->string method) "',"
-                    "url:'" path "',"
-                    (if content-type
-                        (conc "contentType: '" content-type "',")
-                        "")
-                    "success:function(response){"
-                    (or success
-                        (cond (update-targets
-                               "$.each(response, function(id, html) { $('#' + id).html(html);});")
-                              (target
-                               (++ "$('#" target "')." (->string action) "(response);"))
-                              (else "return;")))
-                    "},"
-                    (if update-targets
-                        "dataType: 'json',"
-                        "")
-                    (if (eq? cache 'not-set)
-                        ""
-                        (if cache
-                            "cache:true,"
-                            "cache:false,"))
-                    (if error-handler
-                        (++ "error:" error-handler ",")
-                        "")
-                    (++ "data:{"
-                        (string-intersperse
-                         (map (lambda (var/val)
-                                (conc  "'" (car var/val) "':" (cdr var/val)))
-                              arguments)
-                         ",") "}")
-                    "})}")
+                (string-append
+                 "function(event){"
+                 (or prelude "")
+                 "$.ajax({type:'" (->string method) "',"
+                 "url:'" path "',"
+                 (if content-type
+                     (conc "contentType: '" content-type "',")
+                     "")
+                 "success:function(response){"
+                 (or success
+                     (cond (update-targets
+                            "$.each(response, function(id, html) { $('#' + id).html(html);});")
+                           (target
+                            (string-append "$('#" target "')." (->string action) "(response);"))
+                           (else "return;")))
+                 "},"
+                 (if update-targets
+                     "dataType: 'json',"
+                     "")
+                 (if (eq? cache 'not-set)
+                     ""
+                     (if cache
+                         "cache:true,"
+                         "cache:false,"))
+                 (if error-handler
+                     (string-append "error:" error-handler ",")
+                     "")
+                 (string-append
+                  "data:{"
+                  (string-intersperse
+                   (map (lambda (var/val)
+                          (conc  "'" (car var/val) "':" (cdr var/val)))
+                        arguments)
+                   ",") "}")
+                 "})}")
                 (if (and id event)
                     ");\n"
                     ""))))
@@ -967,25 +980,26 @@
                          (arguments '()) success no-session no-db vhost-root-path live on
                          content-type prelude update-targets cache error-handler (use-sxml not-set))
   (add-javascript
-   (++ "setInterval("
-       (ajax path #f #f proc
-             target: target
-             action: action
-             method: method
-             arguments: arguments
-             success: success
-             no-session: no-session
-             no-db: no-db
-             vhost-root-path: vhost-root-path
-             live: live
-             on: on
-             content-type: content-type
-             prelude: prelude
-             update-targets: update-targets
-             error-handler: error-handler
-             cache: cache
-             use-sxml: use-sxml
-             no-page-javascript: #t)
+   (string-append
+    "setInterval("
+    (ajax path #f #f proc
+          target: target
+          action: action
+          method: method
+          arguments: arguments
+          success: success
+          no-session: no-session
+          no-db: no-db
+          vhost-root-path: vhost-root-path
+          live: live
+          on: on
+          content-type: content-type
+          prelude: prelude
+          update-targets: update-targets
+          error-handler: error-handler
+          cache: cache
+          use-sxml: use-sxml
+          no-page-javascript: #t)
        ", " (->string interval) ");\n")))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
@@ -1062,14 +1076,19 @@
         (html-page
          ""
          headers: (<meta> http-equiv: "refresh"
-                          content: (++ "0;url="
-                                       (if new-sid
-                                           (++ (or attempted-path (main-page-path))
-                                               "?user=" user
-                                               (if (enable-session-cookie)
-                                                   ""
-                                                   (++ "&sid=" new-sid)))
-                                           (++ (login-page-path) "?reason=invalid-password&user=" user)))))))
+                          content: (string-append
+                                    "0;url="
+                                    (if new-sid
+                                        (string-append
+                                         (or attempted-path (main-page-path))
+                                         "?user=" user
+                                         (if (enable-session-cookie)
+                                             ""
+                                             (string-append "&sid=" new-sid)))
+                                        (string-append
+                                         (login-page-path)
+                                         "?reason=invalid-password&user="
+                                         user)))))))
     method: 'POST
     vhost-root-path: vhost-root-path
     no-session: #t
