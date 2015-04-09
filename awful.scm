@@ -528,8 +528,11 @@
          (if proc
              (run-resource proc path)
              (if (equal? (last path-list) "") ;; requested path is a dir
-                 ;; try to find a procedure with the trailing slash removed
-                 (let ((proc (resource-ref (string-chomp path "/") (root-path) method)))
+                 ;; try to find a procedure with the trailing slash
+                 ;; removed (string matchers only!)
+                 (let ((proc (resource-match/string (string-chomp path "/")
+                                                    (root-path)
+                                                    method)))
                    (if proc
                        (run-resource proc path)
                        (old-handler _)))

@@ -103,6 +103,10 @@
 (test (expect "bar") (get "/foo"))
 (test (expect "D") (get "/ra"))
 
+;; Trailing slash
+(test (expect "match") (get "/trailing-slash/foo"))
+(test-error (get "/trailing-slash/foo/"))
+
 ;; hooks
 (test (expect "prefix1") (get "/prefix1"))
 (test (expect "prefix2") (get "/prefix2"))

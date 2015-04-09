@@ -42,6 +42,12 @@
 (define-page "/rc" (cut redirect-to "/rd"))
 (define-page "/rd" (lambda () "D"))
 
+;;; Trailing slash
+;; "/trailing-slash/[^/]*" should match "/trailing-slash/foo", but
+;; should not match "/trailing-slash/foo/"
+(define-page (regexp "/trailing-slash/[^/]*")
+  (lambda (path)
+    "match"))
 
 ;;; Hooks
 (define param (make-parameter "unset"))
