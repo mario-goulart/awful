@@ -523,7 +523,7 @@
               (method (request-method (current-request)))
               (path (if (null? (cdr path-list))
                         (car path-list)
-                        (string-append "/" (concat (cdr path-list) "/"))))
+                        (string-append "/" (string-intersperse (cdr path-list) "/"))))
               (proc (resource-ref path (root-path) method)))
          (if proc
              (run-resource proc path)
