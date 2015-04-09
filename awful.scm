@@ -517,14 +517,14 @@
      (lambda (_)
        (let* ((path-list (uri-path (request-uri (current-request))))
               (method (request-method (current-request)))
-              (dir? (equal? (last path-list) ""))
               (path (if (null? (cdr path-list))
                         (car path-list)
                         (++ "/" (concat (cdr path-list) "/"))))
               (proc (resource-ref path (root-path) method)))
          (if proc
              (run-resource proc path)
-             (if dir? ;; try to find a procedure with the trailing slash removed
+             (if (equal? (last path-list) "") ;; requested path is a dir
+                 ;; try to find a procedure with the trailing slash removed
                  (let ((proc (resource-ref (string-chomp path "/") (root-path) method)))
                    (if proc
                        (run-resource proc path)
