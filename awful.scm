@@ -589,9 +589,12 @@
 (define (resource-ref path vhost-root-path method)
   (when (debug-resources)
     (debug-pp (hash-table->alist *resources*)))
-  (or (hash-table-ref/default *resources* (list path vhost-root-path method) #f)
+  (or (resource-match/string path vhost-root-path method)
       (resource-match/procedure path vhost-root-path method)
       (resource-match/regex path vhost-root-path method)))
+
+(define (resource-match/string path vhost-root-path method)
+  (hash-table-ref/default *resources* (list path vhost-root-path method) #f))
 
 (define (resource-match/regex path vhost-root-path method)
   (let loop ((resources (hash-table->alist *resources*)))
