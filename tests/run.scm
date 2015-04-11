@@ -32,4 +32,11 @@
 
 (test-end "awful")
 
+(unless (zero? (test-failure-count))
+  (print "=====")
+  (printf "===== ~a ~a failed!\n"
+          (test-failure-count)
+          (if (> (test-failure-count) 1) "tests" "test"))
+  (print "====="))
+
 (test-exit)
