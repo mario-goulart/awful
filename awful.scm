@@ -530,13 +530,19 @@
               (path (if (null? (cdr path-list))
                         (car path-list)
                         (string-append "/" (string-intersperse (cdr path-list) "/"))))
-              (proc (resource-ref path (root-path) method)))
-         (if proc
-             (run-resource proc path)
-             (if (equal? (last path-list) "") ;; requested path is a dir
-                 ;; try to find a procedure with the trailing slash removed
-                 (let ((proc (resource-ref (string-chomp path "/") (root-path) method)))
-                   (if proc
+              (proc/strict? (resource-ref path (root-path) method)))
+         (if proc/strict?
+             (run-resource (car proc/strict?) path)
+             (if (equal? (last path-list) "") ;; requested path is a
+                 ;; dir try to find a procedure with the trailing
+                 ;; slash removed and run it _only_ if the resource
+                 ;; has been defined as not strict.
+                 (let* ((proc/strict? (resource-ref (string-chomp path "/")
+                                                    (root-path)
+                                                    method))
+                        (proc (and proc/strict? (car proc/strict?)))
+                        (strict? (and proc/strict? (cdr proc/strict?))))
+                   (if (and proc (not strict?))
                        (run-resource proc path)
                        (old-handler _)))
                  (old-handler _))))))))
@@ -639,13 +645,15 @@
               (loop (cdr resources)))))))
 
 
-(define (add-resource! path vhost-root-path proc method)
+(define (add-resource! path vhost-root-path proc method strict?)
   (let ((methods (if (list? method) method (list method))))
     (for-each
      (lambda (method)
        (let ((upcase-method
               (string->symbol (string-upcase (symbol->string method)))))
-         (hash-table-set! *resources* (list path vhost-root-path upcase-method) proc)))
+         (hash-table-set! *resources*
+                          (list path vhost-root-path upcase-method)
+                          (cons proc strict?))))
      methods)))
 
 (define (reset-resources!)
@@ -657,7 +665,8 @@
    (let ((old-handler (handle-directory)))
      (lambda (path)
        (cond ((resource-ref path (root-path) (request-method (current-request)))
-              => (cut run-resource <> path))
+              => (lambda (proc/strict?)
+                   (run-resource (car proc/strict?) path)))
              (else (old-handler path)))))))
 
 ;;;
@@ -706,18 +715,19 @@
                    (%page-css)))
       ""))
 
-(define (page-path path #!optional namespace)
+(define (page-path path strict? #!optional namespace)
   (cond ((regexp? path) path)
         ((procedure? path) path)
         ((equal? path "/") (app-root-path))
         (else
-         (string-chomp
-          (make-pathname (cons (app-root-path)
-                               (if namespace
-                                   (list namespace)
-                                   '()))
-                         path)
-          "/"))))
+         (let ((path (make-pathname (cons (app-root-path)
+                                          (if namespace
+                                              (list namespace)
+                                              '()))
+                                    path)))
+           (if strict?
+               path
+               (string-chomp path "/"))))))
 
 (define (set-page-title! title)
   (%page-title title))
@@ -825,9 +835,9 @@
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
                      use-ajax (method '(GET HEAD)) (use-sxml not-set)
-                     use-session) ;; for define-session-page
+                     use-session strict) ;; for define-session-page
   (##sys#check-closure contents 'define-page)
-  (let ((path (page-path path))
+  (let ((path (page-path path strict))
         (sxml? (if (not-set? use-sxml)
                    (enable-sxml)
                    use-sxml)))
@@ -863,7 +873,8 @@
                   (redirect-to-login-page (or given-path path)))))
          (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
          out))
-     method))
+     method
+     strict))
   path)
 
 
@@ -881,10 +892,10 @@
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
               live on content-type prelude update-targets (cache 'not-set) error-handler
-              (use-sxml not-set))
+              (use-sxml not-set) strict)
   (when (and on live)
     (error 'ajax "`live' and `on' cannot be used together."))
-  (let ((path (page-path path (ajax-namespace)))
+  (let ((path (page-path path strict (ajax-namespace)))
         (sxml? (if (not-set? use-sxml)
                    (enable-sxml)
                    use-sxml)))
@@ -923,7 +934,8 @@
                                ((page-access-denied-message) path)))
                          (parameterize ((generate-sxml? sxml?))
                            (ajax-invalid-session-message))))
-                   method)
+                   method
+                   strict)
     (let* ((arguments (if (and (sid) (session-valid? (sid)))
                           (cons `(sid . ,(string-append "'" (sid) "'")) arguments)
                           arguments))
@@ -986,7 +998,8 @@
 
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live on
-                         content-type prelude update-targets cache error-handler (use-sxml not-set))
+                         content-type prelude update-targets cache error-handler
+                         (use-sxml not-set) strict)
   (add-javascript
    (string-append
     "setInterval("
@@ -1007,13 +1020,15 @@
           error-handler: error-handler
           cache: cache
           use-sxml: use-sxml
+          strict: strict
           no-page-javascript: #t)
        ", " (->string interval) ");\n")))
 
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    success no-session no-db (event 'click) vhost-root-path live on class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
-                   content-type prelude update-targets error-handler cache (use-sxml not-set))
+                   content-type prelude update-targets error-handler cache (use-sxml not-set)
+                   strict)
   (ajax path id event proc
         target: target
         action: action
@@ -1030,6 +1045,7 @@
         error-handler: error-handler
         cache: cache
         use-sxml: use-sxml
+        strict: strict
         no-db: no-db)
   (<a> href: "#"
        id: id

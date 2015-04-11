@@ -116,6 +116,11 @@
 (test (expect "get") (get "/same-path"))
 (test (expect "post") (post "/same-path"))
 
+;;; Strict pages
+(test (expect "strict") (get "/strict"))
+(test-error (get "/strict/"))
+(test (expect "strict-dir") (get "/strict-dir/"))
+(test-error (get "/strict-dir"))
 
 ;;; set-page-title!
 (test (expect "" title: "a nice title") (get "/a-nice-title"))

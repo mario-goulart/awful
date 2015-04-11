@@ -72,6 +72,9 @@
 (define-page "/same-path" (lambda () "get") method: 'GET)
 (define-page "/same-path" (lambda () "post") method: 'POST)
 
+;;; Strict pages
+(define-page "/strict" (lambda () "strict") strict: #t)
+(define-page "/strict-dir/" (lambda () "strict-dir") strict: #t)
 
 ;;; set-page-title!
 (define-page "/a-nice-title"
@@ -118,7 +121,9 @@
                  (path (caar res))
                  (vhost-path (cadar res))
                  (method (caddar res))
-                 (handler (cdr res)))
+                 (handler/exact? (cdr res))
+                 (handler (and handler/exact? (car handler/exact?)))
+                 (exact? (and handler/exact? (cdr handler/exact?))))
             ;; checking /return-procedure
             (or (and (equal? path "/return-procedure")
                      (equal? vhost-path (current-directory))
