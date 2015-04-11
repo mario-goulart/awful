@@ -387,15 +387,21 @@
 
 ;;; Debugging
 (define (debug . args)
-  (when (debug-file)
-    (with-output-to-file (debug-file)
-      (lambda ()
-        (print (concat args)))
-      append:)))
+  (cond ((string? (debug-file))
+         (with-output-to-file (debug-file)
+           (lambda ()
+             (print (concat args)))
+           append:))
+        ((output-port? (debug-file))
+         (with-output-to-port (debug-file)
+           (lambda ()
+             (print (concat args)))))))
 
 (define (debug-pp arg)
-  (when (debug-file)
-    (with-output-to-file (debug-file) (cut pp arg) append:)))
+  (cond ((string? (debug-file))
+         (with-output-to-file (debug-file) (cut pp arg) append:))
+        ((output-port? (debug-file))
+         (with-output-to-port (debug-file) (cut pp arg)))))
 
 
 ;;; Session access
