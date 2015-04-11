@@ -544,14 +544,15 @@
                  (resp)
                  (let ((out (->string resp)))
                    (if (%error)
-                       (send-response code: 500
-                                      reason: "Internal server error"
-                                      body: (parameterize ((generate-sxml? (enable-sxml)))
-                                              (let ((content ((page-exception-message) (%error))))
-                                                (if (enable-sxml)
-                                                    ((sxml->html) content)
-                                                    content)))
-                                      headers: '((content-type text/html)))
+                       (send-response
+                        code: 500
+                        reason: "Internal server error"
+                        body: (parameterize ((generate-sxml? (enable-sxml)))
+                                (let ((content ((page-exception-message) (%error))))
+                                  (if (enable-sxml)
+                                      ((sxml->html) content)
+                                      content)))
+                        headers: '((content-type text/html)))
                        (if (%redirect) ;; redirection
                            (let ((new-uri (if (string? (%redirect))
                                               (uri-reference (%redirect))
@@ -559,17 +560,18 @@
                              (with-headers `((location ,new-uri))
                                            (lambda ()
                                              (send-status 302 "Found"))))
-                           (with-headers (append
-                                          (or (awful-response-headers)
-                                              `((content-type text/html)))
-                                          (or (and-let* ((headers (awful-response-headers))
-                                                         (content-length (alist-ref 'content-length headers)))
-                                                (list (cons 'content-length content-length)))
-                                              `((content-length ,(string-length out)))))
-                                         (lambda ()
-                                           (write-logged-response)
-                                           (unless (eq? 'HEAD (request-method (current-request)))
-                                             (display out (response-port (current-response))))))))))))))
+                           (with-headers
+                            (append
+                             (or (awful-response-headers)
+                                 `((content-type text/html)))
+                             (or (and-let* ((headers (awful-response-headers))
+                                            (content-length (alist-ref 'content-length headers)))
+                                   (list (cons 'content-length content-length)))
+                                 `((content-length ,(string-length out)))))
+                            (lambda ()
+                              (write-logged-response)
+                              (unless (eq? 'HEAD (request-method (current-request)))
+                                (display out (response-port (current-response))))))))))))))
     (call/cc (lambda (continue)
                (for-each (lambda (hook)
                            ((cdr hook) path
