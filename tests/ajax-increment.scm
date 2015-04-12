@@ -1,7 +1,5 @@
 (use awful)
 
-(enable-sxml #t)
-
 (define-page (main-page-path)
   (let ((counter 0))
     (lambda ()

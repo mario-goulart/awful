@@ -1,7 +1,5 @@
 (use awful)
 
-(enable-sxml #t)
-
 (define-page (main-page-path)
   (lambda ()
     (ajax "foo" 'foo 'click

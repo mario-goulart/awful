@@ -168,8 +168,7 @@
  'literal-js
  (lambda (path handler)
    (cond ((string-prefix? "/literal-js/enable-sxml" path)
-          (parameterize ((literal-script/style? #t)
-                         (enable-sxml #t))
+          (parameterize ((literal-script/style? #t))
             (handler)))
          ((string-prefix? "/literal-js" path)
           (parameterize ((literal-script/style? #t))
@@ -177,52 +176,28 @@
 
 (define-page "/literal-js/use-sxml"
   (lambda ()
-    (add-javascript "<b>"))
-  use-sxml: #t)
+    (add-javascript "<b>")))
 
 (define-page "/no-literal-js/use-sxml"
   (lambda ()
-    (add-javascript "<b>"))
-  use-sxml: #t)
+    (add-javascript "<b>")))
 
-(parameterize ((enable-sxml #t))
-  (define-page "/literal-js/enable-sxml"
-    (lambda ()
-      (add-javascript "<b>"))))
-
-(parameterize ((enable-sxml #t))
-  (define-page "/no-literal-js/enable-sxml"
-    (lambda ()
-      (add-javascript "<b>"))))
-
-(define-page "/literal-js/strings"
+(define-page "/literal-js/enable-sxml"
   (lambda ()
     (add-javascript "<b>")))
 
-(define-page "/no-literal-js/strings"
+(define-page "/no-literal-js/enable-sxml"
   (lambda ()
     (add-javascript "<b>")))
 
 
 ;;; add-css
-(add-request-handler-hook!
- 'literal-css
- (lambda (path handler)
-   (cond ((string-prefix? "/add-literal-css/enable-sxml" path)
-          (parameterize ((literal-script/style? #t)
-                         (enable-sxml #t))
-            (handler)))
-         ((string-prefix? "/add-literal-css" path)
-          (parameterize ((literal-script/style? #t))
-            (handler))))))
+(define-app literal-css
+  matcher: (lambda (path)
+             (equal? path "/add-literal-css"))
+  parameters: ((literal-script/style? #t))
 
-(define-page "/add-literal-css"
-  (lambda ()
-    (add-css ".foo { font-size: 12pt; }")
-    "foo"))
-
-(parameterize ((enable-sxml #t))
-  (define-page "/add-literal-css/enable-sxml"
+  (define-page "/add-literal-css"
     (lambda ()
       (add-css ".foo { font-size: \"12pt\"; }")
       "foo")))
@@ -231,12 +206,6 @@
   (lambda ()
     (add-css ".foo { font-size: \"12pt\"; }")
     "foo"))
-
-(parameterize ((enable-sxml #t))
-  (define-page "/add-css/enable-sxml"
-    (lambda ()
-      (add-css ".foo { font-size: \"12pt\"; }")
-      "foo")))
 
 (define-page "/add-2-css"
   (lambda ()
@@ -247,25 +216,21 @@
 ;;; SXML
 (define-page "/sxml-foo"
   (lambda ()
-    '(span "foo"))
-  use-sxml: #t)
+    '(span "foo")))
 
 (define-page "/sxml-link"
   (lambda ()
-    (link "foo" '(i "bar")))
-  use-sxml: #t)
+    (link "foo" '(i "bar"))))
 
 (define-page "/sxml-link-no-template"
   (lambda ()
     (link "foo" '(i "bar")))
-  no-template: #t
-  use-sxml: #t)
+  no-template: #t)
 
-(parameterize ((enable-sxml #t))
-  (define-page "/sxml/headers"
-    (lambda ()
-      '("foo"))
-    headers: (include-javascript "some-js.js")))
+(define-page "/sxml/headers"
+  (lambda ()
+    '("foo"))
+  headers: (include-javascript "some-js.js"))
 
 
 ;;; undefine-page

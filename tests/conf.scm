@@ -3,14 +3,14 @@
 ;;
 ;;    $ awful ajax.scm conf.scm
 
-(use spiffy awful html-tags)
+(use spiffy awful)
 
 (debug-log (current-error-port))
 
 (page-exception-message
  (lambda (exn)
-   (<pre> convert-to-entities?: #t
-          (with-output-to-string
-            (lambda ()
-              (print-call-chain)
-              (print-error-message exn))))))
+   `(pre
+     ,(with-output-to-string
+        (lambda ()
+          (print-call-chain)
+          (print-error-message exn))))))

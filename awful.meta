@@ -7,8 +7,6 @@
  (license "BSD")
  (category web)
  (depends json
-          html-tags
-          (html-utils 0.9)
           (http-session 2.4)
           regex
           (spiffy 4.11)

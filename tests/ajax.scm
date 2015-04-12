@@ -1,6 +1,6 @@
 #!/usr/bin/csi -script
 
-(use posix awful html-tags spiffy-request-vars)
+(use posix awful spiffy-request-vars)
 
 (enable-ajax #t)
 
@@ -13,40 +13,40 @@
     (ajax "/bind" 'bind '(click dblclick) show-secs target: "bind-target")
     (ajax "/live" 'live '(click dblclick)
           (lambda ()
-            (++ (show-secs)
-                (<a> href: "#" id: "after-life" "Click me again")))
+            `(,(show-secs)
+              (a (@ (href "#") (id "after-life")) "Click me again")))
           target: "live-target")
     (ajax "/after-life" 'after-life 'click show-secs target: "after-life-target" on: 'content)
 
-    (<div> id: "content"
-           (<h2> "Single event")
-           (<a> href: "#" id: "single" "Click me")
-           (<div> id: "single-target")
+    `(div (@ (id "content"))
+          (h2 "Single event")
+          (a (@ (href "#") (id "single")) "Click me")
+          (div (@ (id "single-target")))
 
-           (<h2> "Multiple events (bind)")
-           (<a> href: "#" id: "bind" "Click me")
-           (<div> id: "bind-target")
+          (h2 "Multiple events (bind)")
+          (a (@ (href "#") (id "bind")) "Click me")
+          (div (@ (id "bind-target")))
 
-           (<h2> "Live events")
-           (<a> href: "#" id: "live" "Click me")
-           (<div> id: "live-target")
-           (<div> id: "after-life-target")
+          (h2 "Live events")
+          (a (@ (href "#") (id "live")) "Click me")
+          (div (@ (id "live-target")))
+          (div (@ (id "after-life-target")))
 
-           (<hr>)
-           (ajax-link "foo" 'alink "a link"
+          (hr)
+          ,(ajax-link "foo" 'alink "a link"
                       (lambda ()
-                        (<b> ($ 'bar)))
+                        `(b ,($ 'bar)))
                       target: "baz"
                       arguments: '((bar . "$('#value').html()")))
-           (<div> id: "value" "value")
-           (<div> id: "baz")
+          (div (@ (id "value")) "value")
+          (div (@ (id "baz")))
 
-           (<hr>)
-           (<h3> "content-length != 0")
-           (ajax-link "secs" 'getsecs "Get seconds from single (first example)"
+          (hr)
+          (h3 "content-length != 0")
+          ,(ajax-link "secs" 'getsecs "Get seconds from single (first example)"
                       (lambda ()
                         ($ 'secs))
                       target: "secs"
                       arguments: '((secs . "$('#single-target').html()")))
-           (<div> id: "secs")
+           (div (@ (id "secs")))
            )))
