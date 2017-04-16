@@ -1,4 +1,4 @@
-(use awful awful-sql-de-lite sql-de-lite html-utils)
+(use awful awful-sql-de-lite sql-de-lite)
 
 (define db-file "sqlite-test.db")
 
@@ -19,7 +19,12 @@
 
 (define-page (main-page-path)
   (lambda ()
-    (++ (with-output-to-string
-          (lambda ()
-            (pp ($db "select * from users"))))
-        (tabularize ($db "select * from users")))))
+    `((pre ,(with-output-to-string
+              (lambda ()
+                (pp ($db "select * from users")))))
+      (table
+       ,@(map (lambda (row)
+                `(tr ,@(map (lambda (i)
+                              `(td ,i))
+                            row)))
+              ($db "select * from users"))))))

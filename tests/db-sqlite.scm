@@ -1,4 +1,4 @@
-(use awful awful-sqlite3 sqlite3 html-utils)
+(use awful awful-sqlite3 sqlite3)
 
 (define db-file "sqlite-test.db")
 
@@ -16,5 +16,9 @@
 
 (define-page (main-page-path)
   (lambda ()
-    (tabularize ($db "select * from users"))
-    ))
+    `(table
+      ,@(map (lambda (row)
+               `(tr ,@(map (lambda (i)
+                             `(td ,i))
+                           row)))
+             ($db "select * from users")))))

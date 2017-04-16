@@ -1,6 +1,4 @@
-#!/usr/bin/csi -script
-
-(use posix html-tags jsmin)
+(use awful posix jsmin)
 
 (enable-ajax #t)
 (enable-javascript-compression #t)
@@ -14,5 +12,6 @@
     (ajax "/click" 'clickme '(click dblclick)
           (lambda () (->string (current-seconds)))
           target: "clicked")
-    (++ (<a> href: "#" id: "clickme" "Click me")
-        (<div> id: "clicked"))))
+    `(a (@ (href "#")
+           (id "clickme" "Click me"))
+        (span (@ (id "clicked"))))))

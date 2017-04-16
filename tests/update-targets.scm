@@ -1,6 +1,6 @@
 #!/usr/bin/awful
 
-(use awful html-tags)
+(use awful)
 
 (enable-ajax #t)
 
@@ -12,8 +12,8 @@
             '((a . 1) (b . 2) (c . 3)))
           update-targets: #t)
 
-    (<div>
-     (link "#" "foo" id: "foo")
-     (<div> id: "a")
-     (<div> id: "b")
-     (<div> id: "c"))))
+    `(div
+      ,(link "#" "foo" id: "foo")
+      (div (@ (id "a")))
+      (div (@ (id "b")))
+      (div (@ (id "c"))))))

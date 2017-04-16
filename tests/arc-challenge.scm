@@ -1,7 +1,5 @@
 (use awful)
 
-(enable-sxml #t)
-
 (define-session-page "said"
   (lambda ()
     (with-request-variables (said)

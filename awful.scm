@@ -76,7 +76,7 @@
 (use posix srfi-13 tcp)
 
 ;; Eggs
-(use intarweb spiffy spiffy-request-vars html-tags html-utils uri-common
+(use intarweb spiffy spiffy-request-vars uri-common
      http-session json spiffy-cookies regex sxml-transforms)
 
 ;; For match-matcher
@@ -97,7 +97,7 @@
 (define ajax-namespace (make-parameter "ajax"))
 (define enable-session (make-parameter #f))
 (define page-access-control (make-parameter (lambda (path) #t)))
-(define page-access-denied-message (make-parameter (lambda (path) (<h3> "Access denied."))))
+(define page-access-denied-message (make-parameter (lambda (path) '(h3 "Access denied."))))
 (define page-doctype (make-parameter ""))
 (define page-css (make-parameter #f))
 (define page-charset (make-parameter #f))
@@ -105,12 +105,12 @@
 (define main-page-path (make-parameter "/"))
 (define app-root-path (make-parameter "/"))
 (define valid-password? (make-parameter (lambda (user password) #f)))
-(define page-template (make-parameter html-page))
+(define page-template (make-parameter (lambda args (apply html-page args))))
 (define ajax-invalid-session-message (make-parameter "Invalid session."))
 (define web-repl-access-control (make-parameter (lambda () #f)))
-(define web-repl-access-denied-message (make-parameter (<h3> "Access denied.")))
+(define web-repl-access-denied-message (make-parameter '(h3 "Access denied.")))
 (define session-inspector-access-control (make-parameter (lambda () #f)))
-(define session-inspector-access-denied-message (make-parameter (<h3> "Access denied.")))
+(define session-inspector-access-denied-message (make-parameter '(h3 "Access denied.")))
 (define enable-javascript-compression (make-parameter #f))
 (define javascript-compressor (make-parameter identity))
 (define awful-response-headers (make-parameter #f))
@@ -120,7 +120,7 @@
 (define page-exception-message
   (make-parameter
    (lambda (exn)
-     (<h3> "An error has occurred while processing your request."))))
+     '(h3 "An error has occurred while processing your request."))))
 (define debug-resources (make-parameter #f)) ;; usually useful for awful development debugging
 (define enable-session-cookie (make-parameter #t))
 (define session-cookie-name (make-parameter "awful-cookie"))
@@ -128,7 +128,10 @@
                                (lambda (sid)
                                  (set-cookie! (session-cookie-name) sid))))
 (define javascript-position (make-parameter 'top))
-(define enable-sxml (make-parameter #f))
+
+;; enable-sxml is deprecated and currently unused.
+(define enable-sxml (make-parameter #t))
+
 (define literal-script/style? (make-parameter #f))
 (define sxml->html
   (make-parameter
@@ -183,6 +186,59 @@
 (define db-make-row-obj (make-parameter (lambda (q) (error '$db-row-obj missing-db-msg))))
 (define db-query-transformer (make-parameter (lambda (q) q)))
 
+;;; html-page
+(define (format-sxml-attribs attribs)
+  (if (null? attribs)
+      '()
+      `((@ ,@attribs))))
+
+(define (apply-tag-attribs/sxml tag attribs . content)
+  (cons tag (append (format-sxml-attribs attribs)
+                    content)))
+
+(define (html-page contents #!key css title doctype headers charset content-type literal-style? (html-attribs '()) (body-attribs '()))
+  (let ((page
+         (apply-tag-attribs/sxml
+          'html
+          html-attribs
+          (append
+           '(head)
+           (if (or charset content-type)
+               `((meta (@ (http-equiv "Content-Type")
+                          (content
+                           ,(string-append (or content-type
+                                               "application/xhtml+xml")
+                                           "; charset="
+                                           (or charset
+                                               "UTF-8"))))))
+               '())
+           (if title `((title ,title)) '())
+           (cond ((string? css)
+                  `((link (@ (rel "stylesheet")
+                             (href ,css)
+                             (type "text/css")))))
+                 ((list? css)
+                  (map (lambda (f)
+                         (if (list? f)
+                             (let ((data
+                                    (read-all (make-pathname (current-directory)
+                                                             (car f)))))
+                               `(style ,(if literal-style?
+                                            `(literal ,data)
+                                            data)))
+                             `(link (@ (rel "stylesheet")
+                                       (href ,f)
+                                       (type "text/css")))))
+                       css))
+                 (else '()))
+                  (if headers `(,headers) '()))
+          (if (null? contents)
+              (apply-tag-attribs/sxml 'body body-attribs)
+              (apply-tag-attribs/sxml 'body body-attribs contents)))))
+    (if doctype
+        (append `((literal ,doctype)) `(,page))
+        page)))
+
 ;;; Misc
 (define ++ string-append)
 
@@ -197,6 +253,20 @@
   (if (string? str)
       (string->symbol str)
       str))
+
+(define (plist->alist pls)
+  ;; (plist->alist '(foo: bar baz: quux)) => ((foo bar) (baz quux))
+  (let loop ((pls pls)
+             (als '()))
+    (if (null? pls)
+        (reverse! als)
+        (let ((hd (string->symbol (keyword->string (car pls))))
+              (tl (cdr pls)))
+          (if (null? tl)
+              (error 'plist->alist pls)
+              (loop (cdr tl)
+                    (cons (list hd (car tl))
+                          als)))))))
 
 (define (load-apps apps)
   (for-each load apps))
@@ -217,7 +287,6 @@
         (ul ,@(map (lambda (app)
                      `(li (code ,app)))
                    (awful-apps)))))
-    use-sxml: #t
     no-ajax: #t
     title: "Awful reloaded applications"))
 
@@ -229,21 +298,16 @@
   ;; web-repl and session-inspector (if enabled)
   (page-exception-message
    (lambda (exn)
-     (let* ((sxml? (or (generate-sxml?) (enable-sxml)))
-            (++* (if sxml?
-                     (lambda args (apply append (map list args)))
-                     string-append))
-            (null (if sxml? '() "")))
-       (++* (<pre> convert-to-entities?: #t
-                   (with-output-to-string
-                     (lambda ()
-                       (print-call-chain)
-                       (print-error-message exn))))
-            (<p> "[" (<a> href: (or (%web-repl-path) "/web-repl") "Web REPL") "]"
-                 (if (enable-session)
-                     (++* " [" (<a> href: (or (%session-inspector-path) "/session-inspector")
-                                    "Session inspector") "]")
-                     ""))))))
+     `((pre
+        ,(with-output-to-string
+           (lambda ()
+             (print-call-chain)
+             (print-error-message exn))))
+       (p "[" (a (@ (href ,(or (%web-repl-path) "/web-repl"))) "Web REPL") "]"
+          ,(if (enable-session)
+               `(" [" (a (@ (href ,(or (%session-inspector-path) "/session-inspector")))
+                         "Session inspector") "]")
+               '())))))
 
   ;; If web-repl has not been activated, activate it allowing access
   ;; to the localhost at least (`web-repl-access-control' can be
@@ -360,13 +424,10 @@
 
 ;;; JavaScript
 (define (include-javascript . files)
-  (let ((js (parameterize ((generate-sxml? (enable-sxml)))
-              (map (lambda (file)
-                     (<script> type: "text/javascript" src: file))
-                   files))))
-    (if (or (generate-sxml?) (enable-sxml))
-        js
-        (string-intersperse js ""))))
+  (map (lambda (file)
+         `(script (@ (type "text/javascript")
+                     (src ,file))))
+       files))
 
 (define (add-javascript . code)
   (page-javascript (string-append (page-javascript) (concat code))))
@@ -428,44 +489,37 @@
                         (not (get-keyword no-session: rest))))
         (arguments (or (get-keyword arguments: rest) '()))
         (separator (or (get-keyword separator: rest) ";&")))
-    (parameterize ((generate-sxml? (or (enable-sxml) (generate-sxml?))))
-      (apply <a>
-             (append
-              (list href: (if url
+    `(a (@ ,(cons
+             `(href ,(if url
+                         (string-append
+                          url
+                          (if (or pass-sid? (not (null? arguments)))
                               (string-append
-                               url
-                               (if (or pass-sid? (not (null? arguments)))
-                                   (string-append
-                                    "?"
-                                    (form-urlencode
-                                     (append arguments
-                                             (if pass-sid?
-                                                 `((sid . ,(sid)))
-                                                 '()))
-                                     separator: separator))
-                                   ""))
-                              "#"))
-              rest
-              (list text))))))
+                               "?"
+                               (form-urlencode
+                                (append arguments
+                                        (if pass-sid?
+                                            `((sid . ,(sid)))
+                                            '()))
+                                separator: separator))
+                              ""))
+                         "#"))
+             (plist->alist rest)))
+        ,text)))
 
 (define (form contents . rest)
-  (let* ((pass-sid? (and (not (enable-session-cookie))
-                         (sid)
-                         (session-valid? (sid))
-                         (not (get-keyword no-session: rest))))
-         (sxml? (or (generate-sxml?) (enable-sxml)))
-         (++* (if sxml?
-                  (lambda args (apply append (map list args)))
-                  string-append))
-         (null (if sxml? '() "")))
-    (parameterize ((generate-sxml? sxml?))
-      (apply <form>
-             (append rest
-                     (list
-                      (++* (if pass-sid?
-                               (hidden-input 'sid (sid))
-                               null)
-                           contents)))))))
+  (let ((pass-sid? (and (not (enable-session-cookie))
+                        (sid)
+                        (session-valid? (sid))
+                        (not (get-keyword no-session: rest)))))
+    `(form (@ ,@(append (plist->alist rest)
+                        (list
+                         (if pass-sid?
+                             `(input (@ (type "hidden")
+                                        (name "sid")
+                                        (value ,(sid))))
+                             '()))))
+           ,contents)))
 
 
 ;;; HTTP request variables access
@@ -559,11 +613,8 @@
                        (send-response
                         code: 500
                         reason: "Internal server error"
-                        body: (parameterize ((generate-sxml? (enable-sxml)))
-                                (let ((content ((page-exception-message) (%error))))
-                                  (if (enable-sxml)
-                                      ((sxml->html) content)
-                                      content)))
+                        body: (let ((content ((page-exception-message) (%error))))
+                                ((sxml->html) content))
                         headers: '((content-type text/html)))
                        (if (%redirect) ;; redirection
                            (let ((new-uri (if (string? (%redirect))
@@ -644,7 +695,6 @@
                     (loop (cdr resources))))
               (loop (cdr resources)))))))
 
-
 (define (add-resource! path vhost-root-path proc method strict?)
   (let ((methods (if (list? method) method (list method))))
     (for-each
@@ -681,37 +731,32 @@
                 method
                 (list method))))
 
-(define (maybe-literal-javascript js sxml?)
-  (if (and sxml? (literal-script/style?))
+(define (maybe-literal-javascript js)
+  (if (literal-script/style?)
       `(literal ,js)
       js))
 
-(define (include-page-javascript ajax? no-javascript-compression sxml?)
+(define (include-page-javascript ajax? no-javascript-compression)
   (if ajax?
-      (<script> type: "text/javascript"
-                (maybe-literal-javascript
+      `(script (@ (type "text/javascript"))
+               ,(maybe-literal-javascript
                  (maybe-compress-javascript
                   (string-append
                    "$(document).ready(function(){"
                    (page-javascript) "});")
-                  no-javascript-compression)
-                 sxml?))
+                  no-javascript-compression)))
       (if (string-null? (page-javascript))
-          ""
-          (<script> type: "text/javascript"
-                    (maybe-literal-javascript
+          '()
+          `(script (@ (type "text/javascript"))
+                   ,(maybe-literal-javascript
                      (maybe-compress-javascript
                       (page-javascript)
-                      no-javascript-compression)
-                     sxml?)))))
+                      no-javascript-compression))))))
 
-(define (include-page-css sxml?)
+(define (include-page-css)
   (if (%page-css)
-      (if sxml?
-          `(style ,(if (literal-script/style?)
-                       `(literal ,(%page-css))
-                       (%page-css)))
-          (<style> convert-to-entities?: (not (literal-script/style?))
+      `(style ,(if (literal-script/style?)
+                   `(literal ,(%page-css))
                    (%page-css)))
       ""))
 
@@ -748,34 +793,27 @@
       (and (enable-session) (session-valid? (sid)))))
 
 (define-inline (apply-page-template contents css title doctype ajax? use-ajax headers
-                                    charset no-javascript-compression sxml?)
-  (let* ((++* (if sxml?
-                  (lambda args (apply append (map list args)))
-                  string-append))
-         (null (if sxml? '() ""))
-         (out
-          (parameterize ((generate-sxml? sxml?))
-            ((page-template)
-             contents
-             css: (or css (page-css))
-             title: (or (%page-title) title)
-             doctype: (or doctype (page-doctype))
-             headers: (++* (include-page-css sxml?)
-                           (if ajax?
-                               (<script> type: "text/javascript"
-                                         src: (if (string? use-ajax)
-                                                  use-ajax
-                                                  (ajax-library)))
-                               "")
-                           (or headers null)
-                           (if (eq? (javascript-position) 'top)
-                               (include-page-javascript ajax? no-javascript-compression sxml?)
-                               null))
-             charset: (or charset (page-charset))
-             literal-style?: (literal-script/style?)))))
-    (if sxml?
-        ((sxml->html) out)
-        out)))
+                                    charset no-javascript-compression)
+  (let* ((out
+          ((page-template)
+           contents
+           css: (or css (page-css))
+           title: (or (%page-title) title)
+           doctype: (or doctype (page-doctype))
+           headers: `(,(include-page-css)
+                      ,(if ajax?
+                           `(script (@ (type "text/javascript")
+                                       (src ,(if (string? use-ajax)
+                                                 use-ajax
+                                                 (ajax-library)))))
+                           "")
+                      ,(or headers '())
+                      ,(if (eq? (javascript-position) 'top)
+                           (include-page-javascript ajax? no-javascript-compression)
+                           '()))
+           charset: (or charset (page-charset))
+           literal-style?: (literal-script/style?))))
+    ((sxml->html) out)))
 
 (define-inline (maybe-create/refresh-session! use-session)
   (when use-session
@@ -785,14 +823,13 @@
           (sid (session-create))
           ((session-cookie-setter) (sid))))))
 
-(define-inline (render-exception exn sxml?)
+(define-inline (render-exception exn)
   (%error exn)
   (debug (with-output-to-string
            (lambda ()
              (print-call-chain)
              (print-error-message exn))))
-  (parameterize ((generate-sxml? sxml?))
-    ((page-exception-message) exn)))
+  ((page-exception-message) exn))
 
 (define-inline (redirect-to-login-page path)
   ((sxml->html)
@@ -809,38 +846,29 @@
                       (string-append "&sid=" ($ 'sid))
                       "")))))))))
 
-(define-inline (render-page contents path given-path no-javascript-compression ajax? sxml?)
-  (let ((++* (if sxml?
-                 (lambda args (apply append (map list args)))
-                 string-append))
-        (null (if sxml? '() "")))
-    (parameterize ((generate-sxml? sxml?))
-      (let ((resp
-             (cond ((regexp? path)
-                    (contents given-path))
-                   ((not (not-set? (%path-procedure-result)))
-                    (let ((result (%path-procedure-result)))
-                      (apply contents result)))
-                   (else (contents)))))
-        (if (procedure? resp)
-            ;; eval resp here, where all
-            ;; parameters' values are set
-            (let ((out (resp))) (lambda () out))
-            (++* resp
-                 (if (eq? (javascript-position) 'bottom)
-                     (include-page-javascript ajax? no-javascript-compression sxml?)
-                     null)))))))
-
+(define-inline (render-page contents path given-path no-javascript-compression ajax?)
+  (let ((resp
+         (cond ((regexp? path)
+                (contents given-path))
+               ((not (not-set? (%path-procedure-result)))
+                (let ((result (%path-procedure-result)))
+                  (apply contents result)))
+               (else (contents)))))
+    (if (procedure? resp)
+        ;; eval resp here, where all
+        ;; parameters' values are set
+        (let ((out (resp))) (lambda () out))
+        `(,resp
+          ,(if (eq? (javascript-position) 'bottom)
+               (include-page-javascript ajax? no-javascript-compression)
+               '())))))
 
 (define (define-page path contents #!key css title doctype headers charset no-ajax
                      no-template no-session no-db vhost-root-path no-javascript-compression
-                     use-ajax (method '(GET HEAD)) (use-sxml not-set)
-                     use-session strict) ;; for define-session-page
+                     use-ajax (method '(GET HEAD)) strict
+                     use-session) ;; for define-session-page
   (##sys#check-closure contents 'define-page)
-  (let ((path (page-path path strict))
-        (sxml? (if (not-set? use-sxml)
-                   (enable-sxml)
-                   use-sxml)))
+  (let ((path (page-path path strict)))
     (add-resource!
      path
      (or vhost-root-path (root-path))
@@ -859,19 +887,32 @@
                         (let* ((ajax? (use-ajax? use-ajax no-ajax))
                                (contents
                                 (handle-exceptions exn
-                                  (render-exception exn sxml?)
-                                  (render-page contents path given-path no-javascript-compression ajax? sxml?))))
+                                  (render-exception exn)
+                                  (render-page contents
+                                               path
+                                               given-path
+                                               no-javascript-compression
+                                               ajax?))))
                           (if (%redirect)
-                              #f ;; no need to do anything.  Let `run-resource' perform the redirection
+                              #f ;; no need to do anything.  Let
+                                 ;; `run-resource' perform the redirection
                               (if (procedure? contents)
                                   contents
                                   (if no-template
-                                      (if sxml? ((sxml->html) contents) contents)
-                                      (apply-page-template contents css title doctype ajax? use-ajax headers charset
-                                                           no-javascript-compression sxml?))))))
+                                      ((sxml->html) contents)
+                                      (apply-page-template contents
+                                                           css
+                                                           title
+                                                           doctype
+                                                           ajax?
+                                                           use-ajax
+                                                           headers
+                                                           charset
+                                                           no-javascript-compression))))))
                       ((page-template) ((page-access-denied-message) (or given-path path))))
                   (redirect-to-login-page (or given-path path)))))
-         (when (and (db-connection) (db-enabled?) (not no-db)) ((db-disconnect) (db-connection)))
+         (when (and (db-connection) (db-enabled?) (not no-db))
+           ((db-disconnect) (db-connection)))
          out))
      method
      strict))
@@ -879,7 +920,8 @@
 
 
 (define (define-session-page path contents . rest)
-  ;; `rest' are same keyword params as for `define-page' (except `no-session', obviously)
+  ;; `rest' are same keyword params as for `define-page' (except
+  ;; `no-session', obviously)
   (apply define-page (append (list path contents) (list use-session: #t) rest)))
 
 
@@ -892,13 +934,10 @@
 (define (ajax path id event proc #!key (action 'html) (method 'POST) (arguments '())
               target success no-session no-db no-page-javascript vhost-root-path
               live on content-type prelude update-targets (cache 'not-set) error-handler
-              (use-sxml not-set) strict)
+              strict)
   (when (and on live)
     (error 'ajax "`live' and `on' cannot be used together."))
-  (let ((path (page-path path strict (ajax-namespace)))
-        (sxml? (if (not-set? use-sxml)
-                   (enable-sxml)
-                   use-sxml)))
+  (let ((path (page-path path strict (ajax-namespace))))
     (add-resource! path
                    (or vhost-root-path (root-path))
                    (lambda (#!optional given-path)
@@ -918,22 +957,16 @@
                                                 (lambda ()
                                                   (json-write
                                                    (list->vector
-                                                    (if sxml?
-                                                        (parameterize ((generate-sxml? #t)) ;; code in ajax can use html-tags
-                                                          (map (lambda (id/content)
-                                                                 (cons (car id/content) ((sxml->html) (cdr id/content))))
-                                                               (proc)))
-                                                        (proc))))))
-                                              (if sxml?
-                                                  ((sxml->html) (proc))
-                                                  (proc)))))
+                                                    (map (lambda (id/content)
+                                                           (cons (car id/content)
+                                                                 ((sxml->html) (cdr id/content))))
+                                                         (proc))))))
+                                              ((sxml->html) (proc)))))
                                  (when (and (db-credentials) (db-enabled?) (not no-db))
                                    ((db-disconnect) (db-connection)))
                                  out))
-                             (parameterize ((generate-sxml? sxml?))
-                               ((page-access-denied-message) path)))
-                         (parameterize ((generate-sxml? sxml?))
-                           (ajax-invalid-session-message))))
+                             ((page-access-denied-message) path))
+                         (ajax-invalid-session-message)))
                    method
                    strict)
     (let* ((arguments (if (and (sid) (session-valid? (sid)))
@@ -999,7 +1032,7 @@
 (define (periodical-ajax path interval proc #!key target (action 'html) (method 'POST)
                          (arguments '()) success no-session no-db vhost-root-path live on
                          content-type prelude update-targets cache error-handler
-                         (use-sxml not-set) strict)
+                         strict)
   (add-javascript
    (string-append
     "setInterval("
@@ -1019,7 +1052,6 @@
           update-targets: update-targets
           error-handler: error-handler
           cache: cache
-          use-sxml: use-sxml
           strict: strict
           no-page-javascript: #t)
        ", " (->string interval) ");\n")))
@@ -1027,8 +1059,7 @@
 (define (ajax-link path id text proc #!key target (action 'html) (method 'POST) (arguments '())
                    success no-session no-db (event 'click) vhost-root-path live on class
                    hreflang type rel rev charset coords shape accesskey tabindex a-target
-                   content-type prelude update-targets error-handler cache (use-sxml not-set)
-                   strict)
+                   content-type prelude update-targets error-handler cache strict)
   (ajax path id event proc
         target: target
         action: action
@@ -1044,23 +1075,23 @@
         update-targets: update-targets
         error-handler: error-handler
         cache: cache
-        use-sxml: use-sxml
         strict: strict
         no-db: no-db)
-  (<a> href: "#"
-       id: id
-       class: class
-       hreflang: hreflang
-       type: type
-       rel: rel
-       rev: rev
-       charset: charset
-       coords: coords
-       shape: shape
-       accesskey: accesskey
-       tabindex: tabindex
-       target: a-target
-       text))
+  `(a (@ ,(cons '(href "#")
+                (filter cadr
+                        `((id ,id)
+                          (class ,class)
+                          (hreflang ,hreflang)
+                          (type ,type)
+                          (rel ,rel)
+                          (rev ,rev)
+                          (charset ,charset)
+                          (coords ,coords)
+                          (shape ,shape)
+                          (accesskey ,accesskey)
+                          (tabindex ,tabindex)
+                          (target ,a-target)))))
+      ,text))
 
 
 ;;; Login form
@@ -1071,17 +1102,31 @@
                           (refill-user #t))
   (let ((attempted-path ($ 'attempted-path))
         (user ($ 'user)))
-    (<form> action: trampoline-path method: "post"
-            (if attempted-path
-                (hidden-input 'attempted-path attempted-path)
-                "")
-            (<span> id: "user-container"
-                    (<label> id: "user-label" for: "user" user-label)
-                    (<input> type: "text" id: "user" name: "user" value: (and refill-user user)))
-            (<span> id: "password-container"
-                    (<label> id: "password-label" for: "password" password-label)
-                    (<input> type: "password" id: "password" name: "password"))
-            (<input> type: "submit" id: "login-submit" value: submit-label))))
+    `(form (@ (action ,trampoline-path)
+              (method "post"))
+           ,(if attempted-path
+                `(input (@ (type "hidden")
+                           (name "attempted-path")
+                           (value ,attempted-path)))
+                '())
+            (span (@ (id "user-container"))
+                  (label (@ (id "user-label")
+                            (for "user"))
+                         ,user-label)
+                  (input (@ (type "text")
+                            (id "user")
+                            (name "user")
+                            (value ,(and refill-user user)))))
+            (span (@ (id "password-container"))
+                  (label (@ (id "password-label")
+                            (for "password"))
+                         ,password-label)
+                  (input (@ (type "password")
+                            (id "password")
+                            (name "password"))))
+            (input (@ (type "submit")
+                      (id "login-submit")
+                      (value ,submit-label))))))
 
 
 ;;; Login trampoline (for redirection)
@@ -1099,20 +1144,21 @@
         (when hook (hook user))
         (html-page
          ""
-         headers: (<meta> http-equiv: "refresh"
-                          content: (string-append
-                                    "0;url="
-                                    (if new-sid
-                                        (string-append
-                                         (or attempted-path (main-page-path))
-                                         "?user=" user
-                                         (if (enable-session-cookie)
-                                             ""
-                                             (string-append "&sid=" new-sid)))
-                                        (string-append
-                                         (login-page-path)
-                                         "?reason=invalid-password&user="
-                                         user)))))))
+         headers: `(meta (@ (http-equiv "refresh")
+                            (content
+                             ,(string-append
+                               "0;url="
+                               (if new-sid
+                                   (string-append
+                                    (or attempted-path (main-page-path))
+                                    "?user=" user
+                                    (if (enable-session-cookie)
+                                        ""
+                                        (string-append "&sid=" new-sid)))
+                                   (string-append
+                                    (login-page-path)
+                                    "?reason=invalid-password&user="
+                                    user)))))))))
     method: 'POST
     vhost-root-path: vhost-root-path
     no-session: #t
@@ -1122,10 +1168,6 @@
 ;;; Web repl
 (define (enable-web-repl path #!key css (title "Awful Web REPL") headers)
   (unless (development-mode?) (%web-repl-path path))
-  (define (maybe-literal . content)
-    (if (enable-sxml)
-        `(literal ,@content)
-        (string-intersperse content "")))
 
   (define (fancy-editor-js)
     (if (enable-web-repl-fancy-editor)
@@ -1198,7 +1240,6 @@
                             "});"))
 
             (ajax (string-append path "-eval") 'eval 'click web-eval
-                  use-sxml: #t
                   target: "result"
                   arguments: `((code . ,(if (enable-web-repl-fancy-editor)
                                             "editor.getCode()"
@@ -1207,12 +1248,14 @@
             (when (enable-web-repl-fancy-editor)
               (ajax (string-append path "-eval") 'eval-region 'click web-eval
                     target: "result"
-                    use-sxml: #t
                     arguments: `((code . "editor.selection()"))))
 
             `((h1 ,title)
               (h2 "Input area")
-              ,(let ((prompt `(textarea (@ (id "prompt") (name "prompt") (rows "10") (cols "90")))))
+              ,(let ((prompt `(textarea (@ (id "prompt")
+                                           (name "prompt")
+                                           (rows "10")
+                                           (cols "90")))))
                  (if (enable-web-repl-fancy-editor)
                      `(div (@ (class "border")) ,prompt)
                      prompt))
@@ -1227,18 +1270,16 @@
               (h2 "Output area")
               (div (@ (id "result")))
               ,(fancy-editor-js)))
-          (parameterize ((generate-sxml? #t))
-            (web-repl-access-denied-message))))
-    headers: (parameterize ((enable-sxml #t))
-               (append
-                (if (enable-web-repl-fancy-editor)
-                    (include-javascript (make-pathname (web-repl-fancy-editor-base-uri) "codemirror.js")
-                                        (make-pathname (web-repl-fancy-editor-base-uri) "mirrorframe.js"))
-                    '())
-                (list (web-repl-css))))
+          (web-repl-access-denied-message)))
+    headers: (append
+              (if (enable-web-repl-fancy-editor)
+                  (include-javascript
+                   (make-pathname (web-repl-fancy-editor-base-uri) "codemirror.js")
+                   (make-pathname (web-repl-fancy-editor-base-uri) "mirrorframe.js"))
+                  '())
+              (list (web-repl-css)))
     use-ajax: #t
     title: title
-    use-sxml: #t
     css: css))
 
 
@@ -1278,13 +1319,11 @@
                                               (td (pre (@ (class "session-inspector-value"))
                                                        ,val)))))
                                      bindings))))))
-            (parameterize ((generate-sxml? #t))
-              (session-inspector-access-denied-message)))))
+            (session-inspector-access-denied-message))))
     headers: (if headers
                  (append (or css builtin-css) headers)
                  (or css builtin-css))
     title: title
-    use-sxml: #t
     css: css))
 
 ) ; end module
