@@ -489,7 +489,7 @@
                         (not (get-keyword no-session: rest))))
         (arguments (or (get-keyword arguments: rest) '()))
         (separator (or (get-keyword separator: rest) ";&")))
-    `(a (@ ,(cons
+    `(a (@ ,(append
              `(href ,(if url
                          (string-append
                           url
