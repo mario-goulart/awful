@@ -49,6 +49,7 @@
    define-login-trampoline enable-web-repl enable-session-inspector
    awful-version load-apps reload-apps link form redirect-to
    add-request-handler-hook! remove-request-handler-hook! set-page-title!
+   html-page
 
    ;; Macros
    (define-app path-split path-prefix? match-matcher)
