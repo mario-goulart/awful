@@ -43,7 +43,7 @@
    enable-sxml literal-script/style?
 
    ;; Procedures
-   ++ concat include-javascript add-javascript add-css debug debug-pp $session
+   include-javascript add-javascript add-css debug debug-pp $session
    $session-set! $ $db $db-row-obj define-page undefine-page
    define-session-page ajax ajax-link periodical-ajax login-form
    define-login-trampoline enable-web-repl enable-session-inspector
@@ -296,8 +296,6 @@
         page)))
 
 ;;; Misc
-(define ++ string-append)
-
 (define (concat args #!optional (sep ""))
   (string-intersperse (map ->string args) sep))
 
