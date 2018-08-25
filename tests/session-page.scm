@@ -1,4 +1,11 @@
-(use posix awful)
+(cond-expand
+  (chicken-4
+   (use awful))
+  (chicken-5
+   (import (chicken string))
+   (import awful))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (define-session-page (main-page-path)
   (lambda ()

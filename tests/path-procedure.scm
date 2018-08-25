@@ -1,4 +1,11 @@
-(use awful)
+(cond-expand
+  (chicken-4
+   (use awful))
+  (chicken-5
+   (import (chicken string))
+   (import awful srfi-13))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (define (ticket-id path)
   (and (string-prefix? "/ticket/" path)

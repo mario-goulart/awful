@@ -1,12 +1,20 @@
 #!/usr/bin/awful
 
-(use awful regex)
+(cond-expand
+  (chicken-4
+   (use irregex)
+   (use awful))
+  (chicken-5
+   (import (chicken irregex))
+   (import awful))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 ;; / -> /foo
 (define-page (main-page-path) (cut redirect-to "/foo"))
 
 ;; /bar.* -> /foo
-(define-page (regexp "/bar.*")
+(define-page (irregex "/bar.*")
   (lambda (_)
     (redirect-to "/foo")))
 
@@ -23,4 +31,4 @@
 (define-page "/d" (lambda () "D"))
 
 (define-page "/chicken"
-  (cut redirect-to "http://www.call-with-current-continuation.org"))
+  (cut redirect-to "http://www.call-cc.org"))

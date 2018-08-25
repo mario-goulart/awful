@@ -8,12 +8,10 @@
  (category web)
  (depends json
           (http-session "2.4")
-          regex
           (spiffy "4.11")
           spiffy-cookies
           (spiffy-request-vars "0.13")
           sxml-transforms)
  (test-depends http-client
-               regex
                server-test
                test))

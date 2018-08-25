@@ -1,4 +1,12 @@
-(use awful)
+;; Test for authentication.  Use user=mario, password=mario
+
+(cond-expand
+  (chicken-4
+   (use awful))
+  (chicken-5
+   (import awful))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (enable-session #t)
 

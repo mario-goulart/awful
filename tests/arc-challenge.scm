@@ -1,4 +1,10 @@
-(use awful)
+(cond-expand
+  (chicken-4
+   (use awful))
+  (chicken-5
+   (import awful))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (define-session-page "said"
   (lambda ()

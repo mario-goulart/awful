@@ -1,4 +1,11 @@
-(use awful)
+(cond-expand
+  (chicken-4
+   (use awful posix))
+  (chicken-5
+   (import (chicken time))
+   (import awful))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (enable-ajax #t)
 

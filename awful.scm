@@ -1,4 +1,4 @@
-;; Copyright (c) 2010-2015, Mario Domenech Goulart
+;; Copyright (c) 2010-2018, Mario Domenech Goulart
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -70,17 +70,72 @@
 
    ) ; end export list
 
-(import scheme chicken data-structures utils extras ports srfi-69 files srfi-1)
+(import scheme)
+(cond-expand
+  (chicken-4
+   ;; Units
+   (import chicken data-structures extras files irregex ports srfi-1 srfi-69)
+   (use posix srfi-13 tcp utils)
 
-;; Units
-(use posix srfi-13 tcp)
+   ;; Eggs
+   (use intarweb spiffy spiffy-request-vars uri-common
+        http-session json spiffy-cookies sxml-transforms)
 
-;; Eggs
-(use intarweb spiffy spiffy-request-vars uri-common
-     http-session json spiffy-cookies regex sxml-transforms)
+   ;; For match-matcher
+   (import-for-syntax irregex)
 
-;; For match-matcher
-(import-for-syntax regex)
+   ;; Special definitions
+   (define slurp read-all))
+
+  (chicken-5
+   ;; Built-in modules
+   (import (chicken base)
+           (chicken condition)
+           (chicken process-context posix)
+           (chicken string)
+           (chicken io)
+           (chicken irregex)
+           (chicken file)
+           (chicken fixnum)
+           (chicken format)
+           (chicken keyword)
+           (chicken pathname)
+           (chicken platform)
+           (chicken port)
+           (chicken pretty-print)
+           (chicken process-context)
+           (chicken tcp)
+           (chicken time)
+           (chicken time posix)
+           (chicken type)
+           (chicken string)
+           (chicken condition))
+
+   ;; Eggs
+   (import intarweb spiffy spiffy-request-vars uri-common
+           http-session json spiffy-cookies srfi-1 srfi-13
+           srfi-69 sxml-transforms)
+
+   ;; For match-matcher
+   (import-for-syntax (chicken irregex))
+
+   ;; Special definitions
+   (define (slurp file)
+     (with-input-from-file file read-string))
+
+   (define (read-file #!optional (port ##sys#standard-input) (reader read) max)
+     (define (slurp port)
+       (do ((x (reader port) (reader port))
+            (i 0 (fx+ i 1))
+            (xs '() (cons x xs)) )
+           ((or (eof-object? x) (and max (fx>= i max))) (##sys#fast-reverse xs))))
+     (if (port? port)
+         (slurp port)
+         (call-with-input-file port slurp))))
+
+
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (include "version.scm")
 
@@ -221,8 +276,8 @@
                   (map (lambda (f)
                          (if (list? f)
                              (let ((data
-                                    (read-all (make-pathname (current-directory)
-                                                             (car f)))))
+                                    (slurp (make-pathname (current-directory)
+                                                          (car f)))))
                                `(style ,(if literal-style?
                                             `(literal ,data)
                                             data)))
@@ -389,8 +444,8 @@
         ((list? matcher-obj)
          (when (path-prefix? matcher-obj (path-split path))
            (thunk)))
-        ((regexp? matcher-obj)
-         (when (string-match matcher-obj path)
+        ((irregex? matcher-obj)
+         (when (irregex-match matcher-obj path)
            (thunk)))
         (else (error 'define-app "Unknown matcher object" matcher-obj))))
 
@@ -667,10 +722,10 @@
                (current-vhost (cadar current-resource))
                (current-method (caddar current-resource))
                (current-proc (cdr current-resource)))
-          (if (and (regexp? current-path)
+          (if (and (irregex? current-path)
                    (equal? current-vhost vhost-root-path)
                    (eq? current-method method)
-                   (string-match current-path path))
+                   (irregex-match current-path path))
               current-proc
               (loop (cdr resources)))))))
 
@@ -761,7 +816,7 @@
       ""))
 
 (define (page-path path strict? #!optional namespace)
-  (cond ((regexp? path) path)
+  (cond ((irregex? path) path)
         ((procedure? path) path)
         ((equal? path "/") (app-root-path))
         (else
@@ -848,7 +903,7 @@
 
 (define-inline (render-page contents path given-path no-javascript-compression ajax?)
   (let ((resp
-         (cond ((regexp? path)
+         (cond ((irregex? path)
                 (contents given-path))
                ((not (not-set? (%path-procedure-result)))
                 (let ((result (%path-procedure-result)))

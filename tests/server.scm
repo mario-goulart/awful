@@ -1,4 +1,4 @@
-;; Copyright (c) 2010-2015, Mario Domenech Goulart
+;; Copyright (c) 2010-2018, Mario Domenech Goulart
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,17 @@
 ;; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 ;; IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(use awful spiffy regex)
+(cond-expand
+  (chicken-4
+   (use irregex srfi-13)
+   (use awful spiffy))
+  (chicken-5
+   (import (chicken file)
+           (chicken irregex)
+           (chicken string))
+   (import awful spiffy srfi-13 srfi-69))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (define-page "a" (lambda () "a"))
 
@@ -275,7 +285,7 @@
 
 ;; Matcher as regex
 (define-app app3
-  matcher: (regexp "(/app3|/app3/.*)")
+  matcher: (irregex "(/app3|/app3/.*)")
   parameters: ((define-app-param 3))
 
   (define-page "/app3" define-app-test-handler)

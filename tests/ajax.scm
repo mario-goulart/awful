@@ -1,6 +1,12 @@
-#!/usr/bin/csi -script
-
-(use posix awful spiffy-request-vars)
+(cond-expand
+  (chicken-4
+   (use awful))
+  (chicken-5
+   (import (chicken string)
+           (chicken time))
+   (import awful))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (enable-ajax #t)
 

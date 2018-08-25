@@ -1,4 +1,4 @@
-;; Copyright (c) 2010-2015, Mario Domenech Goulart
+;; Copyright (c) 2010-2018, Mario Domenech Goulart
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -24,9 +24,24 @@
 ;; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 ;; IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(declare (uses chicken-syntax))
-(use irregex posix srfi-1 srfi-13)
-(use awful)
+(module awful-server ()
+
+(import scheme)
+(cond-expand
+  (chicken-4
+   (import chicken)
+   (declare (uses chicken-syntax))
+   (use data-structures files irregex posix srfi-1 srfi-13)
+   (use awful))
+  (chicken-5
+   (import (chicken base)
+           (chicken irregex)
+           (chicken pathname)
+           (chicken process-context)
+           (chicken string))
+   (import awful srfi-1 srfi-13))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (define (usage #!optional exit-code)
   (let ((awful (pathname-strip-directory (program-name)))
@@ -113,3 +128,5 @@ EOF
      port: (and port (string->number port))
      bind-address: ip-address
      use-fancy-web-repl?: use-fancy-web-repl?)))
+
+) ;; end of module

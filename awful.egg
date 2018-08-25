@@ -1,0 +1,25 @@
+;;; awful.meta -*- scheme -*-
+
+((synopsis
+  "awful provides an application and an extension to ease the development of web-based applications.")
+ (author "Mario Domenech Goulart")
+ (license "BSD")
+ (category web)
+ (dependencies json
+               http-session
+               spiffy
+               spiffy-cookies
+               spiffy-request-vars
+               sxml-transforms
+               srfi-1
+               srfi-13
+               srfi-69)
+ (test-dependencies http-client
+                    server-test
+                    test)
+ (component-options
+  (csc-options "-O3" "-d1"))
+ (components (extension awful)
+             (program awful-server
+                      (install-name awful)
+                      (component-dependencies awful))))

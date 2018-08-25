@@ -1,4 +1,4 @@
-;; Copyright (c) 2010-2015, Mario Domenech Goulart
+;; Copyright (c) 2010-2018, Mario Domenech Goulart
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,20 @@
 ;; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 ;; IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(use test http-client posix setup-api intarweb uri-common awful)
+(cond-expand
+  (chicken-4
+   (use test http-client posix setup-api intarweb uri-common awful))
+  (chicken-5
+   (import (chicken condition)
+           (chicken file)
+           (chicken file posix)
+           (chicken format)
+           (chicken io)
+           (chicken pathname))
+   (import awful intarweb http-client srfi-13 test uri-common)
+   (define close-all-connections! close-idle-connections!))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (define server-uri (sprintf "http://localhost:~a" (server-port)))
 
@@ -61,7 +74,9 @@
 ;;; cleanup
 (if (and (file-exists? "a") (not (directory? "a")))
     (delete-file* "a")
-    (remove-directory "a" #f))
+    (handle-exceptions exn
+      #f ;; FIXME: check exception type
+      (delete-directory "a" 'recursively)))
 
 ;; When a procedure is bound to a path and the path does not exist,
 ;; just execute the procedure
@@ -82,7 +97,9 @@
 (test "index" (get "/a"))
 (test "index" (get "/a/"))
 
-(remove-directory "a")
+(handle-exceptions exn
+  #f ;; FIXME: check exception type
+  (delete-directory "a" 'recursively))
 
 ;; When a procedure is bound to a path and the path exists and is a
 ;; file, if the request is either for for <path> or <path>/, the

@@ -3,7 +3,13 @@
 ;;
 ;;    $ awful ajax.scm conf.scm
 
-(use spiffy awful)
+(cond-expand
+  (chicken-4
+   (use awful spiffy))
+  (chicken-5
+   (import awful spiffy))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (debug-log (current-error-port))
 

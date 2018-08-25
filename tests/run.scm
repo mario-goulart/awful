@@ -1,4 +1,11 @@
-(use server-test test awful spiffy posix)
+(cond-expand
+  (chicken-4
+   (use server-test test awful spiffy posix))
+  (chicken-5
+   (import (chicken process-context))
+   (import awful server-test spiffy test))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (test-server-port
  (cond ((get-environment-variable "SPIFFY_TEST_PORT")

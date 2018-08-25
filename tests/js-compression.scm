@@ -1,4 +1,12 @@
-(use awful posix jsmin)
+(cond-expand
+  (chicken-4
+   (use awful))
+  (chicken-5
+   (import (chicken string)
+           (chicken time))
+   (import awful jsmin))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (enable-ajax #t)
 (enable-javascript-compression #t)
@@ -12,6 +20,7 @@
     (ajax "/click" 'clickme '(click dblclick)
           (lambda () (->string (current-seconds)))
           target: "clicked")
-    `(a (@ (href "#")
-           (id "clickme" "Click me"))
-        (span (@ (id "clicked"))))))
+    `((a (@ (href "#")
+            (id "clickme"))
+         "Click me")
+      (span (@ (id "clicked"))))))

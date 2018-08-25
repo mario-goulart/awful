@@ -1,6 +1,16 @@
 #!/usr/bin/awful
 
-(use awful)
+;; 1. Use any credentials to log in
+;; 2. After logging in, you should see "hello"
+;; 3. Request /session-inspector
+
+(cond-expand
+  (chicken-4
+   (use awful))
+  (chicken-5
+   (import awful))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (valid-password? (lambda _ #t))
 
