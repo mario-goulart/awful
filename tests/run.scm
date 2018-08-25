@@ -26,6 +26,8 @@
 (test-begin "link")
 (test '(a (@ (href "/foo")) "bar")
       (link "/foo" "bar"))
+(test '(a (@ (href "/foo") (id "foo")) "bar")
+      (link "/foo" "bar" id: "foo"))
 (test-end "link")
 
 (test-end "awful")
