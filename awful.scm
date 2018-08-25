@@ -909,7 +909,9 @@
                                                            headers
                                                            charset
                                                            no-javascript-compression))))))
-                      ((page-template) ((page-access-denied-message) (or given-path path))))
+                      ((sxml->html)
+                       ((page-template)
+                        ((page-access-denied-message) (or given-path path)))))
                   (redirect-to-login-page (or given-path path)))))
          (when (and (db-connection) (db-enabled?) (not no-db))
            ((db-disconnect) (db-connection)))
