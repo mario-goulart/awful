@@ -1,4 +1,4 @@
-;;; awful.meta -*- scheme -*-
+;;; awful.egg -*- scheme -*-
 
 ((synopsis
   "awful provides an application and an extension to ease the development of web-based applications.")
