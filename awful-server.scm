@@ -126,7 +126,7 @@ EOF
                                        (string-split privileged-code ","))))
      dev-mode?: dev-mode?
      port: (and port (string->number port))
-     bind-address: ip-address
+     ip-address: ip-address
      use-fancy-web-repl?: use-fancy-web-repl?)))
 
 ) ;; end of module
