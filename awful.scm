@@ -1227,7 +1227,7 @@
 
   (define (fancy-editor-js)
     (if (enable-web-repl-fancy-editor)
-        `(script (@ (type: "text/javascript"))
+        `(script (@ (type "text/javascript"))
                  (literal ,(string-append "
   function addClass(element, className) {
     if (!editor.win.hasClass(element, className)) {
