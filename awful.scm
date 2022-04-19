@@ -111,6 +111,7 @@
            (chicken type)
            (chicken string)
            (chicken condition))
+   (import srfi-14)
 
    ;; Eggs
    (import intarweb spiffy spiffy-request-vars uri-common
@@ -629,31 +630,47 @@
 (define (awful-resources-table)
   *resources*)
 
+;; Copied from spiffy
+(define impossible-filename?
+  (let ((invalid-set (if (or ##sys#windows-platform
+                             ;; This detects CHICKENs with the bug
+                             (string=? (make-pathname "/" "\\") "/"))
+                         (char-set #\\ #\/ #\nul)
+                         (char-set #\/ #\nul))))
+    (lambda (name)
+      (or (string=? name ".")
+          (string=? name "..")
+          (string-index name invalid-set)))))
+
 (define (register-dispatcher)
+  (define (full-path parts)
+    (string-append "/" (string-intersperse parts "/")))
   (handle-not-found
    (let ((old-handler (handle-not-found)))
      (lambda (_)
-       (let* ((path-list (uri-path (request-uri (current-request))))
-              (method (request-method (current-request)))
-              (path (if (null? (cdr path-list))
-                        (car path-list)
-                        (string-append "/" (string-intersperse (cdr path-list) "/"))))
-              (proc/strict? (resource-ref path (root-path) method)))
-         (if proc/strict?
-             (run-resource (car proc/strict?) path)
-             (if (equal? (last path-list) "") ;; requested path is a
-                 ;; dir try to find a procedure with the trailing
-                 ;; slash removed and run it _only_ if the resource
-                 ;; has been defined as not strict.
-                 (let* ((proc/strict? (resource-ref (string-chomp path "/")
-                                                    (root-path)
-                                                    method))
-                        (proc (and proc/strict? (car proc/strict?)))
-                        (strict? (and proc/strict? (cdr proc/strict?))))
-                   (if (and proc (not strict?))
-                       (run-resource proc path)
-                       (old-handler _)))
-                 (old-handler _))))))))
+       (let ((path-list (uri-path (request-uri (current-request)))))
+         (if (any impossible-filename? (cdr path-list))
+             (old-handler (full-path (cdr path-list)))
+             (let* ((method (request-method (current-request)))
+                    (path (if (null? (cdr path-list))
+                              (car path-list)
+                              (full-path (cdr path-list))))
+                    (proc/strict? (resource-ref path (root-path) method)))
+               (if proc/strict?
+                   (run-resource (car proc/strict?) path)
+                   (if (equal? (last path-list) "") ;; requested path is a
+                       ;; dir try to find a procedure with the trailing
+                       ;; slash removed and run it _only_ if the resource
+                       ;; has been defined as not strict.
+                       (let* ((proc/strict? (resource-ref (string-chomp path "/")
+                                                          (root-path)
+                                                          method))
+                              (proc (and proc/strict? (car proc/strict?)))
+                              (strict? (and proc/strict? (cdr proc/strict?))))
+                         (if (and proc (not strict?))
+                             (run-resource proc path)
+                             (old-handler _)))
+                       (old-handler _))))))))))
 
 (define (run-resource proc path)
   (reset-per-request-parameters)
