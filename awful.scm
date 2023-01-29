@@ -1053,7 +1053,9 @@
                      (conc "contentType: '" content-type "',")
                      "")
                  "success:function(response){"
-                 (or success
+                 (string-append
+                     (or success "")
+                     ";"
                      (cond (update-targets
                             "$.each(response, function(id, html) { $('#' + id).html(html);});")
                            (target
