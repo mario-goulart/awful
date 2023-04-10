@@ -76,7 +76,7 @@
   (chicken-4
    ;; Units
    (import chicken data-structures extras files irregex ports srfi-1 srfi-69)
-   (use posix srfi-13 tcp utils)
+   (use posix srfi-13 srfi-14 tcp utils)
 
    ;; Eggs
    (use intarweb spiffy spiffy-request-vars uri-common
