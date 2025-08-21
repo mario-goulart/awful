@@ -28,11 +28,12 @@
   (chicken-4
    (use irregex srfi-13)
    (use awful spiffy))
-  (chicken-5
+  ((or chicken-5 chicken-6)
    (import (chicken file)
            (chicken irregex)
            (chicken string))
-   (import awful spiffy srfi-13 srfi-69))
+   (import awful spiffy srfi-13 srfi-69)
+   (cond-expand (chicken-6 (import (scheme base))) (else)))
   (else
    (error "Unsupported CHICKEN version.")))
 

@@ -1,7 +1,7 @@
 (cond-expand
   (chicken-4
    (use server-test test awful spiffy posix))
-  (chicken-5
+  ((or chicken-5 chicken-6)
    (import (chicken process-context))
    (import awful server-test spiffy test))
   (else

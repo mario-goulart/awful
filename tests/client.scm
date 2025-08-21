@@ -27,7 +27,7 @@
 (cond-expand
   (chicken-4
    (use test http-client posix setup-api intarweb uri-common awful))
-  (chicken-5
+  ((or chicken-5 chicken-6)
    (import (chicken condition)
            (chicken file)
            (chicken file posix)

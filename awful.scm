@@ -88,7 +88,7 @@
    ;; Special definitions
    (define slurp read-all))
 
-  (chicken-5
+  ((or chicken-5 chicken-6)
    ;; Built-in modules
    (import (chicken base)
            (chicken condition)
@@ -111,6 +111,7 @@
            (chicken type)
            (chicken string)
            (chicken condition))
+   (cond-expand (chicken-6 (import (scheme base))) else)
    (import srfi-14)
 
    ;; Eggs

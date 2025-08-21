@@ -4,7 +4,7 @@
   (chicken-4
    (use irregex)
    (use awful))
-  (chicken-5
+  ((or chicken-5 chicken-6)
    (import (chicken irregex))
    (import awful))
   (else
