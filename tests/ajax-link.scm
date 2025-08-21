@@ -1,7 +1,7 @@
 (cond-expand
   (chicken-4
    (use awful posix))
-  (chicken-5
+  ((or chicken-5 chicken-6)
    (import (chicken time))
    (import awful))
   (else

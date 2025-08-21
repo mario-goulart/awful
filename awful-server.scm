@@ -33,7 +33,7 @@
    (declare (uses chicken-syntax))
    (use data-structures files irregex posix srfi-1 srfi-13)
    (use awful))
-  (chicken-5
+  ((or chicken-5 chicken-6)
    (import (chicken base)
            (chicken irregex)
            (chicken pathname)

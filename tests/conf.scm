@@ -6,7 +6,7 @@
 (cond-expand
   (chicken-4
    (use awful spiffy))
-  (chicken-5
+  ((or chicken-5 chicken-6)
    (import awful spiffy))
   (else
    (error "Unsupported CHICKEN version.")))
