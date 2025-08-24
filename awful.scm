@@ -111,7 +111,7 @@
            (chicken type)
            (chicken string)
            (chicken condition))
-   (cond-expand (chicken-6 (import (scheme base))) else)
+   (cond-expand (chicken-6 (import (scheme base))) (else))
    (import srfi-14)
 
    ;; Eggs
