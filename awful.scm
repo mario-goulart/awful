@@ -111,7 +111,7 @@
            (chicken type)
            (chicken string)
            (chicken condition))
-   (cond-expand (chicken-6 (import (scheme base))) (else))
+   (cond-expand (chicken-6 (import (scheme base) (chicken memory representation))) (else))
    (import srfi-14)
 
    ;; Eggs
@@ -702,7 +702,10 @@
                              (or (and-let* ((headers (awful-response-headers))
                                             (content-length (alist-ref 'content-length headers)))
                                    (list (cons 'content-length content-length)))
-                                 `((content-length ,(string-length out)))))
+                                 `((content-length
+                                    ,(cond-expand
+                                       (chicken-6 (number-of-bytes out))
+                                       (else (string-length out)))))))
                             (lambda ()
                               (write-logged-response)
                               (unless (eq? 'HEAD (request-method (current-request)))
